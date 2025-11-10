@@ -7,4 +7,9 @@ builder
     .WithUrl("http://localhost:5120/")
     .WithExplicitStart();
 
+builder
+    .AddMicroservice(name: "regulator-frontend", repoFolder: "epr-regulator-service", workingDirectory: "src/EPR.RegulatorService.Frontend.Web")
+    .WithUrl("https://localhost:7154/")
+    .WithExplicitStart();
+
 builder.Build().Run();
