@@ -2,31 +2,38 @@ using EPR.AspireAppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var redis = builder.AddRedis("epr-redis")
+    .WithPassword(null)
+    .WithHostPort(6379);
+
 builder
-    .AddMicroservice(name: "big-vibe-config-tool", repoFolder: "epr-tools-environment-variables")
+    .AddMicroservice("big-vibe-config-tool", "epr-tools-environment-variables")
     .WithUrl("http://localhost:5120/");
 
 builder
-    .AddMicroservice(name: "regulator-frontend", repoFolder: "epr-regulator-service", workingDirectory: "src/EPR.RegulatorService.Frontend.Web")
+    .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
+    .WithReference(redis)
+    .WithEnvironment("RedisInstanceName", "epr-redis")
     .WithUrl("https://localhost:7154/regulators/");
 
 // todo: ports from here
 builder
-    .AddMicroservice(name: "regulator-service-facade", repoFolder: "epr-regulator-service-facade", workingDirectory: "src/EPR.RegulatorService.Facade.API")
+    .AddMicroservice("regulator-service-facade", "epr-regulator-service-facade", "src/EPR.RegulatorService.Facade.API")
     .WithUrl("https://localhost:7253/");
 
 builder
-    .AddMicroservice(name: "backend-account", repoFolder: "epr-backend-account-microservice", workingDirectory: "src/BackendAccountService.Api")
+    .AddMicroservice("backend-account", "epr-backend-account-microservice", "src/BackendAccountService.Api")
     .WithUrl("http://localhost:5000/swagger/");
 
 builder
-    .AddMicroservice(name: "frontend-account-creation", repoFolder: "epr-frontend-accountcreation-microservice", workingDirectory: "src/FrontendAccountCreation.Web/")
+    .AddMicroservice("frontend-account-creation", "epr-frontend-accountcreation-microservice",
+        "src/FrontendAccountCreation.Web/")
     .WithUrl("https://localhost:7154/");
 
 builder
-    .AddExecutable(name: "likeC4",
-        command: "npm",
-        workingDirectory: PathFinder.RepoPath("extended-producer-responsibility-docs"),
+    .AddExecutable("likeC4",
+        "npm",
+        PathFinder.RepoPath("extended-producer-responsibility-docs"),
         "run", "serve")
     .WithUrl("http://localhost:5173/")
     .WithExplicitStart();
