@@ -28,4 +28,12 @@ builder
     .WithUrl("https://localhost:7154/")
     .WithExplicitStart();
 
+builder
+    .AddExecutable(name: "likeC4",
+        command: "npm",
+        workingDirectory: PathFinder.RepoPath("extended-producer-responsibility-docs"),
+        "run", "serve")
+    .WithUrl("http://localhost:5173/")
+    .WithExplicitStart();
+
 builder.Build().Run();
