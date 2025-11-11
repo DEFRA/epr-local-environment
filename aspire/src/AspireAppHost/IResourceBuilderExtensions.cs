@@ -6,8 +6,9 @@ internal static class ResourceBuilderExtensions
         this IDistributedApplicationBuilder builder, string name, string repoFolder, string? workingDirectory = null)
     {
         return builder.AddExecutable(name: name,
-            command: "dotnet",
-            workingDirectory: PathFinder.RepoPath(repoFolder, workingDirectory),
-            args: "run");
+                command: "dotnet",
+                workingDirectory: PathFinder.RepoPath(repoFolder, workingDirectory),
+                args: "run")
+            .WithExplicitStart();
     }
 }
