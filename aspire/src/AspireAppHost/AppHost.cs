@@ -2,9 +2,23 @@ using EPR.AspireAppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var redis = builder.AddRedis("epr-redis")
+const string eprProducerRedisName = "epr-producer";
+
+var redis = builder.AddRedis(eprProducerRedisName)
     .WithPassword(null)
-    .WithHostPort(6379);
+    .WithEndpoint(6379, 6379, name: "redis-tcp-endpoint", isProxied: false);
+
+const string password = "Password1!";
+var passwordParam = builder.AddParameter("sql-password", password);
+
+var accountsDbSql = builder
+    .AddSqlServer("accountsdb-sql", passwordParam)
+    .WithEndpoint(1433, 1433, name: "ssms", isProxied: false)
+    .WithEnvironment("ACCEPT_EULA", "Y")
+    .WithEnvironment("MSSQL_SA_PASSWORD", password);
+
+const string accountsDbConnectionString =
+    "Server=127.0.0.1,1433;Initial Catalog=AccountsDb;User Id=sa;Password=Password1!;TrustServerCertificate=True;";
 
 builder
     .AddMicroservice("big-vibe-config-tool", "epr-tools-environment-variables")
@@ -13,7 +27,7 @@ builder
 builder
     .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
     .WithReference(redis)
-    .WithEnvironment("RedisInstanceName", "epr-redis")
+    .WithEnvironment("RedisInstanceName", eprProducerRedisName)
     .WithUrl("https://localhost:7154/regulators/");
 
 // todo: ports from here
@@ -23,6 +37,8 @@ builder
 
 builder
     .AddMicroservice("backend-account", "epr-backend-account-microservice", "src/BackendAccountService.Api")
+    .WithEnvironment("ConnectionStrings__AccountsDatabase", accountsDbConnectionString)
+    .WaitFor(accountsDbSql)
     .WithUrl("http://localhost:5000/swagger/");
 
 builder
