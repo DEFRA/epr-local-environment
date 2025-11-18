@@ -47,6 +47,13 @@ builder
     .WithUrl("https://localhost:7154/");
 
 builder
+    .AddMicroservice("obligationchecker-frontend", "epr-obligationchecker-frontend",
+        "src/FrontendObligationChecker/")
+    .WithReference(redis)
+    .WithEnvironment("REDIS_INSTANCE_NAME", eprProducerRedisName)
+    .WithUrl("https://localhost:7022/public-register");
+
+builder
     .AddExecutable("likeC4",
         "npm",
         PathFinder.RepoPath("extended-producer-responsibility-docs"),
