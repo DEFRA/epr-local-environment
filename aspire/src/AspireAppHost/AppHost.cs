@@ -54,6 +54,11 @@ builder
     .WithUrl("https://localhost:7022/public-register");
 
 builder
+    .AddMicroservice("common-data-api", "epr-common-data-api", "src/EPR.CommonDataService.Api")
+    .WithReference(redis)
+    .WithUrl("http://localhost:5001/");
+
+builder
     .AddExecutable("likeC4",
         "npm",
         PathFinder.RepoPath("extended-producer-responsibility-docs"),
