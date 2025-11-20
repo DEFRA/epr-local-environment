@@ -38,6 +38,11 @@ builder
     .WithUrl("https://localhost:7206/");
 
 builder
+    .AddMicroservice("prn-common-backend-api", "epr-prn-common-backend", "src/EPR.PRN.Backend.API")
+    .WithReference(redis)
+    .WithUrl("http://localhost:5168/");
+
+builder
     .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
     .WithReference(redis)
     .WithEnvironment("RedisInstanceName", eprProducerRedisName)
