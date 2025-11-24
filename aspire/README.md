@@ -11,3 +11,5 @@ https://dev.azure.com/defragovuk/RWD-CPR-EPR4P-ADO/_git/epr-tools-environment-va
 Local Redis support is provided via Docker.
 
 Local SQL Server instance of accountsdb. The database is accesible via Microsoft SQL Server Management Studio via 127.0.0.1 port 1433
+
+Local Azure ServiceBus.

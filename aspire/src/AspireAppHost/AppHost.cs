@@ -1,13 +1,13 @@
+using Aspire.Hosting;
 using EPR.AspireAppHost;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using Microsoft.Extensions.Configuration;
+
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder
     .AddMicroservice("big-vibe-config-tool", "epr-tools-environment-variables")
     .WithUrl("http://localhost:5120/");
-
 
 const string eprProducerRedisName = "epr-producer";
 
@@ -18,14 +18,24 @@ var redis = builder.AddRedis(eprProducerRedisName)
 const string accountsDbConnectionString =
     "Server=127.0.0.1,1433;Initial Catalog=AccountsDb;User Id=sa;Password=Password1!;TrustServerCertificate=True;";
 
+const string serviceBusQueueName = "epr.queue";
+
 const string password = "Password1!";
 var passwordParam = builder.AddParameter("sql-password", password);
 
 var accountsDbSql = builder
-    .AddSqlServer("accountsdb-sql", passwordParam)
+    .AddSqlServer("accounts-db", passwordParam)
     .WithEndpoint(1433, 1433, name: "ssms", isProxied: false)
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", password);
+
+var serviceBus = builder.AddAzureServiceBus("service-bus")
+    .RunAsEmulator();
+
+serviceBus.AddServiceBusQueue(
+    "epr-queue",
+    serviceBusQueueName
+);
 
 builder
     .AddMicroservice("common-data-api", "epr-common-data-api", "src/EPR.CommonDataService.Api")
@@ -41,6 +51,14 @@ builder
     .AddMicroservice("prn-common-backend-api", "epr-prn-common-backend", "src/EPR.PRN.Backend.API")
     .WithReference(redis)
     .WithUrl("http://localhost:5168/");
+
+builder
+    .AddMicroservice("logging-api", "epr-logging-api", "LoggingMicroservice/LoggingMicroservice.API")
+    .WithReference(redis)
+    .WithReference(serviceBus)
+    .WithEnvironment("ServiceBus__QueueName", serviceBusQueueName)
+    .WithEnvironment("ServiceBus__ConnectionString", serviceBus)
+    .WithUrl("https://localhost:7266/");
 
 builder
     .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
