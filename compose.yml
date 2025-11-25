@@ -188,7 +188,7 @@ services:
       sqledge:
         condition: service_healthy
     volumes:
-      - ./compose/epr-calculator-api-migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+      - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
       - ./compose/epr-calculator-api-migrations/seed.sql:/home/nonroot/sql/seed.sql
     environment:
       SERVER: sqledge
@@ -303,6 +303,8 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
+    volumes:
+      - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
     environment:
       SERVER: sqledge
       PORT: 1433
