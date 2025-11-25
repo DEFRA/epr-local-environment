@@ -10,6 +10,8 @@ Then log into the container registry via:
 az acr login --name devrwdinfac1401
 ```
 
+## Service profiles
+
 The following profiles are available:
 
 - paycal
@@ -30,6 +32,24 @@ docker compose --profile prn down
 ```
 
 To remove all, append `-v --remove-orphans`
+
+## Specific service instructions
+
+### epr-calculator-frontend
+
+Requires a client secret in order to retrieve an access token for communication with `epr-calculator-api`
+
+### epr-common-data-api
+
+Uses the Azure CLI to retrieve an access token via the `token-provider` service for Synapse.
+
+Connection strings are authenticated via Active Directory, and services running via Docker cannot access the local AZ creds of the user, therefore a different approach was used.
+
+Further access token files can be retrieved as needed should additional services join the local environment.
+
+### Migrations
+
+The Dockerfile for migrations is unchanged, however, a different `run-migrations.sh` script is included in this repo. The seeding process is also included here if needed. Likewise, depending on the work you're doing, different seeding files could be used for testing different scenarios.
 
 ## Override image tag
 
