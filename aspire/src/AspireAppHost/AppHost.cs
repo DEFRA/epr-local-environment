@@ -1,6 +1,5 @@
-using Aspire.Hosting;
+using Aspire.Hosting.Azure;
 using EPR.AspireAppHost;
-using Microsoft.Extensions.Configuration;
 
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -18,7 +17,10 @@ var redis = builder.AddRedis(eprProducerRedisName)
 const string accountsDbConnectionString =
     "Server=127.0.0.1,1433;Initial Catalog=AccountsDb;User Id=sa;Password=Password1!;TrustServerCertificate=True;";
 
-const string serviceBusQueueName = "epr.queue";
+var serviceBusQueueName = builder.Configuration["ServiceBus:QueueName"] ?? "epr.queue";
+var serviceBusName = builder.Configuration["ServiceBus:Name"] ?? "service-bus";
+var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
+var useServiceBusEmulator = string.IsNullOrWhiteSpace(serviceBusConnectionString);
 
 const string password = "Password1!";
 var passwordParam = builder.AddParameter("sql-password", password);
@@ -29,13 +31,17 @@ var accountsDbSql = builder
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", password);
 
-var serviceBus = builder.AddAzureServiceBus("service-bus")
-    .RunAsEmulator();
+IResourceBuilder<AzureServiceBusResource>? serviceBus = null;
+if (useServiceBusEmulator)
+{
+    serviceBus = builder.AddAzureServiceBus(serviceBusName)
+        .RunAsEmulator();
 
-serviceBus.AddServiceBusQueue(
-    "epr-queue",
-    serviceBusQueueName
-);
+    serviceBus.AddServiceBusQueue(
+        "epr-queue",
+        serviceBusQueueName
+    );
+}
 
 builder
     .AddMicroservice("common-data-api", "epr-common-data-api", "src/EPR.CommonDataService.Api")
@@ -52,13 +58,22 @@ builder
     .WithReference(redis)
     .WithUrl("http://localhost:5168/");
 
-builder
+var loggingApi = builder
     .AddMicroservice("logging-api", "epr-logging-api", "LoggingMicroservice/LoggingMicroservice.API")
     .WithReference(redis)
-    .WithReference(serviceBus)
     .WithEnvironment("ServiceBus__QueueName", serviceBusQueueName)
-    .WithEnvironment("ServiceBus__ConnectionString", serviceBus)
     .WithUrl("https://localhost:7266/");
+
+// Set connection string: use provided connection string for Azure, or service bus reference for emulator
+if (useServiceBusEmulator)
+{
+    loggingApi.WithReference(serviceBus!);
+    loggingApi.WithEnvironment("ServiceBus__ConnectionString", serviceBus!);
+}
+else
+{
+    loggingApi.WithEnvironment("ServiceBus__ConnectionString", serviceBusConnectionString);
+}
 
 builder
     .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
