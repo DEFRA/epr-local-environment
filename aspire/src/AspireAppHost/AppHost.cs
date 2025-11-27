@@ -114,6 +114,11 @@ builder
     .WithUrl("https://localhost:7022/public-register");
 
 builder
+    .AddMicroservice("pom-api-web", "epr-pom-api-web", "WebApiGateway/WebApiGateway.Api/")
+    .WithReference(redis)
+    .WithUrl("https://localhost:7265");
+
+builder
     .AddExecutable("likeC4",
         "npm",
         PathFinder.RepoPath("extended-producer-responsibility-docs"),
