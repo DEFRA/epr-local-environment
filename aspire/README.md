@@ -12,6 +12,8 @@ Local Redis support is provided via Docker.
 
 Local SQL Server instance of accountsdb. The database is accesible via Microsoft SQL Server Management Studio via 127.0.0.1 port 1433
 
+Local SQL Server instance of prndb. The database is accesible via Microsoft SQL Server Management Studio via 127.0.0.1 port 1434 (note the port number)
+
 ## Azure ServiceBus
 You can enable either a local ServiceBus or use a remote Azure ServiceBus.
 ### appsetting.json

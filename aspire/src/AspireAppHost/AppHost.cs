@@ -9,27 +9,34 @@ builder
     .WithUrl("http://localhost:5120/");
 
 const string eprProducerRedisName = "epr-producer";
-
-var redis = builder.AddRedis(eprProducerRedisName)
-    .WithPassword(null)
-    .WithEndpoint(6379, 6379, name: "redis-tcp-endpoint", isProxied: false);
-
+const string password = "Password1!";
 const string accountsDbConnectionString =
-    "Server=127.0.0.1,1433;Initial Catalog=AccountsDb;User Id=sa;Password=Password1!;TrustServerCertificate=True;";
+    $"Server=127.0.0.1,1433;Initial Catalog=AccountsDb;User Id=sa;Password={password};TrustServerCertificate=True;";
+const string prnDbConnectionString =
+    $"Server=127.0.0.1,1434;Initial Catalog=PrnDb;User Id=sa;Password={password};TrustServerCertificate=True;";
 
 var serviceBusQueueName = builder.Configuration["ServiceBus:QueueName"] ?? "epr.queue";
 var serviceBusName = builder.Configuration["ServiceBus:Name"] ?? "service-bus";
 var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
 var useServiceBusEmulator = string.IsNullOrWhiteSpace(serviceBusConnectionString);
-
-const string password = "Password1!";
 var passwordParam = builder.AddParameter("sql-password", password);
 
+// Currently we cant use a single SQL Server instance for multiple 'microservices' as they have been implemented using differing versions of EntityFramework
 var accountsDbSql = builder
     .AddSqlServer("accounts-db", passwordParam)
     .WithEndpoint(1433, 1433, name: "ssms", isProxied: false)
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", password);
+
+var prnDbSql = builder
+    .AddSqlServer("prn-db", passwordParam)
+    .WithEndpoint(1434, 1433, name: "prn-ssms", isProxied: false)
+    .WithEnvironment("ACCEPT_EULA", "Y")
+    .WithEnvironment("MSSQL_SA_PASSWORD", password);
+
+var redis = builder.AddRedis(eprProducerRedisName)
+    .WithPassword(null)
+    .WithEndpoint(6379, 6379, name: "redis-tcp-endpoint", isProxied: false);
 
 IResourceBuilder<AzureServiceBusResource>? serviceBus = null;
 if (useServiceBusEmulator)
@@ -55,6 +62,8 @@ builder
 
 builder
     .AddMicroservice("prn-common-backend-api", "epr-prn-common-backend", "src/EPR.PRN.Backend.API")
+    .WithEnvironment("ConnectionStrings__EprConnectionString", prnDbConnectionString)
+    .WaitFor(prnDbSql)
     .WithReference(redis)
     .WithUrl("http://localhost:5168/");
 
