@@ -129,6 +129,14 @@ builder
     .WithEnvironment("InstanceName", eprProducerRedisName)
     .WithUrl("https://localhost:7084/report-data");
 
+// epr-regulator-service [WAx411]
+builder
+    .AddMicroservice("regulator-service", "epr-regulator-service",
+        "src/EPR.RegulatorService.Frontend.Web/")
+    .WithReference(redis)
+    .WithEnvironment("RedisInstanceName", eprProducerRedisName)
+    .WithUrl("https://localhost:7154/regulators");
+
 // epr-frontend-accountcreation-microservice [WAx402]
 builder
     .AddMicroservice("frontend-account-creation", "epr-frontend-accountcreation-microservice",
