@@ -50,16 +50,19 @@ if (useServiceBusEmulator)
     );
 }
 
+// epr-common-data-api [WAx415]
 builder
     .AddMicroservice("common-data-api", "epr-common-data-api", "src/EPR.CommonDataService.Api")
     .WithReference(redis)
     .WithUrl("http://localhost:5001/");
 
+// epr-pom-api-submission-status [WAx408]
 builder
     .AddMicroservice("pom-api-submission-status", "epr-pom-api-submission-status", "src/EPR.SubmissionMicroservice.API")
     .WithReference(redis)
     .WithUrl("https://localhost:7206/");
 
+// epr-prn-common-backend [WAx418]
 builder
     .AddMicroservice("prn-common-backend-api", "epr-prn-common-backend", "src/EPR.PRN.Backend.API")
     .WithEnvironment("ConnectionStrings__EprConnectionString", prnDbConnectionString)
@@ -67,6 +70,7 @@ builder
     .WithReference(redis)
     .WithUrl("http://localhost:5168/");
 
+// epr-logging-api [WAx403]
 var loggingApi = builder
     .AddMicroservice("logging-api", "epr-logging-api", "LoggingMicroservice/LoggingMicroservice.API")
     .WithReference(redis)
@@ -84,28 +88,32 @@ else
     loggingApi.WithEnvironment("ServiceBus__ConnectionString", serviceBusConnectionString);
 }
 
-builder
-    .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
-    .WithReference(redis)
-    .WithEnvironment("RedisInstanceName", eprProducerRedisName)
-    .WithUrl("https://localhost:7154/regulators/");
-
-// todo: ports from here
-builder
-    .AddMicroservice("regulator-service-facade", "epr-regulator-service-facade", "src/EPR.RegulatorService.Facade.API")
-    .WithUrl("https://localhost:7253/");
-
+// epr-backend-account-microservice [WAx407]
 builder
     .AddMicroservice("backend-account", "epr-backend-account-microservice", "src/BackendAccountService.Api")
     .WithEnvironment("ConnectionStrings__AccountsDatabase", accountsDbConnectionString)
     .WaitFor(accountsDbSql)
     .WithUrl("http://localhost:5000/swagger/");
 
+// epr-regulator-service-facade [WAx406]
 builder
-    .AddMicroservice("frontend-account-creation", "epr-frontend-accountcreation-microservice",
-        "src/FrontendAccountCreation.Web/")
-    .WithUrl("https://localhost:7154/");
+    .AddMicroservice("regulator-service-facade", "epr-regulator-service-facade", "src/EPR.RegulatorService.Facade.API")
+    .WithUrl("https://localhost:7253/");
 
+// epr-regulator-service [WAx411]
+builder
+    .AddMicroservice("regulator-frontend", "epr-regulator-service", "src/EPR.RegulatorService.Frontend.Web")
+    .WithReference(redis)
+    .WithEnvironment("RedisInstanceName", eprProducerRedisName)
+    .WithUrl("https://localhost:7154/regulators/");
+
+// epr-pom-api-web [WAx409]
+builder
+    .AddMicroservice("pom-api-web", "epr-pom-api-web", "WebApiGateway/WebApiGateway.Api/")
+    .WithReference(redis)
+    .WithUrl("https://localhost:7265");
+
+// epr-obligationchecker-frontend [WAx401]
 builder
     .AddMicroservice("obligationchecker-frontend", "epr-obligationchecker-frontend",
         "src/FrontendObligationChecker/")
@@ -113,10 +121,11 @@ builder
     .WithEnvironment("REDIS_INSTANCE_NAME", eprProducerRedisName)
     .WithUrl("https://localhost:7022/public-register");
 
+// epr-frontend-accountcreation-microservice [WAx402]
 builder
-    .AddMicroservice("pom-api-web", "epr-pom-api-web", "WebApiGateway/WebApiGateway.Api/")
-    .WithReference(redis)
-    .WithUrl("https://localhost:7265");
+    .AddMicroservice("frontend-account-creation", "epr-frontend-accountcreation-microservice",
+        "src/FrontendAccountCreation.Web/")
+    .WithUrl("https://localhost:7154/");
 
 builder
     .AddExecutable("likeC4",
