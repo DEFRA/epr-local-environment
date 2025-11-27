@@ -121,6 +121,14 @@ builder
     .WithEnvironment("REDIS_INSTANCE_NAME", eprProducerRedisName)
     .WithUrl("https://localhost:7022/public-register");
 
+// epr-packaging-frontend [WAx410]
+builder
+    .AddMicroservice("packaging-frontend", "epr-packaging-frontend",
+        "src/FrontendSchemeRegistration.UI/")
+    .WithReference(redis)
+    .WithEnvironment("InstanceName", eprProducerRedisName)
+    .WithUrl("https://localhost:7084/report-data");
+
 // epr-frontend-accountcreation-microservice [WAx402]
 builder
     .AddMicroservice("frontend-account-creation", "epr-frontend-accountcreation-microservice",
