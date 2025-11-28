@@ -24,15 +24,15 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-sec-infras
 
 [[repos]]
 path = "epr-accountmanagement-greenlist"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["archived", "azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
-[repos.remotes.devops]
-name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-accountmanagement-greenlist"
+[repos.remotes.github]
+name = "origin"
+url = "git@github.com:DEFRA/epr-accountmanagement-greenlist.git"
 
 [repos.remotes.origin]
 name = "origin"
-url = "git@github.com:DEFRA/epr-accountmanagement-greenlist.git"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-accountmanagement-greenlist"
 
 [[repos]]
 path = "epr-anti-virus-function-app"
