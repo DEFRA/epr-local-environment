@@ -104,11 +104,11 @@ url = "git@github.com:DEFRA/epr-calculator-api.git"
 
 [[repos]]
 path = "epr-calculator-frontend"
-tags = ["azure-devops", "epr", "frontend", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "frontend", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-calculator-frontend"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-calculator-frontend"
 
 [repos.remotes.github]
 name = "github"
@@ -116,11 +116,11 @@ url = "git@github.com:DEFRA/epr-calculator-frontend.git"
 
 [[repos]]
 path = "epr-calculator-fss-api"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-calculator-fss-api"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-calculator-fss-api"
 
 [repos.remotes.github]
 name = "github"
@@ -296,11 +296,11 @@ url = "git@github.com:DEFRA/epr-frontend-journey-tests.git"
 
 [[repos]]
 path = "epr-laps-accounts"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-accounts"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-accounts"
 
 [repos.remotes.github]
 name = "github"
@@ -308,11 +308,11 @@ url = "git@github.com:DEFRA/epr-laps-accounts.git"
 
 [[repos]]
 path = "epr-laps-automation-test"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-automation-test"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-automation-test"
 
 [repos.remotes.github]
 name = "github"
@@ -336,11 +336,11 @@ url = "git@github.com:DEFRA/epr-laps-backend.git"
 
 [[repos]]
 path = "epr-laps-common"
-tags = ["azure-devops", "common", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "common", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-common"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-common"
 
 [repos.remotes.github]
 name = "github"
@@ -356,11 +356,11 @@ url = "git@github.com:DEFRA/epr-laps-frontend.git"
 
 [[repos]]
 path = "epr-laps-home"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-home"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-home"
 
 [repos.remotes.github]
 name = "github"
@@ -368,11 +368,11 @@ url = "git@github.com:DEFRA/epr-laps-home.git"
 
 [[repos]]
 path = "epr-laps-queries-and-complaints"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-queries-and-complaints"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-queries-and-complaints"
 
 [repos.remotes.github]
 name = "github"
@@ -380,11 +380,11 @@ url = "git@github.com:DEFRA/epr-laps-queries-and-complaints.git"
 
 [[repos]]
 path = "epr-laps-registration"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-registration"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-registration"
 
 [repos.remotes.github]
 name = "github"
@@ -396,7 +396,7 @@ tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-understanding-payments"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-understanding-payments"
 
 [repos.remotes.github]
 name = "github"
@@ -404,11 +404,11 @@ url = "git@github.com:DEFRA/epr-laps-understanding-payments.git"
 
 [[repos]]
 path = "epr-laps-usermanagement"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-laps-usermanagement"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-laps-usermanagement"
 
 [repos.remotes.github]
 name = "github"
@@ -448,11 +448,11 @@ url = "git@github.com:DEFRA/epr-migration-automation.git"
 
 [[repos]]
 path = "epr-migration-test1"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-migration-test1"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-migration-test1"
 
 [repos.remotes.github]
 name = "github"
@@ -460,11 +460,11 @@ url = "git@github.com:DEFRA/epr-migration-test1.git"
 
 [[repos]]
 path = "epr-migration-test2"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-migration-test2"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-migration-test2"
 
 [repos.remotes.github]
 name = "github"
@@ -832,11 +832,11 @@ url = "git@github.com:DEFRA/epr-rpd-azure-ad-b2c-styling.git"
 
 [[repos]]
 path = "epr-rpd-performance-tests"
-tags = ["azure-devops", "devops-sync-active", "epr", "github", "primary-is-devops", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "primary-is-devops", "public", "RWD-CPR-EPR4P-ADO"]
 
 [repos.remotes.devops]
 name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-rpd-performance-tests"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-rpd-performance-tests"
 
 [repos.remotes.github]
 name = "github"
