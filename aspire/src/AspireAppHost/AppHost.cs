@@ -8,7 +8,7 @@ builder
     .AddMicroservice("big-vibe-config-tool", "epr-tools-environment-variables")
     .WithUrl("http://localhost:5120/");
 
-const string eprProducerRedisName = "epr-producer";
+const string eprProducerRedisName = "redis-epr-producer";
 const string password = "Password1!";
 const string accountsDbConnectionString =
     $"Server=127.0.0.1,1433;Initial Catalog=AccountsDb;User Id=sa;Password={password};TrustServerCertificate=True;";
@@ -23,13 +23,13 @@ var passwordParam = builder.AddParameter("sql-password", password);
 
 // Currently we cant use a single SQL Server instance for multiple 'microservices' as they have been implemented using differing versions of EntityFramework
 var accountsDbSql = builder
-    .AddSqlServer("accounts-db", passwordParam)
+    .AddSqlServer("sql-accounts-db", passwordParam)
     .WithEndpoint(1433, 1433, name: "ssms", isProxied: false)
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", password);
 
 var prnDbSql = builder
-    .AddSqlServer("prn-db", passwordParam)
+    .AddSqlServer("sql-prn-db", passwordParam)
     .WithEndpoint(1434, 1433, name: "prn-ssms", isProxied: false)
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", password);
