@@ -13,7 +13,7 @@ class PathFinder
     {
         var repoRoot = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory,
-                "..", "..", "..", "..", "..", "..")); // get back out of bin/debug etc all the way to parent directory
+                "..", "..", "..", "..", "..", "..", "..")); // get back out of bin/debug etc all the way to parent directory
 
         var path = Path.Combine(repoRoot, name);
         if (!string.IsNullOrEmpty(subfolder))
