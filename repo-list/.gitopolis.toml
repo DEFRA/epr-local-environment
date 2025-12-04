@@ -50,11 +50,11 @@ url = "git@github.com:DEFRA/epr-anti-virus-function-app.git"
 path = "epr-app-config-settings"
 tags = ["azure-devops", "devops-sync-outdated", "dg1", "epr", "github", "internal", "primary-is-devops", "RWD-CPR-EPR4P-ADO", "zinc"]
 
-[repos.remotes.devops]
+[repos.remotes.origin]
 name = "devops"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-app-config-settings"
 
-[repos.remotes.origin]
+[repos.remotes.github]
 name = "origin"
 url = "git@github.com:DEFRA/epr-app-config-settings.git"
 
