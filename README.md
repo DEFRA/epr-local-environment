@@ -16,12 +16,14 @@ The following profiles are available:
 
 - paycal
 - prn
+- packaging
 
 They can be run via:
 
 ```
 docker compose --profile paycal up -d
 docker compose --profile prn up -d
+docker compose --profile packaging up -d
 ```
 
 To stop:
@@ -29,6 +31,7 @@ To stop:
 ```
 docker compose --profile paycal down
 docker compose --profile prn down
+docker compose --profile packaging down
 ```
 
 To remove all, append `-v --remove-orphans`
@@ -37,7 +40,9 @@ To remove all, append `-v --remove-orphans`
 
 ### epr-calculator-frontend
 
-Requires a client secret in order to retrieve an access token for communication with `epr-calculator-api`
+Requires a client secret in order to retrieve an access token for communication with `epr-calculator-api`.
+
+Once started, access the system via https://localhost:7163 and you can login with the @onmicrosoft account.
 
 ### epr-common-data-api
 
@@ -46,6 +51,12 @@ Uses the Azure CLI to retrieve an access token via the `token-provider` service 
 Connection strings are authenticated via Active Directory, and services running via Docker cannot access the local AZ creds of the user, therefore a different approach was used.
 
 Further access token files can be retrieved as needed should additional services join the local environment.
+
+### epr-packaging-frontend
+
+Once started, access the system via https://localhost:7084/report-data and it will prompt to login.
+
+Obtain a dev login account from a fellow developer.
 
 ### Migrations
 
