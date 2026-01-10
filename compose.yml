@@ -102,6 +102,19 @@ services:
       retries: 3
       start_period: 10s
 
+  redis:
+    pull_policy: always
+    image: redis/redis-stack:latest
+    ports:
+      - "6379:6379"
+      - "8005:8001" # use http://localhost:8005/redis-stack/browser to view active keys
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
   epr-calculator-service:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorservicerepository:${EPR_CALCULATOR_SERVICE:-main-latest}
@@ -211,8 +224,6 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
-    env_file:
-      - ./compose/.env
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -220,6 +231,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
       AzureAd__ClientId: f94d57e6-b554-4cb6-b26b-fc3fb838eaa0
+      AzureAd__ClientSecret: ${EprCalculatorFrontend__AzureAd__ClientSecret} # see .env
       DownstreamApi__Scopes: api://28b6c996-1817-4e2b-b04d-8578064d5283/default
       FinancialYearListApi: http://epr-calculator-api:8080/v1/financialYears
       DashboardCalculatorRun__DashboardCalculatorRunApi: http://epr-calculator-api:8080/v1/calculatorRuns
@@ -239,8 +251,8 @@ services:
       ParameterSettings__DefaultParameterSettingsApi: http://epr-calculator-api:8080/v1/defaultParameterSetting
       BlobStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
     ports:
-      - "5294:8080" # taken from launch settings in front end
-      - "7163:8081" # taken from launch settings in front end
+      - "5294:8080" # taken from launch settings in epr-calculator-frontend
+      - "7163:8081" # taken from launch settings in epr-calculator-frontend
     volumes:
       - ./compose/certs/https:/https:ro
     healthcheck:
@@ -322,8 +334,6 @@ services:
         condition: service_healthy
       token-provider:
         condition: service_healthy
-    env_file:
-      - ./compose/.env
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
@@ -339,6 +349,159 @@ services:
       start_period: 5s
     profiles:
       - prn
+
+  epr-packaging-frontend:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprpackagingfrontendrepository:${EPR_PACKAGING_FRONTEND:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      redis:
+        condition: service_healthy
+      epr-facade-account-microservice:
+        condition: service_started # health check for this failed due to lack of curl so left as service_started for now
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      Redis__InstanceName: epr-producers-
+      Redis__ConnectionString: redis:6379
+      AzureADB2C__ClientId: 595f49c3-f886-4869-a1e4-abb0915801ac
+      AzureADB2C__ClientSecret: ${EprPackagingFrontend__AzureADB2C__ClientSecret} # see .env
+      AzureADB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureADB2C__Tenant: 8a3f509a-c892-4bec-bfe9-d5f5cf251813
+      AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      AzureADB2C__ExtensionsClientId: 0ca9d97c-c219-4623-a2ba-44f326faee16
+      UseLocalSession: false
+      AccountsFacadeAPI__BaseEndpoint: https://epr-facade-account-microservice:8081/api/
+      EprAuthorizationConfig__FacadeBaseUrl: https://epr-facade-account-microservice:8081/api/
+      PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/api/v1/
+    ports:
+      - "5145:8080" # taken from launch settings in epr-packaging-frontend
+      - "7084:8081" # taken from launch settings in epr-packaging-frontend
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: ["/init-container.sh"]
+    command: ["dotnet", "FrontendSchemeRegistration.UI.dll"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - packaging
+
+  epr-facade-account-microservice:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/facadeaccountcreationrepository:${EPR_FACADE_ACCOUNT_MICROSERVICE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      AzureADB2C__ClientId: df2b3ff9-b54a-4ddf-8762-bcf07f61a828
+      AzureADB2C__ClientSecret: ${EprFacadeAccountMicroservice__AzureADB2C__ClientSecret} # see .env
+      AzureADB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      ApiConfig__AccountServiceBaseUrl: https://epr-backend-account-microservice:8081
+      MessagingConfig__ApiKey: ${EprFacadeAccountMicroservice__MessagingConfig__ApiKey} # see .env
+      LoggingApi__BaseUrl: http://fake
+    ports:
+      - "5076:8080" # taken from launch settings in epr-facade-account-microservice
+      - "7253:8081" # taken from launch settings in epr-facade-account-microservice
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: ["/init-container.sh"]
+    command: ["dotnet", "FacadeAccountCreation.API.dll"]
+    profiles:
+      - packaging
+
+  epr-backend-account-microservice:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/backendaccountserviceregistry:${EPR_BACKEND_ACCOUNT_MICROSERVICE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      sqledge:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      ConnectionStrings__AccountsDatabase: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprBackendAccountMicroservice;TrustServerCertificate=True"
+      RunMigration: false
+    ports:
+      - "8003:8080"
+      - "8004:8081"
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: ["/init-container.sh"]
+    command: ["dotnet", "BackendAccountService.Api.dll"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - packaging
+
+  epr-backend-account-microservice-migrations:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/backendaccountserviceregistry:${EPR_BACKEND_ACCOUNT_MICROSERVICE_MIGRATIONS:-main-latest-database-migrations}
+    depends_on:
+      sqledge:
+        condition: service_healthy
+    volumes:
+      - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+    environment:
+      SERVER: sqledge
+      PORT: 1433
+      USER: sa
+      PASSWORD: "s4usag3s!"
+      DATABASE: EprBackendAccountMicroservice
+    profiles:
+      - packaging
+
+  epr-payment-facade:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprpaymentfacaderepository:${EPR_PAYMENT_FACADE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      AzureADB2C__ClientId: 266861c4-3d0b-4e91-b752-91ca02a4b671
+      AzureADB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      AzureAdB2C__Scopes: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
+      AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
+    ports:
+      - "5106:8080"
+      - "7166:8081"
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: ["/init-container.sh"]
+    command: ["dotnet", "EPR.Payment.Facade.dll"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - packaging
 
 volumes:
   azurite-data:
