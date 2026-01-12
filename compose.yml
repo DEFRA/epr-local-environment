@@ -115,6 +115,14 @@ services:
       retries: 5
       start_period: 40s
 
+  wiremock:
+    pull_policy: always
+    environment:
+      TZ: Europe/London
+    image: sheyenrath/wiremock.net:latest
+    ports:
+      - "9090:80"
+
   epr-calculator-service:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorservicerepository:${EPR_CALCULATOR_SERVICE:-main-latest}
@@ -131,7 +139,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ServiceBusConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
       ServiceBusQueueName: defra.epr.calculator.run.local
-      PipelineUrl: https://use-wiremock
+      PipelineUrl: http://wiremock
       GetOrgDataPipelineName: pip_paycal_get_org_data
       GetPomDataPipelineName: pip_paycal_get_pom_data
       MaxCheckCount: 10
@@ -308,6 +316,7 @@ services:
       start_period: 5s
     profiles:
       - prn
+      - packaging
 
   epr-prn-common-backend-migrations:
     pull_policy: always
@@ -325,6 +334,7 @@ services:
       DATABASE: EprPrnBackend
     profiles:
       - prn
+      - packaging
 
   epr-common-data-api:
     pull_policy: always
@@ -359,6 +369,10 @@ services:
         condition: service_healthy
       epr-facade-account-microservice:
         condition: service_started # health check for this failed due to lack of curl so left as service_started for now
+      epr-payment-facade:
+        condition: service_healthy
+      epr-pom-api-web:
+        condition: service_started # health check for this failed due to lack of curl so left as service_started for now
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -377,6 +391,21 @@ services:
       AccountsFacadeAPI__BaseEndpoint: https://epr-facade-account-microservice:8081/api/
       EprAuthorizationConfig__FacadeBaseUrl: https://epr-facade-account-microservice:8081/api/
       PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/api/v1/
+      HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
+      WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
+      # the following are temporary as https://github.com/DEFRA/epr-packaging-frontend/pull/55 includes them
+      SubmissionPeriods__6__DataPeriod: "January to June 2026"
+      SubmissionPeriods__6__StartMonth: "January"
+      SubmissionPeriods__6__EndMonth: "June"
+      SubmissionPeriods__6__Year: "2026"
+      SubmissionPeriods__6__Deadline: "1 Oct 2026 11:59:00 PM"
+      SubmissionPeriods__6__ActiveFrom: "1 Jul 2026 12:00:00 AM"
+      SubmissionPeriods__7__DataPeriod: "July to December 2026"
+      SubmissionPeriods__7__StartMonth: "July"
+      SubmissionPeriods__7__EndMonth: "December"
+      SubmissionPeriods__7__Year: "2026"
+      SubmissionPeriods__7__Deadline: "1 Apr 2027 11:59:00 PM"
+      SubmissionPeriods__7__ActiveFrom: "1 Jan 2027 12:00:00 AM"
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
@@ -398,6 +427,9 @@ services:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/facadeaccountcreationrepository:${EPR_FACADE_ACCOUNT_MICROSERVICE:-main-latest}
     user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      epr-backend-account-microservice:
+        condition: service_started # health check for this failed due to lack of curl so left as service_started for now
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -410,7 +442,7 @@ services:
       AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
       ApiConfig__AccountServiceBaseUrl: https://epr-backend-account-microservice:8081
       MessagingConfig__ApiKey: ${EprFacadeAccountMicroservice__MessagingConfig__ApiKey} # see .env
-      LoggingApi__BaseUrl: http://fake
+      LoggingApi__BaseUrl: http://wiremock
     ports:
       - "5076:8080" # taken from launch settings in epr-facade-account-microservice
       - "7253:8081" # taken from launch settings in epr-facade-account-microservice
@@ -445,12 +477,6 @@ services:
       - ./compose/certs/init-container.sh:/init-container.sh:ro
     entrypoint: ["/init-container.sh"]
     command: ["dotnet", "BackendAccountService.Api.dll"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
     profiles:
       - packaging
 
@@ -487,8 +513,8 @@ services:
       AzureAdB2C__Scopes: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
     ports:
-      - "5106:8080"
-      - "7166:8081"
+      - "5106:8080" # taken from launch settings in epr-payment-facade
+      - "7166:8081" # taken from launch settings in epr-payment-facade
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
@@ -500,6 +526,70 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    profiles:
+      - packaging
+
+  epr-pom-api-web:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/apiwebrepository:${EPR_POM_API_WEB:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      redis:
+        condition: service_healthy
+      epr-prn-common-backend:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      AzureAdB2C__ClientId: 0ff4a0dc-aa85-4b9f-858b-851dbfe7c671
+      AzureADB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
+      PrnServiceApi__BaseUrl: http://epr-prn-common-backend:8080
+      # PrnServiceApi__ClientId of ce0071ca-d85f-48af-8bfa-025189324054 skipped to avoid DefaultCredentials failure
+      Redis__ConnectionString: redis:6379
+      AccountApi__BaseUrl: https://epr-backend-account-microservice:8081
+      # AccountApi__ClientId of d71ae4ca-49e0-46b9-bc49-71e00deb5005 skipped to avoid DefaultCredentials failure
+      LoggingApi__BaseUrl: http://wiremock
+      SubmissionStatusApi__BaseUrl: https://epr-pom-api-submission-status:8081
+    ports:
+      - "5291:8080" # taken from launch settings in epr-pom-api-web
+      - "7265:8081" # taken from launch settings in epr-pom-api-web
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: ["/init-container.sh"]
+    command: ["dotnet", "WebApiGateway.Api.dll"]
+    profiles:
+      - packaging
+
+  epr-pom-api-submission-status:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/submissionstatusrepository:${EPR_POM_SUBMISSION_STATUS:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      ConnectionStrings__REDIS_CONNECTION: redis:6379
+      LoggingApi__BaseUrl: http://wiremock
+      Database__AccountKey: ${EprPomApiSubmissionStatus__Database__AccountKey} # see .env
+    ports:
+      - "5167:8080" # taken from launch settings in epr-pom-api-web
+      - "7206:8081" # taken from launch settings in epr-pom-api-web
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: ["/init-container.sh"]
+    command: ["dotnet", "EPR.SubmissionMicroservice.API.dll"]
     profiles:
       - packaging
 
