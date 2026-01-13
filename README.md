@@ -41,8 +41,10 @@ To remove all, append `-v --remove-orphans`
 To run services that have time shift capability, you can include an additional profile called "timeshift" alongside the profile of the service group you want to start. For example:
 
 ```
-docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift up -d
+docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift up -d --build
 ```
+
+Note the inclusion of `--build` with the above command to force use of the correct container if the tag version is being overridden.
 
 Then to stop:
 
