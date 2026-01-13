@@ -72,6 +72,8 @@ Once started, access the system via https://localhost:7084/report-data and it wi
 
 Obtain a dev login account from a fellow developer.
 
+If you get into a redirect cycle on login that you cannot break out of then your previous session cookie might be invalid. Visit https://localhost:7084/admin/health and remove all cookies, then try again.
+
 ### Migrations
 
 The Dockerfile for migrations is unchanged, however, a different `run-migrations.sh` script is included in this repo. The seeding process is also included here if needed. Likewise, depending on the work you're doing, different seeding files could be used for testing different scenarios.
