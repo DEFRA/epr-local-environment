@@ -36,6 +36,20 @@ docker compose --profile packaging down
 
 To remove all, append `-v --remove-orphans`
 
+## Time shift
+
+To run services that have time shift capability, you can include an additional profile called "timeshift" alongside the profile of the service group you want to start. For example:
+
+```
+docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift up -d
+```
+
+Then to stop:
+
+```
+docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift down -v --remove-orphans
+```
+
 ## Specific service instructions
 
 ### epr-calculator-frontend

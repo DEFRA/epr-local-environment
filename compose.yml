@@ -483,11 +483,13 @@ services:
   epr-backend-account-microservice-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/backendaccountserviceregistry:${EPR_BACKEND_ACCOUNT_MICROSERVICE_MIGRATIONS:-main-latest-database-migrations}
+    command: ["/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql"]
     depends_on:
       sqledge:
         condition: service_healthy
     volumes:
       - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+      - ./compose/epr-backend-account-microservice-migrations/seed.sql:/home/nonroot/sql/seed.sql
     environment:
       SERVER: sqledge
       PORT: 1433

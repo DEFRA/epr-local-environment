@@ -1,0 +1,16 @@
+services:
+  epr-packaging-frontend:
+    build:
+      context: .
+      dockerfile: ./compose/epr-packaging-frontend/Dockerfile.timeshift
+      args:
+        BASE_IMAGE: devrwdinfac1401.azurecr.io/eprpackagingfrontendrepository:main-latest
+    image: epr-packaging-frontend:timeshift
+    command: ["sh", "-c", "echo 'Setting fake time to March 1, 2026' && faketime -f '2026-03-01 12:00:00' /bin/date && echo 'Starting application...' && exec faketime -f '2026-03-01 12:00:00' dotnet FrontendSchemeRegistration.UI.dll"]
+    profiles:
+      - timeshift
+
+volumes:
+  azurite-data:
+  sqledge-data:
+  token-cache:
