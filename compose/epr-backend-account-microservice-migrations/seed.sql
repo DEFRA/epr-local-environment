@@ -1,11 +1,30 @@
-insert into Users (UserId, Email) values ('579C319D-D552-47A2-BF4C-5A125A3183BC', 'test+17122025143216@ee.com')
+declare @userId uniqueidentifier
+declare @email nvarchar(255)
+set @userId = '579C319D-D552-47A2-BF4C-5A125A3183BC'
+set @email = 'test+17122025143216@ee.com'
 
-insert into Persons (FirstName, LastName, Email, Telephone, UserId) values ('DP First name','Last Name','test+17122025143216@ee.com','07123456789',(select Id from Users where Email = 'test+17122025143216@ee.com'))
+insert into Users (UserId, Email) values (@userId, @email)
 
-insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId) values (1, '12345678', 'Org Name', 'Trading Name', 1, 1, 1)
+insert into Persons (FirstName, LastName, Email, Telephone, UserId) values ('First name', 'Last Name', @email, '07123456789', (select Id from Users where Email = @email))
 
-insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId) values ('Director', (select Id from Organisations where Name = 'Org Name'), 1, (select Id from Users where Email = 'test+17122025143216@ee.com'), 1)
+-- this is used in seed.sql for service epr-prn-common-backend-migrations
+declare @organisationExternalId uniqueidentifier
+set @organisationExternalId = '94BFC917-B9B6-45D7-847B-E5F500BFE198'
 
-insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId) values ((select Id from PersonOrganisationConnections where JobTitle = 'Director'), 1, 3)
+insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId) values (1, '12345678', 'Organisation Name', 'Trading Name', 1, 1, 1, @organisationExternalId)
 
-insert into ComplianceSchemes (Name, CompaniesHouseNumber, NationId) values ('Org Name', '12345678', 1)
+declare @organisationId int
+set @organisationId = SCOPE_IDENTITY()
+
+insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId) values ('Director', @organisationId, 1, (select Id from Users where Email = @email), 1)
+
+declare @connectionId int
+set @connectionId = SCOPE_IDENTITY()
+
+insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId) values (@connectionId, 1, 3)
+
+-- this is used in seed.sql for service epr-prn-common-backend-migrations
+declare @complianceSchemeExternalId uniqueidentifier
+set @complianceSchemeExternalId = 'D93376E3-0681-46BE-AEB4-7450A2E784D8'
+
+insert into ComplianceSchemes (Name, ExternalId, CompaniesHouseNumber, NationId) values ('Compliance Scheme Name', @complianceSchemeExternalId,'12345678', 1)
