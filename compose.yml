@@ -349,6 +349,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
+      ConnectionStrings__SynapseDatabase: ${EprCommonDataApi__ConnectionStrings__SynapseDatabase} # see .env
     ports:
       - "8002:8080"
     volumes:
