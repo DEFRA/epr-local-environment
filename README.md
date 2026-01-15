@@ -106,6 +106,8 @@ Note that service `epr-common-data-api` uses the Azure CLI to retrieve an access
 
 Connection strings are authenticated via Active Directory, and services running via Docker cannot access the local AZ creds of the user, therefore a different approach was used.
 
+You will need the initial connection string pointing to Synapse in Azure and then it will be augmented with the access token retrieved from the `token-provider`.
+
 Further access token files can be retrieved as needed should additional services join the local environment.
 
 You will need to be on the Azure VPN when running this profile.
