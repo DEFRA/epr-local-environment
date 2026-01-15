@@ -15,6 +15,8 @@ services:
       SQL_SERVER: sqledge
       MSSQL_SA_PASSWORD: "s4usag3s!"
       ACCEPT_EULA: "Y"
+    profiles:
+      - paycal
 
   asb:
     depends_on:
@@ -29,6 +31,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    profiles:
+      - paycal
 
   sqledge:
     pull_policy: always
@@ -49,6 +53,10 @@ services:
       start_period: 5s
       test: timeout 1 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/1433'
       timeout: 5s
+    profiles:
+      - paycal
+      - packaging
+      - prn
 
   azurite:
     pull_policy: always
@@ -66,6 +74,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    profiles:
+      - paycal
 
   azurite-init:
     pull_policy: always
@@ -81,6 +91,8 @@ services:
       az storage container create --name 'paycal-billingfilejsonauthorisedforfss' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       echo 'containers created successfully'
       "
+    profiles:
+      - paycal
 
   token-provider:
     image: mcr.microsoft.com/azure-cli
@@ -101,6 +113,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    profiles:
+      - prn
 
   redis:
     pull_policy: always
@@ -114,6 +128,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+    profiles:
+      - packaging
 
   wiremock:
     pull_policy: always
@@ -122,6 +138,9 @@ services:
     image: sheyenrath/wiremock.net:latest
     ports:
       - "9090:80"
+    profiles:
+      - paycal
+      - packaging
 
   epr-calculator-service:
     pull_policy: always
