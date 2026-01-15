@@ -24,18 +24,20 @@ The following profiles are available:
 
 ## Time shift
 
-To run services that have time shift capability, you can include an additional profile called "timeshift" alongside the profile of the service group you want to start. For example:
+To run services that have time shift capability, you can include an additional profile with `timeshift-` as a prefix to the profile name you're attempting to run. This will include applicable overrides so service(s) can be started at a specific datetime. For example:
 
 ```
-docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift up -d --build
+docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift-packaging up -d --build
 ```
+
+See your .env file for TIMESHIFT_DATETIME and the default value applicable service(s) will be started at.
 
 Note the inclusion of `--build` with the above command to force use of the correct container if the tag version is being overridden.
 
 Then to stop:
 
 ```
-docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift down -v --remove-orphans
+docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift-packaging down -v --remove-orphans
 ```
 
 ## Migrations

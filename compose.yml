@@ -435,7 +435,7 @@ services:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
     entrypoint: ["/init-container.sh"]
-    command: ["dotnet", "FrontendSchemeRegistration.UI.dll"]
+    command: ["sh", "-c", "dotnet ${EprPackagingFrontend__Dll}"]
     healthcheck:
       test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
       interval: 5s
