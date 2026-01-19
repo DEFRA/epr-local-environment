@@ -62,15 +62,15 @@ epr-calculator-service:
     image: devrwdinfac1401.azurecr.io/eprcalculatorservicerepository:${EPR_CALCULATOR_SERVICE:-main-latest}
 ```
 
-Set the `EPR_CALCULATOR_SERVICE` variable in your terminal to the image tag you require, which can be found in ADO.
-
-Then start the services:
+Set the `EPR_CALCULATOR_SERVICE` variable in your .env file to the image tag you require, which can be found in ADO:
 
 ```
-EPR_CALCULATOR_SERVICE=required-image-tag docker compose --profile paycal up -d
+EPR_CALCULATOR_SERVICE=image-tag-name-to-use
 ```
 
-Multiple varibles can be specified if needed, either within the same command or via environment variables, whatever suits.
+Then start the services.
+
+Multiple varibles can be specified if needed for each service you want to override.
 
 ## Specific service profile instructions
 
