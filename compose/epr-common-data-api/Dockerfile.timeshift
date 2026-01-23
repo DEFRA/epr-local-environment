@@ -1,0 +1,5 @@
+ARG BASE_IMAGE=devrwdinfac1401.azurecr.io/eprcommondataregistry:main-latest
+FROM ${BASE_IMAGE}
+
+USER root
+RUN apk add --no-cache libfaketime

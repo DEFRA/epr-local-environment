@@ -1,0 +1,29 @@
+services:
+  epr-packaging-frontend:
+    build:
+      context: .
+      dockerfile: ./compose/epr-packaging-frontend/Dockerfile.timeshift
+      args:
+        BASE_IMAGE: devrwdinfac1401.azurecr.io/eprpackagingfrontendrepository:${EPR_PACKAGING_FRONTEND:-main-latest}
+    image: epr-packaging-frontend:timeshift
+    command: ["sh", "-c", "echo 'Setting fake time to ${TIMESHIFT_DATETIME}' && exec faketime --exclude-monotonic -f '${TIMESHIFT_DATETIME}' dotnet ${EprPackagingFrontend__Dll}"]
+    environment:
+      AzureADB2C__ValidateTokenLifetime: false
+    profiles:
+      - timeshift-packaging
+
+  epr-common-data-api:
+    build:
+      context: .
+      dockerfile: ./compose/epr-common-data-api/Dockerfile.timeshift
+      args:
+        BASE_IMAGE: devrwdinfac1401.azurecr.io/eprcommondataregistry:${EPR_COMMON_DATA_API:-main-latest}
+    image: pr-common-data-api:timeshift
+    entrypoint: ["sh", "-c", "echo 'Setting fake time to ${TIMESHIFT_DATETIME}' && exec faketime --exclude-monotonic -f '${TIMESHIFT_DATETIME}' dotnet ${EprCommonDataApi__Dll}"]
+    profiles:
+      - timeshift-prn
+
+volumes:
+  azurite-data:
+  sqledge-data:
+  token-cache:
