@@ -1,6 +1,6 @@
 [[repos]]
 path = "ccoe-epr-infrastructure"
-tags = ["azure-devops", "epr", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "epr"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -8,7 +8,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-infrastruc
 
 [[repos]]
 path = "ccoe-epr-Pipeline.common"
-tags = ["azure-devops", "epr", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "epr"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -16,7 +16,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-Pipeline.c
 
 [[repos]]
 path = "ccoe-epr-sec-infrastructure"
-tags = ["azure-devops", "epr", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "epr"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -24,7 +24,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-sec-infras
 
 [[repos]]
 path = "epr-accountmanagement-greenlist"
-tags = ["archived", "azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["archived", "azure-devops", "epr", "github", "public"]
 
 [repos.remotes.github]
 name = "origin"
@@ -36,7 +36,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr-acc
 
 [[repos]]
 path = "epr-anti-virus-function-app"
-tags = ["azure-devops", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -48,15 +48,15 @@ url = "git@github.com:DEFRA/epr-anti-virus-function-app.git"
 
 [[repos]]
 path = "epr-app-config-settings"
-tags = ["azure-devops", "devops-sync-outdated", "dg1", "epr", "github", "internal", "primary-is-devops", "RWD-CPR-EPR4P-ADO", "zinc"]
-
-[repos.remotes.origin]
-name = "devops"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-app-config-settings"
+tags = ["azure-devops", "devops-sync-outdated", "epr", "epr-producer", "github", "internal", "primary-is-devops"]
 
 [repos.remotes.github]
 name = "origin"
 url = "git@github.com:DEFRA/epr-app-config-settings.git"
+
+[repos.remotes.origin]
+name = "devops"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-app-config-settings"
 
 [[repos]]
 path = "epr-backend"
@@ -68,7 +68,7 @@ url = "git@github.com:DEFRA/epr-backend.git"
 
 [[repos]]
 path = "epr-backend-account-microservice"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "dg1", "epr", "github", "hydrogen", "julian-setup-doc", "mike-setup-doc", "oxygen", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -96,7 +96,7 @@ url = "git@github.com:DEFRA/epr-backend-performance-tests.git"
 
 [[repos]]
 path = "epr-calculator-api"
-tags = ["epr", "github", "public"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -104,7 +104,7 @@ url = "git@github.com:DEFRA/epr-calculator-api.git"
 
 [[repos]]
 path = "epr-calculator-frontend"
-tags = ["azure-devops", "devops-abandoned", "epr", "frontend", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "epr-producer", "frontend", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -116,7 +116,7 @@ url = "git@github.com:DEFRA/epr-calculator-frontend.git"
 
 [[repos]]
 path = "epr-calculator-fss-api"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "epr-producer", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -144,7 +144,7 @@ url = "git@github.com:DEFRA/epr-calculator-rpd-data-upload.git"
 
 [[repos]]
 path = "epr-calculator-service"
-tags = ["epr", "github", "public"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -160,7 +160,7 @@ url = "git@github.com:DEFRA/epr-cdp-spike-rpd-frontend.git"
 
 [[repos]]
 path = "epr-common"
-tags = ["azure-devops", "common", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "common", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -172,7 +172,7 @@ url = "git@github.com:DEFRA/epr-common.git"
 
 [[repos]]
 path = "epr-common-data-api"
-tags = ["azure-devops", "common", "devops-abandoned", "devops-sync-outdated", "dg1", "epr", "github", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "common", "devops-abandoned", "devops-sync-outdated", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -184,7 +184,7 @@ url = "git@github.com:DEFRA/epr-common-data-api.git"
 
 [[repos]]
 path = "epr-data"
-tags = ["azure-devops", "devops-sync-active", "epr", "github", "internal", "primary-is-devops", "private", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "internal", "primary-is-devops", "private"]
 
 [repos.remotes.github]
 name = "github"
@@ -208,7 +208,7 @@ url = "git@github.com:DEFRA/epr-data-pbix-files.git"
 
 [[repos]]
 path = "epr-data-sqldb"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -244,7 +244,7 @@ url = "git@github.com:DEFRA/epr-event-dispatcher-function-app.git"
 
 [[repos]]
 path = "epr-facade-account-microservice"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "hydrogen", "mike-setup-doc", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -264,7 +264,7 @@ url = "git@github.com:DEFRA/epr-frontend.git"
 
 [[repos]]
 path = "epr-frontend-accountcreation-microservice"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "frontend", "github", "hydrogen", "mike-setup-doc", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -276,7 +276,7 @@ url = "git@github.com:DEFRA/epr-frontend-accountcreation-microservice.git"
 
 [[repos]]
 path = "epr-frontend-accountmanagement-microservice"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "frontend", "github", "hydrogen", "mike-setup-doc", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -296,7 +296,7 @@ url = "git@github.com:DEFRA/epr-frontend-journey-tests.git"
 
 [[repos]]
 path = "epr-laps-accounts"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -308,7 +308,7 @@ url = "git@github.com:DEFRA/epr-laps-accounts.git"
 
 [[repos]]
 path = "epr-laps-automation-test"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -336,7 +336,7 @@ url = "git@github.com:DEFRA/epr-laps-backend.git"
 
 [[repos]]
 path = "epr-laps-common"
-tags = ["azure-devops", "common", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "common", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -356,7 +356,7 @@ url = "git@github.com:DEFRA/epr-laps-frontend.git"
 
 [[repos]]
 path = "epr-laps-home"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -368,7 +368,7 @@ url = "git@github.com:DEFRA/epr-laps-home.git"
 
 [[repos]]
 path = "epr-laps-queries-and-complaints"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -380,7 +380,7 @@ url = "git@github.com:DEFRA/epr-laps-queries-and-complaints.git"
 
 [[repos]]
 path = "epr-laps-registration"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -392,7 +392,7 @@ url = "git@github.com:DEFRA/epr-laps-registration.git"
 
 [[repos]]
 path = "epr-laps-understanding-payments"
-tags = ["azure-devops", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -404,7 +404,7 @@ url = "git@github.com:DEFRA/epr-laps-understanding-payments.git"
 
 [[repos]]
 path = "epr-laps-usermanagement"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -416,7 +416,7 @@ url = "git@github.com:DEFRA/epr-laps-usermanagement.git"
 
 [[repos]]
 path = "epr-local-environment"
-tags = ["ad3", "epr", "github", "public", "tooling"]
+tags = ["epr", "epr-producer", "github", "public", "tooling"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -424,7 +424,7 @@ url = "git@github.com:DEFRA/epr-local-environment.git"
 
 [[repos]]
 path = "epr-logging-api"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -436,7 +436,7 @@ url = "git@github.com:DEFRA/epr-logging-api.git"
 
 [[repos]]
 path = "epr-migration-automation"
-tags = ["azure-devops", "devops-sync-active", "epr", "github", "primary-is-devops", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-sync-active", "epr", "github", "primary-is-devops", "public"]
 
 [repos.remotes.github]
 name = "github"
@@ -448,7 +448,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-migration-autom
 
 [[repos]]
 path = "epr-migration-test1"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -460,7 +460,7 @@ url = "git@github.com:DEFRA/epr-migration-test1.git"
 
 [[repos]]
 path = "epr-migration-test2"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -480,7 +480,7 @@ url = "git@github.com:DEFRA/epr-mocks.git"
 
 [[repos]]
 path = "epr-obligationchecker-frontend"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "dg1", "epr", "frontend", "github", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -492,7 +492,7 @@ url = "git@github.com:DEFRA/epr-obligationchecker-frontend.git"
 
 [[repos]]
 path = "epr-packaging-frontend"
-tags = ["ad3", "azure-devops", "devops-abandoned", "devops-sync-abandoned", "devops-sync-active", "dg1", "epr", "frontend", "github", "hydrogen", "mike-setup-doc", "oxygen", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "devops-sync-active", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -512,7 +512,7 @@ url = "git@github.com:DEFRA/epr-packaging-recovery-notes.git"
 
 [[repos]]
 path = "epr-payment-facade"
-tags = ["dg1", "epr", "github", "hydrogen", "mike-setup-doc", "public", "zinc"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -520,7 +520,7 @@ url = "git@github.com:DEFRA/epr-payment-facade.git"
 
 [[repos]]
 path = "epr-payment-frontend"
-tags = ["dg1", "epr", "frontend", "github", "hydrogen", "public"]
+tags = ["epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -528,7 +528,7 @@ url = "git@github.com:DEFRA/epr-payment-frontend.git"
 
 [[repos]]
 path = "epr-payment-mopup"
-tags = ["epr", "github", "public"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -536,7 +536,7 @@ url = "git@github.com:DEFRA/epr-payment-mopup.git"
 
 [[repos]]
 path = "epr-payment-service"
-tags = ["dg1", "epr", "github", "hydrogen", "mike-setup-doc", "public", "zinc"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -552,7 +552,7 @@ url = "git@github.com:DEFRA/epr-pipeline-template.git"
 
 [[repos]]
 path = "epr-playwright-bdd"
-tags = ["ad3", "azure-devops", "epr", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "epr", "epr-producer"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -560,7 +560,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-playwright-bdd"
 
 [[repos]]
 path = "epr-pom-api-submission-status"
-tags = ["azure-devops", "devops-sync-abandoned", "dg1", "epr", "github", "hydrogen", "julian-setup-doc", "mike-setup-doc", "oxygen", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -572,7 +572,7 @@ url = "git@github.com:DEFRA/epr-pom-api-submission-status.git"
 
 [[repos]]
 path = "epr-pom-api-web"
-tags = ["azure-devops", "devops-sync-abandoned", "dg1", "epr", "github", "hydrogen", "mike-setup-doc", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -584,7 +584,7 @@ url = "git@github.com:DEFRA/epr-pom-api-web.git"
 
 [[repos]]
 path = "epr-pom-func-producer-validation"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "dg1", "epr", "github", "hydrogen", "mike-setup-doc", "oxygen", "primary-is-github", "producer", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "producer", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -596,7 +596,7 @@ url = "git@github.com:DEFRA/epr-pom-func-producer-validation.git"
 
 [[repos]]
 path = "epr-pom-func-submission-check-splitter"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "dg1", "epr", "github", "hydrogen", "mike-setup-doc", "oxygen", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -644,7 +644,7 @@ url = "git@github.com:DEFRA/epr-prn-automation-test-suite.git"
 
 [[repos]]
 path = "epr-prn-common-backend"
-tags = ["common", "epr", "github", "public"]
+tags = ["common", "epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -652,7 +652,7 @@ url = "git@github.com:DEFRA/epr-prn-common-backend.git"
 
 [[repos]]
 path = "epr-prn-integration-function"
-tags = ["epr", "github", "public"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -692,7 +692,7 @@ url = "git@github.com:DEFRA/epr-prn-obligationcalculations-frontend.git"
 
 [[repos]]
 path = "epr-prn-obligationcalculations-function"
-tags = ["epr", "github", "public"]
+tags = ["epr", "epr-producer", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -772,7 +772,7 @@ url = "git@github.com:DEFRA/epr-re-ex-engineering-prototype.git"
 
 [[repos]]
 path = "epr-registration-validation-function-app"
-tags = ["azure-devops", "devops-sync-abandoned", "devops-sync-active", "epr", "github", "hydrogen", "mike-setup-doc", "primary-is-github", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-sync-abandoned", "devops-sync-active", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -796,7 +796,7 @@ url = "git@github.com:DEFRA/epr-regulator-enrolment-frontend.git"
 
 [[repos]]
 path = "epr-regulator-service"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "dg1", "epr", "frontend", "github", "julian-setup-doc", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -808,7 +808,7 @@ url = "git@github.com:DEFRA/epr-regulator-service.git"
 
 [[repos]]
 path = "epr-regulator-service-facade"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "dg1", "epr", "github", "julian-setup-doc", "primary-is-github", "public", "zinc"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -832,7 +832,7 @@ url = "git@github.com:DEFRA/epr-rpd-azure-ad-b2c-styling.git"
 
 [[repos]]
 path = "epr-rpd-performance-tests"
-tags = ["azure-devops", "devops-abandoned", "epr", "github", "primary-is-devops", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-abandoned", "epr", "github", "primary-is-devops", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -852,7 +852,7 @@ url = "git@github.com:DEFRA/epr-subsidiary-func-bulk-upload.git"
 
 [[repos]]
 path = "epr-tools-environment-variables"
-tags = ["ad3", "azure-devops", "epr", "primary-is-devops", "RWD-CPR-EPR4P-ADO", "tooling"]
+tags = ["azure-devops", "epr", "primary-is-devops", "tooling"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -884,7 +884,7 @@ url = "git@github.com:DEFRA/epr-web-shutter-screen-pages.git"
 
 [[repos]]
 path = "epr-webapps-code-deploy-pipelines"
-tags = ["azure-devops", "devops-sync-active", "epr", "github", "primary-is-devops", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-sync-active", "epr", "github", "primary-is-devops", "public"]
 
 [repos.remotes.github]
 name = "github"
@@ -896,7 +896,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-webapps-code-de
 
 [[repos]]
 path = "epr-webapps-code-deploy-templates"
-tags = ["azure-devops", "devops-sync-active", "epr", "github", "primary-is-devops", "public", "RWD-CPR-EPR4P-ADO"]
+tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "primary-is-devops", "public"]
 
 [repos.remotes.github]
 name = "github"
@@ -908,7 +908,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-webapps-code-de
 
 [[repos]]
 path = "extended-producer-responsibility-docs"
-tags = ["ad3", "epr", "private"]
+tags = ["epr", "epr-producer", "private"]
 
 [repos.remotes.origin]
 name = "origin"
