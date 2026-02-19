@@ -896,15 +896,15 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-webapps-code-de
 
 [[repos]]
 path = "epr-webapps-code-deploy-templates"
-tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "primary-is-devops", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
 
-[repos.remotes.github]
-name = "github"
-url = "git@github.com:DEFRA/epr-webapps-code-deploy-templates.git"
+[repos.remotes.devops]
+name = "devops"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates"
 
 [repos.remotes.origin]
 name = "origin"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates"
+url = "git@github.com:DEFRA/epr-webapps-code-deploy-templates.git"
 
 [[repos]]
 path = "extended-producer-responsibility-docs"
