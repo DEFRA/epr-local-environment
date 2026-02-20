@@ -219,6 +219,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-data-sqldb.git"
 
 [[repos]]
+path = "epr-data-synapse"
+tags = ["azure-devops", "epr", "epr-producer"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-data-synapse"
+
+[[repos]]
 path = "epr-document-schema-job-runner-function-app"
 tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
 
