@@ -59,6 +59,7 @@ services:
       - paycal
       - packaging
       - prn
+      - synapse
 
   azurite:
     pull_policy: always
@@ -386,6 +387,27 @@ services:
       start_period: 5s
     profiles:
       - prn
+
+  epr-common-data-api-migrations:
+    # pull_policy: always
+    # image: devrwdinfac1401.azurecr.io/eprcommondataregistry:${EPR_COMMON_DATA_API_MIGRATIONS:-main-latest-database-migrations}
+    image: epr-common-data-api-migrations:latest
+    command: ["/bin/bash", "/home/nonroot/sql/run-migrations.sh"]
+    depends_on:
+      sqledge:
+        condition: service_healthy
+    volumes:
+      - ./compose/epr-common-data-api-migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+      - ./compose/epr-common-data-api-migrations/scripts:/home/nonroot/sql/scripts/compose
+    environment:
+      SERVER: sqledge
+      PORT: 1433
+      USER: sa
+      PASSWORD: "s4usag3s!"
+      DATABASE: EprCommonData
+    profiles:
+      - prn
+      - synapse
 
   epr-packaging-frontend:
     pull_policy: always
