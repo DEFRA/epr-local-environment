@@ -389,9 +389,8 @@ services:
       - prn
 
   epr-common-data-api-migrations:
-    # pull_policy: always
-    # image: devrwdinfac1401.azurecr.io/eprcommondataregistry:${EPR_COMMON_DATA_API_MIGRATIONS:-main-latest-database-migrations}
-    image: epr-common-data-api-migrations:latest
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprcommondataregistry:${EPR_COMMON_DATA_API_MIGRATIONS:-main-latest-database-migrations}
     command: ["/bin/bash", "/home/nonroot/sql/run-migrations.sh"]
     depends_on:
       sqledge:
