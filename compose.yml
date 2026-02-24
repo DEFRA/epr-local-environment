@@ -18,6 +18,7 @@ services:
     profiles:
       - paycal
       - packaging
+      - synapse
 
   asb:
     depends_on:
@@ -35,6 +36,7 @@ services:
     profiles:
       - paycal
       - packaging
+      - synapse
 
   sqledge:
     pull_policy: always
@@ -72,7 +74,7 @@ services:
       - azurite-data:/data
     command: "azurite --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data"
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 10000"]
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 10000" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -80,6 +82,7 @@ services:
     profiles:
       - paycal
       - packaging
+      - synapse
 
   azurite-init:
     pull_policy: always
@@ -113,7 +116,7 @@ services:
         echo 'Token refreshed at' $$(date);
       done"
     healthcheck:
-      test: ["CMD", "test", "-f", "/tokens/sql.azuresynapse_token.txt"]
+      test: [ "CMD", "test", "-f", "/tokens/sql.azuresynapse_token.txt" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -128,7 +131,7 @@ services:
       - "6379:6379"
       - "8005:8001" # use http://localhost:8005/redis-stack/browser to view active keys
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -146,6 +149,7 @@ services:
     profiles:
       - paycal
       - packaging
+      - synapse
 
   epr-calculator-service:
     pull_policy: always
@@ -184,7 +188,7 @@ services:
     ports:
       - "8001:80"
     healthcheck:
-      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/80' || exit 1"]
+      test: [ "CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/80' || exit 1" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -217,7 +221,7 @@ services:
     ports:
       - "5055:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -228,7 +232,7 @@ services:
   epr-calculator-api-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorapirepository:${EPR_CALCULATOR_API_MIGRATIONS:-main-latest-database-migrations}
-    command: ["/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql"]
+    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql" ]
     depends_on:
       sqledge:
         condition: service_healthy
@@ -288,7 +292,7 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -333,7 +337,7 @@ services:
     ports:
       - "5168:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -368,29 +372,30 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
-      token-provider:
-        condition: service_healthy
+      # token-provider:
+      #   condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
-      ConnectionStrings__SynapseDatabase: ${EprCommonDataApi__ConnectionStrings__SynapseDatabase} # see .env
+      # AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
+      ConnectionStrings__SynapseDatabase: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprCommonData;TrustServerCertificate=True"
     ports:
       - "8002:8080"
     volumes:
       - token-cache:/tokens
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/admin/health" ]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
     profiles:
       - prn
+      - synapse
 
   epr-common-data-api-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcommondataregistry:${EPR_COMMON_DATA_API_MIGRATIONS:-main-latest-database-migrations}
-    command: ["/bin/bash", "/home/nonroot/sql/run-migrations.sh"]
+    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh" ]
     depends_on:
       sqledge:
         condition: service_healthy
@@ -415,11 +420,11 @@ services:
       redis:
         condition: service_healthy
       epr-facade-account-microservice:
-        condition: service_started # health check for this failed due to lack of curl so left as service_started for now
+        condition: service_healthy
       epr-payment-facade:
         condition: service_healthy
       epr-pom-api-web:
-        condition: service_started # health check for this failed due to lack of curl so left as service_started for now
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -459,10 +464,10 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
-    entrypoint: ["/init-container.sh"]
-    command: ["sh", "-c", "dotnet ${EprPackagingFrontend__Dll}"]
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "sh", "-c", "dotnet ${EprPackagingFrontend__Dll}" ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -476,7 +481,7 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-backend-account-microservice:
-        condition: service_started # health check for this failed due to lack of curl so left as service_started for now
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -496,8 +501,14 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
-    entrypoint: ["/init-container.sh"]
-    command: ["dotnet", "FacadeAccountCreation.API.dll"]
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "FacadeAccountCreation.API.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     profiles:
       - packaging
 
@@ -522,15 +533,21 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
-    entrypoint: ["/init-container.sh"]
-    command: ["dotnet", "BackendAccountService.Api.dll"]
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "BackendAccountService.Api.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     profiles:
       - packaging
 
   epr-backend-account-microservice-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/backendaccountserviceregistry:${EPR_BACKEND_ACCOUNT_MICROSERVICE_MIGRATIONS:-main-latest-database-migrations}
-    command: ["/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql"]
+    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql" ]
     depends_on:
       sqledge:
         condition: service_healthy
@@ -567,10 +584,10 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
-    entrypoint: ["/init-container.sh"]
-    command: ["dotnet", "EPR.Payment.Facade.dll"]
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "EPR.Payment.Facade.dll" ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health"]
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -610,8 +627,14 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
-    entrypoint: ["/init-container.sh"]
-    command: ["dotnet", "WebApiGateway.Api.dll"]
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "WebApiGateway.Api.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     profiles:
       - packaging
 
@@ -637,8 +660,8 @@ services:
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
-    entrypoint: ["/init-container.sh"]
-    command: ["dotnet", "EPR.SubmissionMicroservice.API.dll"]
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "EPR.SubmissionMicroservice.API.dll" ]
     profiles:
       - packaging
 
@@ -653,7 +676,7 @@ services:
       wiremock:
         condition: service_started
     volumes:
-      - ./compose/epr-prn-integration-function/host.fake:/azure-functions-host/Secrets/host.json
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
     environment:
       FeatureManagement__RunIntegration: "true"
       FeatureManagement__RunUpdateProducers: "true"
@@ -742,6 +765,51 @@ services:
       start_period: 5s
     profiles:
       - packaging
+
+  epr-prn-obligationcalculations-function:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprobligationcalcrepository:${EPR_PRN_OBLIGATIONCALCULATIONS_FUNCTION:-main-latest}
+    depends_on:
+      asb:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+      epr-common-data-api:
+        condition: service_healthy
+    volumes:
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
+    environment:
+      ApplicationConfig__DefaultRunDate: "2025-11-01"
+      ApplicationConfig__LogPrefix: "[EPR.PRN.ObligationCalculation]"
+      ApplicationConfig__FunctionIsEnabled": true
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      FUNCTIONS_WORKER_RUNTIME: "dotnet-isolated"
+      PrnServiceApi__BaseUrl: "http://epr-prn-common-backend:8080"
+      PrnServiceApi__LogPrefix: "[EPR.PRN.ObligationCalculation]"
+      PrnServiceApi__TimeoutFromSeconds: 360
+      PrnServiceApi__PrnCalculateEndPoint: "api/v1/prn/organisation/{0}/calculate"
+      SubmissionsServiceApi__BaseUrl: "http://epr-common-data-api:8080"
+      SubmissionsServiceApi__LogPrefix: "[EPR.PRN.ObligationCalculation]"
+      SubmissionsServiceApi__TimeoutFromSeconds: 360
+      SubmissionsServiceApi__SubmissionsEndPoint: "api/submissions/v1/pom/approved/"
+      StoreApprovedSubmissions__Schedule: "0 0 10 * * *"
+      ServiceBus__LogPrefix: "[EPR.PRN.ObligationCalculation]"
+      ServiceBus__ObligationLastSuccessfulRunQueueName: defra.epr.obligationlastsuccessfulrun.local
+      ServiceBus__ObligationQueueName: defra.epr.obligation.local
+      ServiceBus: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+    ports:
+      - "7234:80" # need to consider running two functions at the same time
+    healthcheck:
+      test: [ "CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/80' || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - synapse # this will need to change to obligations
 
 volumes:
   azurite-data:
