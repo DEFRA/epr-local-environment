@@ -103,8 +103,8 @@ process_sql_files "./scripts/compose/schemas"
 
 echo ""
 echo "Tables"
-process_sql_files "./scripts/compose/tables"
-process_sql_files "./scripts/tables"
+process_sql_files "./scripts/compose/tables" false
+process_sql_files "./scripts/tables" false
 
 # order in which views are processed might mean a dependent view doesn't exist
 # therefore do 3 passes to try and eventually catch everything
@@ -122,3 +122,11 @@ echo ""
 echo "Views (pass 3)"
 process_sql_files "./scripts/compose/views" false
 process_sql_files "./scripts/views" false
+
+echo ""
+echo "Functions"
+process_sql_files "./scripts/functions" false
+
+echo ""
+echo "Procedures (only specific ones added for specific functionality)"
+process_sql_file "./scripts/procedures/get-approved-submissions_myc.sql"
