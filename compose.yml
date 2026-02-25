@@ -781,6 +781,9 @@ services:
     volumes:
       - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
     environment:
+      Logging__LogLevel__Azure.Core: Warning
+      Logging__LogLevel__Microsoft: Information
+      Logging__LogLevel__System: Information
       ApplicationConfig__DefaultRunDate: "2025-11-01"
       ApplicationConfig__LogPrefix: "[EPR.PRN.ObligationCalculation]"
       ApplicationConfig__FunctionIsEnabled: true
