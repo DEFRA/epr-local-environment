@@ -373,12 +373,19 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
+      # -----
+      # - if connection to a Synapse instance running in Azure is needed then reenable the depends on below
+      # -----
       # token-provider:
       #   condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      # AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
       ConnectionStrings__SynapseDatabase: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprCommonData;TrustServerCertificate=True"
+      # -----
+      # - if connection to a Synapse instance running in Azure is needed then comment the env var above and uncomment the two below
+      # -----
+      # AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
+      # ConnectionStrings__SynapseDatabase: ${EprCommonDataApi__ConnectionStrings__SynapseDatabase} # see .env
     ports:
       - "8002:8080"
     volumes:
