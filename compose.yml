@@ -386,6 +386,8 @@ services:
       # -----
       # AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
       # ConnectionStrings__SynapseDatabase: ${EprCommonDataApi__ConnectionStrings__SynapseDatabase} # see .env
+      ApiConfig__IncludePackagingMaterials: "AL,FC,GL,PC,PL,ST,WD"
+      ApiConfig__IncludePackagingTypes: "HH,NH,PB,HDC,NDC"
     ports:
       - "8002:8080"
     volumes:
