@@ -125,6 +125,7 @@ process_sql_files "./scripts/views" false
 
 echo ""
 echo "Functions"
+process_sql_files "./scripts/compose/functions" false
 process_sql_files "./scripts/functions" false
 
 echo ""

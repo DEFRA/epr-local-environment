@@ -783,7 +783,7 @@ services:
     environment:
       ApplicationConfig__DefaultRunDate: "2025-11-01"
       ApplicationConfig__LogPrefix: "[EPR.PRN.ObligationCalculation]"
-      ApplicationConfig__FunctionIsEnabled": true
+      ApplicationConfig__FunctionIsEnabled: true
       AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
       AzureWebJobsSecretStorageType: "files"
       FUNCTIONS_WORKER_RUNTIME: "dotnet-isolated"
