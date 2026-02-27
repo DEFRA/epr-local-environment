@@ -100,7 +100,6 @@ services:
       "
     profiles:
       - paycal
-      - packaging # suspect this can be removed
 
   token-provider:
     image: mcr.microsoft.com/azure-cli
@@ -783,8 +782,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
-    profiles:
-      - packaging # why is this needed for packaging? consider removing
 
   epr-prn-obligationcalculations-function:
     pull_policy: always
