@@ -148,6 +148,36 @@ docker compose --profile packaging down
 
 To remove all, append `-v --remove-orphans`
 
+### obligations
+
+Obtain the necessary secrets.
+
+To start:
+
+```
+docker compose --profile obligations up -d
+```
+
+The packaging front end will be started alongside all necessary services that allow the obligation calculation process to function.
+
+A local emulated version of Synapse will be started in sqledge. Currently only the obligation calculation process is supported in the SQL definitions applied within Synapse.
+
+Also note that this is a very brittle approach to standing up a DB that emulates Synapse. There are SQL definitions from the epr-common-data-api layer on top of definitions from epr-data-sqldb and not all are applied. See [further README](./compose/epr-common-data-api-migrations/README.md) for more details at time of writing.
+
+This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
+
+See [packaging](#packaging) profile for local running.
+
+You will need to be on the Azure VPN when running this profile.
+
+To stop:
+
+```
+docker compose --profile obligations down
+```
+
+To remove all, append `-v --remove-orphans`
+
 ## Licence Information
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:

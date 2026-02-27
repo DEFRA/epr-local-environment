@@ -18,7 +18,7 @@ services:
     profiles:
       - paycal
       - packaging
-      - synapse
+      - obligations
 
   asb:
     depends_on:
@@ -36,7 +36,7 @@ services:
     profiles:
       - paycal
       - packaging
-      - synapse
+      - obligations
 
   sqledge:
     pull_policy: always
@@ -61,7 +61,7 @@ services:
       - paycal
       - packaging
       - prn
-      - synapse
+      - obligations
 
   azurite:
     pull_policy: always
@@ -82,7 +82,7 @@ services:
     profiles:
       - paycal
       - packaging
-      - synapse
+      - obligations
 
   azurite-init:
     pull_policy: always
@@ -100,7 +100,7 @@ services:
       "
     profiles:
       - paycal
-      - packaging
+      - packaging # suspect this can be removed
 
   token-provider:
     image: mcr.microsoft.com/azure-cli
@@ -138,6 +138,7 @@ services:
       start_period: 40s
     profiles:
       - packaging
+      - obligations
 
   wiremock:
     pull_policy: always
@@ -149,7 +150,7 @@ services:
     profiles:
       - paycal
       - packaging
-      - synapse
+      - obligations
 
   epr-calculator-service:
     pull_policy: always
@@ -346,7 +347,7 @@ services:
     profiles:
       - prn
       - packaging
-      - synapse
+      - obligations
 
   epr-prn-common-backend-migrations:
     pull_policy: always
@@ -367,7 +368,7 @@ services:
     profiles:
       - prn
       - packaging
-      - synapse
+      - obligations
 
   epr-common-data-api:
     pull_policy: always
@@ -402,7 +403,7 @@ services:
       start_period: 5s
     profiles:
       - prn
-      - synapse
+      - obligations
 
   epr-common-data-api-migrations:
     pull_policy: always
@@ -422,7 +423,7 @@ services:
       DATABASE: EprCommonData
     profiles:
       - prn
-      - synapse
+      - obligations
 
   epr-packaging-frontend:
     pull_policy: always
@@ -486,6 +487,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-facade-account-microservice:
     pull_policy: always
@@ -523,6 +525,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-backend-account-microservice:
     pull_policy: always
@@ -555,6 +558,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-backend-account-microservice-migrations:
     pull_policy: always
@@ -574,6 +578,7 @@ services:
       DATABASE: EprBackendAccountMicroservice
     profiles:
       - packaging
+      - obligations
 
   epr-payment-facade:
     pull_policy: always
@@ -606,6 +611,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-pom-api-web:
     pull_policy: always
@@ -649,6 +655,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-pom-api-submission-status:
     pull_policy: always
@@ -676,6 +683,7 @@ services:
     command: [ "dotnet", "EPR.SubmissionMicroservice.API.dll" ]
     profiles:
       - packaging
+      - obligations
 
   epr-prn-integration-function:
     pull_policy: always
@@ -776,7 +784,7 @@ services:
       retries: 10
       start_period: 5s
     profiles:
-      - packaging
+      - packaging # why is this needed for packaging? consider removing
 
   epr-prn-obligationcalculations-function:
     pull_policy: always
@@ -825,7 +833,7 @@ services:
       retries: 10
       start_period: 5s
     profiles:
-      - synapse # this will need to change to obligations
+      - obligations
 
 volumes:
   azurite-data:

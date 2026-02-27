@@ -28,6 +28,10 @@ clean_sql_file() {
     temp_file=$(apply_sed_transform "$temp_file" '/^[[:space:]]*WITH[[:space:]]*$/,/^[[:space:]]*)[[:space:]]*;*[[:space:]]*$/d')
     temp_file=$(apply_sed_transform "$temp_file" '/^[[:space:]]*WITH[[:space:]]*(/,/^[[:space:]]*)[[:space:]]*;*[[:space:]]*$/d')
 
+    # Specific file mods (currently procedures from epr-common-data-api-migrations are not required)
+    # GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) AS RegulatorDecisionDate
+    # temp_file=$(apply_sed_transform "$temp_file" 's/GREATEST(ss\.RegistrationDecisionDate, ss\.RegulatorDecisionDate) AS RegulatorDecisionDate/CASE\n                WHEN ss.RegistrationDecisionDate > ss.RegulatorDecisionDate THEN ss.RegistrationDecisionDate\n                ELSE ss.RegulatorDecisionDate\n            END AS RegulatorDecisionDate/g')
+
     echo "$temp_file"
 }
 
