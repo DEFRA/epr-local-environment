@@ -782,6 +782,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    profiles:
+      - unknown
 
   epr-prn-obligationcalculations-function:
     pull_policy: always
