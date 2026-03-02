@@ -168,6 +168,15 @@ This approach should provide an early feedback loop yet there could still be sub
 
 See [packaging](#packaging) profile for local running.
 
+The cron for the obligation calculator function is set for a single run at 10am. If you need to run the function manually to kick of the process, it can be initiated via:
+
+```
+curl -v POST "http://localhost:7234/admin/functions/StoreApprovedSubmissionsFunction" \
+-H "x-functions-key: this-is-a-dummy-value" \
+-H "Content-Type: application/json" \
+-d '{}'
+```
+
 You will need to be on the Azure VPN when running this profile.
 
 To stop:

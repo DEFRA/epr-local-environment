@@ -57,6 +57,7 @@ exec_sql_file() {
 
 process_sql_file() {
     local file_path=$1
+    local filter_errors=${2:-true}
 
     if [[ -s "$file_path" ]]; then
         echo "=== $file_path ==="
@@ -66,7 +67,7 @@ process_sql_file() {
             cat "$cleaned_file"
         fi
 
-        exec_sql_file "$cleaned_file"
+        exec_sql_file "$cleaned_file" $filter_errors
         rm "$cleaned_file"
     else
         echo "The file \"$file_path\" is empty or does not exist."
@@ -75,6 +76,7 @@ process_sql_file() {
 
 process_sql_files() {
     local folder_path=$1
+    local filter_errors=${2:-true}
 
     if [[ -d "$folder_path" ]]; then
         for sql_file in "$folder_path"/*.sql; do
@@ -86,7 +88,7 @@ process_sql_files() {
                     cat "$cleaned_file"
                 fi
 
-                exec_sql_file "$cleaned_file"
+                exec_sql_file "$cleaned_file" $filter_errors
                 rm "$cleaned_file"
             fi
         done
@@ -135,3 +137,13 @@ process_sql_files "./scripts/functions" false
 echo ""
 echo "Procedures (only specific ones added for specific functionality)"
 process_sql_file "./scripts/procedures/get-approved-submissions_myc.sql"
+
+if [[ -n "$1" ]]; then
+    echo ""
+    echo "-------------"
+    echo "- Seeding -"
+    echo "-------------"
+
+    # seeding (see compose.yml)
+    process_sql_file "$1"
+fi
