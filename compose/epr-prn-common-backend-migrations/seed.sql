@@ -1,8 +1,8 @@
--- this is used in seed.sql for service epr-backend-account-microservice-migrations
+-- common to all local seed.sql files
 declare @organisationExternalId uniqueidentifier
 set @organisationExternalId = '94BFC917-B9B6-45D7-847B-E5F500BFE198'
 
--- this is used in seed.sql for service epr-backend-account-microservice-migrations
+-- common to all local seed.sql files
 declare @complianceSchemeExternalId uniqueidentifier
 set @complianceSchemeExternalId = 'D93376E3-0681-46BE-AEB4-7450A2E784D8'
 
@@ -29,3 +29,6 @@ insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, Re
 insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('PRN-007-OLD-DEC', @complianceSchemeExternalId, 'Organisation Name', 'Producer Agency', 'Reprocessor Exporter Agency', 1, 1, 'Glass Other', 'Issuer Reference', '2025-03-01', 1, 'Issued By Org', 'Accred Num', '2025', '2025', 'Packaging Producer', '2025-03-01', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2025-03-01', NULL)
 insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('PRN-008-CURRENT', @complianceSchemeExternalId, 'Organisation Name', 'Producer Agency', 'Reprocessor Exporter Agency', 1, 1, 'Glass Other', 'Issuer Reference', '2025-03-01', 0, 'Issued By Org', 'Accred Num', '2026', '2026', 'Packaging Producer', '2025-03-01', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2025-03-01', NULL)
 insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('PRN-011-OLD-DEC', @complianceSchemeExternalId, 'Organisation Name', 'Producer Agency', 'Reprocessor Exporter Agency', 4, 1, 'Glass Other', 'Issuer Reference', '2025-03-01', 1, 'Issued By Org', 'Accred Num', '2024', '2025', 'Packaging Producer', '2025-03-01', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2025-03-01', NULL)
+
+-- Fibre
+insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('PRN-012-RREPW', @complianceSchemeExternalId, 'Organisation Name', 'Producer Agency', 'Reprocessor Exporter Agency', 4, 1, 'Fibre', 'Issuer Reference', '2026-03-01', 1, 'Issued By Org', 'Accred Num', '2026', '2026', 'Packaging Producer', '2026-03-01', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2026-03-01', 'RREPW')

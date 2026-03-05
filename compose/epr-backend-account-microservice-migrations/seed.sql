@@ -7,7 +7,7 @@ insert into Users (UserId, Email) values (@userId, @email)
 
 insert into Persons (FirstName, LastName, Email, Telephone, UserId) values ('First name', 'Last Name', @email, '07123456789', (select Id from Users where Email = @email))
 
--- this is used in seed.sql for service epr-prn-common-backend-migrations
+-- common to all local seed.sql files
 declare @organisationExternalId uniqueidentifier
 set @organisationExternalId = '94BFC917-B9B6-45D7-847B-E5F500BFE198'
 
@@ -23,7 +23,7 @@ set @connectionId = SCOPE_IDENTITY()
 
 insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId) values (@connectionId, 1, 3)
 
--- this is used in seed.sql for service epr-prn-common-backend-migrations
+-- common to all local seed.sql files
 declare @complianceSchemeExternalId uniqueidentifier
 set @complianceSchemeExternalId = 'D93376E3-0681-46BE-AEB4-7450A2E784D8'
 
