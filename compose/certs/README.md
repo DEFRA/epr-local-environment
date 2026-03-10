@@ -21,3 +21,15 @@ openssl pkcs12 -export -out https/aspnetapp.pfx -inkey https/aspnetapp.key -in h
 ```
 
 Use `password` as the password when prompted.
+
+## Trusting the certificate
+
+```
+openssl pkcs12 -in https/aspnetapp.pfx -clcerts -nokeys -out https/aspnetapp.cer
+```
+
+Mac
+
+```
+security add-trusted-cert -d -r trustRoot -k ~/Library/Keychains/login.keychain-db https/aspnetapp.cer
+```
