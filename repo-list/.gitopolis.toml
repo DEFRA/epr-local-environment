@@ -172,7 +172,7 @@ url = "git@github.com:DEFRA/epr-common.git"
 
 [[repos]]
 path = "epr-common-data-api"
-tags = ["azure-devops", "common", "devops-abandoned", "devops-sync-outdated", "epr", "epr-producer", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "common", "devops-abandoned", "devops-sync-outdated", "epr", "epr-producer", "github", "primary-is-github", "public", "synapse"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -184,7 +184,7 @@ url = "git@github.com:DEFRA/epr-common-data-api.git"
 
 [[repos]]
 path = "epr-data"
-tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "internal", "primary-is-devops", "private"]
+tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "internal", "primary-is-devops", "private", "synapse"]
 
 [repos.remotes.github]
 name = "github"
@@ -208,7 +208,7 @@ url = "git@github.com:DEFRA/epr-data-pbix-files.git"
 
 [[repos]]
 path = "epr-data-sqldb"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public", "synapse"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -220,7 +220,7 @@ url = "git@github.com:DEFRA/epr-data-sqldb.git"
 
 [[repos]]
 path = "epr-data-synapse"
-tags = ["azure-devops", "epr", "epr-producer"]
+tags = ["azure-devops", "epr", "epr-producer", "synapse"]
 
 [repos.remotes.origin]
 name = "origin"
