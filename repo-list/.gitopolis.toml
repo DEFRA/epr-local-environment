@@ -600,7 +600,7 @@ url = "git@github.com:DEFRA/epr-pom-api-web.git"
 
 [[repos]]
 path = "epr-pom-func-producer-validation"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "producer", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -716,7 +716,7 @@ url = "git@github.com:DEFRA/epr-prn-obligationcalculations-function.git"
 
 [[repos]]
 path = "epr-prn-producer-facade"
-tags = ["epr", "github", "producer", "public"]
+tags = ["epr", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -724,7 +724,7 @@ url = "git@github.com:DEFRA/epr-prn-producer-facade.git"
 
 [[repos]]
 path = "epr-prn-producer-frontend"
-tags = ["epr", "frontend", "github", "producer", "public"]
+tags = ["epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
