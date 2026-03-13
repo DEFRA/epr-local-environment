@@ -172,7 +172,7 @@ url = "git@github.com:DEFRA/epr-common.git"
 
 [[repos]]
 path = "epr-common-data-api"
-tags = ["azure-devops", "common", "devops-abandoned", "devops-sync-outdated", "epr", "epr-producer", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "common", "devops-abandoned", "devops-sync-outdated", "epr", "epr-producer", "github", "primary-is-github", "public", "synapse"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -184,7 +184,7 @@ url = "git@github.com:DEFRA/epr-common-data-api.git"
 
 [[repos]]
 path = "epr-data"
-tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "internal", "primary-is-devops", "private"]
+tags = ["azure-devops", "devops-sync-active", "epr", "epr-producer", "github", "internal", "primary-is-devops", "private", "synapse"]
 
 [repos.remotes.github]
 name = "github"
@@ -208,7 +208,7 @@ url = "git@github.com:DEFRA/epr-data-pbix-files.git"
 
 [[repos]]
 path = "epr-data-sqldb"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public", "synapse"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -220,11 +220,19 @@ url = "git@github.com:DEFRA/epr-data-sqldb.git"
 
 [[repos]]
 path = "epr-data-synapse"
-tags = ["azure-devops", "epr", "epr-producer"]
+tags = ["azure-devops", "epr", "epr-producer", "synapse"]
 
 [repos.remotes.origin]
 name = "origin"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-data-synapse"
+
+[[repos]]
+path = "epr-devops-tools"
+tags = ["azure-devops", "epr", "epr-producer", "primary-is-devops", "tooling"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-devops-tools"
 
 [[repos]]
 path = "epr-document-schema-job-runner-function-app"
@@ -592,7 +600,7 @@ url = "git@github.com:DEFRA/epr-pom-api-web.git"
 
 [[repos]]
 path = "epr-pom-func-producer-validation"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "producer", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -708,7 +716,7 @@ url = "git@github.com:DEFRA/epr-prn-obligationcalculations-function.git"
 
 [[repos]]
 path = "epr-prn-producer-facade"
-tags = ["epr", "github", "producer", "public"]
+tags = ["epr", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -716,7 +724,7 @@ url = "git@github.com:DEFRA/epr-prn-producer-facade.git"
 
 [[repos]]
 path = "epr-prn-producer-frontend"
-tags = ["epr", "frontend", "github", "producer", "public"]
+tags = ["epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
