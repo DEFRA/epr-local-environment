@@ -78,7 +78,19 @@ Multiple varibles can be specified if needed for each service you want to overri
 
 Obtain the necessary secrets.
 
-To start:
+To start (recommended):
+
+```
+./start-paycal.sh
+```
+
+This helper script performs common checks (Git branch, Docker, Azure login, .env, SQL image selection) and then starts the PayCal services. If you need to forcefully reset Docker volumes before starting, run:
+
+```
+./start-paycal.sh --force
+```
+
+Alternatively you can run the docker compose command directly:
 
 ```
 docker compose --profile paycal up -d
