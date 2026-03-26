@@ -458,19 +458,7 @@ services:
       PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/api/v1/
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
-      # the following are temporary as https://github.com/DEFRA/epr-packaging-frontend/pull/55 includes them
-      SubmissionPeriods__6__DataPeriod: "January to June 2026"
-      SubmissionPeriods__6__StartMonth: "January"
-      SubmissionPeriods__6__EndMonth: "June"
-      SubmissionPeriods__6__Year: "2026"
-      SubmissionPeriods__6__Deadline: "1 Oct 2026 11:59:00 PM"
-      SubmissionPeriods__6__ActiveFrom: "1 Jul 2026 12:00:00 AM"
-      SubmissionPeriods__7__DataPeriod: "July to December 2026"
-      SubmissionPeriods__7__StartMonth: "July"
-      SubmissionPeriods__7__EndMonth: "December"
-      SubmissionPeriods__7__Year: "2026"
-      SubmissionPeriods__7__Deadline: "1 Apr 2027 11:59:00 PM"
-      SubmissionPeriods__7__ActiveFrom: "1 Jan 2027 12:00:00 AM"
+      FeatureManagement__CsocEnabled: true
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
