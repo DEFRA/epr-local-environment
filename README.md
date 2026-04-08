@@ -187,6 +187,30 @@ docker compose --profile obligations down
 
 To remove all, append `-v --remove-orphans`
 
+## Seeded users (packaging profile)
+
+The following users are seeded into the account microservice DB via `compose/epr-backend-account-microservice-migrations/seed.sql`.
+
+Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
+
+### Compliance Scheme — "Organisation Name" (CHN `12345678`)
+
+| Email | Role | UserId |
+|-------|------|--------|
+| `test+17122025143216@ee.com` | Approved Person | `579C319D-D552-47A2-BF4C-5A125A3183BC` |
+| `francis.chelladurai+07042026@equalexperts.com` | Delegated Person (nominated by `test+17122025143216@ee.com`) | `ef2fd2a5-24bf-4b22-89a0-17a0367aee1c` |
+| `francis.chelladurai+260407@equalexperts.com` | Basic User | `13e26b8a-e2b2-4870-b040-d6bdf5d689fa` |
+
+### Direct Producer — "POP QUEST LTD" (CHN `17121895`)
+
+| Email | Role | UserId |
+|-------|------|--------|
+| `test+directproducer@ee.com` | Approved Person | `79d0deab-c22d-4c30-8082-508ff8dc1bd7` |
+| `bmmmdmgz@sharklasers.com` | Delegated Person (nominated by `test+directproducer@ee.com`) | `513a78ee-d5bf-4fa4-9d8f-136550ea6072` |
+| `francis.chelladurai+31032026@equalexperts.com` | Basic User | `d062d4fe-34f8-468e-ada8-d950cc9a3c2a` |
+
+All enrolments are seeded with `EnrolmentStatusId = 3` (Approved/Active).
+
 ## Licence Information
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:

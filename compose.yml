@@ -403,6 +403,7 @@ services:
     profiles:
       - prn
       - obligations
+      - packaging
 
   epr-common-data-api-migrations:
     pull_policy: always
@@ -424,6 +425,7 @@ services:
     profiles:
       - prn
       - obligations
+      - packaging
 
   epr-packaging-frontend:
     pull_policy: always
@@ -610,6 +612,8 @@ services:
         condition: service_healthy
       epr-prn-common-backend:
         condition: service_healthy
+      epr-common-data-api:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -627,6 +631,7 @@ services:
       # AccountApi__ClientId of d71ae4ca-49e0-46b9-bc49-71e00deb5005 skipped to avoid DefaultCredentials failure
       LoggingApi__BaseUrl: http://wiremock
       SubmissionStatusApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      CommonDataApi__BaseUrl: http://epr-common-data-api:8080
     ports:
       - "5291:8080" # taken from launch settings in epr-pom-api-web
       - "7265:8081" # taken from launch settings in epr-pom-api-web
