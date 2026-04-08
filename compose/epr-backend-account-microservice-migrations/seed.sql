@@ -108,3 +108,92 @@ set @nominatorEnrolmentId = (select top 1 Id from Enrolments where ConnectionId 
 if not exists (select 1 from DelegatedPersonEnrolments where EnrolmentId = @dpDelegatedEnrolmentId)
     insert into DelegatedPersonEnrolments (EnrolmentId, NominatorEnrolmentId, RelationshipType, NominatorDeclaration, NominatorDeclarationTime, NomineeDeclaration, NomineeDeclarationTime)
     values (@dpDelegatedEnrolmentId, @nominatorEnrolmentId, 'Employment', 'Declaration', GETUTCDATE(), 'Declaration', GETUTCDATE())
+
+-- Basic user for POP QUEST LTD
+declare @dpBasicUserId uniqueidentifier
+declare @dpBasicEmail nvarchar(255)
+set @dpBasicUserId = 'd062d4fe-34f8-468e-ada8-d950cc9a3c2a'
+set @dpBasicEmail = 'francis.chelladurai+31032026@equalexperts.com'
+
+if not exists (select 1 from Users where UserId = @dpBasicUserId)
+    insert into Users (UserId, Email) values (@dpBasicUserId, @dpBasicEmail)
+
+if not exists (select 1 from Persons where Email = @dpBasicEmail)
+    insert into Persons (FirstName, LastName, Email, Telephone, UserId)
+    values ('Francis', 'Chelladurai', @dpBasicEmail, '00441234567891',
+        (select Id from Users where Email = @dpBasicEmail))
+
+if not exists (select 1 from PersonOrganisationConnections where OrganisationId = @dpOrgId and PersonId = (select Id from Users where Email = @dpBasicEmail))
+    insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId)
+    values ('Director', @dpOrgId, 1,
+        (select Id from Users where Email = @dpBasicEmail), 1)
+
+declare @dpBasicConnectionId int
+set @dpBasicConnectionId = (select top 1 Id from PersonOrganisationConnections where OrganisationId = @dpOrgId and PersonId = (select Id from Users where Email = @dpBasicEmail))
+
+if not exists (select 1 from Enrolments where ConnectionId = @dpBasicConnectionId)
+    insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
+    values (@dpBasicConnectionId, 3, 3)
+
+-- Delegated user for Compliance Scheme org
+declare @csDelegatedUserId uniqueidentifier
+declare @csDelegatedEmail nvarchar(255)
+set @csDelegatedUserId = 'ef2fd2a5-24bf-4b22-89a0-17a0367aee1c'
+set @csDelegatedEmail = 'francis.chelladurai+07042026@equalexperts.com'
+
+if not exists (select 1 from Users where UserId = @csDelegatedUserId)
+    insert into Users (UserId, Email) values (@csDelegatedUserId, @csDelegatedEmail)
+
+if not exists (select 1 from Persons where Email = @csDelegatedEmail)
+    insert into Persons (FirstName, LastName, Email, Telephone, UserId)
+    values ('Francis', 'Delegated', @csDelegatedEmail, '00441234567892',
+        (select Id from Users where Email = @csDelegatedEmail))
+
+if not exists (select 1 from PersonOrganisationConnections where OrganisationId = @organisationId and PersonId = (select Id from Users where Email = @csDelegatedEmail))
+    insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId)
+    values ('Director', @organisationId, 1,
+        (select Id from Users where Email = @csDelegatedEmail), 1)
+
+declare @csDelegatedConnectionId int
+set @csDelegatedConnectionId = (select top 1 Id from PersonOrganisationConnections where OrganisationId = @organisationId and PersonId = (select Id from Users where Email = @csDelegatedEmail))
+
+if not exists (select 1 from Enrolments where ConnectionId = @csDelegatedConnectionId)
+    insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
+    values (@csDelegatedConnectionId, 2, 3)
+
+declare @csDelegatedEnrolmentId int
+set @csDelegatedEnrolmentId = (select top 1 Id from Enrolments where ConnectionId = @csDelegatedConnectionId)
+
+-- @connectionId is the Approved Person's (test+17122025143216@ee.com) connection on the compliance scheme org
+declare @csNominatorEnrolmentId int
+set @csNominatorEnrolmentId = (select top 1 Id from Enrolments where ConnectionId = @connectionId)
+
+if not exists (select 1 from DelegatedPersonEnrolments where EnrolmentId = @csDelegatedEnrolmentId)
+    insert into DelegatedPersonEnrolments (EnrolmentId, NominatorEnrolmentId, RelationshipType, NominatorDeclaration, NominatorDeclarationTime, NomineeDeclaration, NomineeDeclarationTime)
+    values (@csDelegatedEnrolmentId, @csNominatorEnrolmentId, 'Employment', 'Declaration', GETUTCDATE(), 'Declaration', GETUTCDATE())
+
+-- Basic user for Compliance Scheme org
+declare @csBasicUserId uniqueidentifier
+declare @csBasicEmail nvarchar(255)
+set @csBasicUserId = '13e26b8a-e2b2-4870-b040-d6bdf5d689fa'
+set @csBasicEmail = 'francis.chelladurai+260407@equalexperts.com'
+
+if not exists (select 1 from Users where UserId = @csBasicUserId)
+    insert into Users (UserId, Email) values (@csBasicUserId, @csBasicEmail)
+
+if not exists (select 1 from Persons where Email = @csBasicEmail)
+    insert into Persons (FirstName, LastName, Email, Telephone, UserId)
+    values ('Francis', 'Basic', @csBasicEmail, '00441234567893',
+        (select Id from Users where Email = @csBasicEmail))
+
+if not exists (select 1 from PersonOrganisationConnections where OrganisationId = @organisationId and PersonId = (select Id from Users where Email = @csBasicEmail))
+    insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId)
+    values ('Director', @organisationId, 1,
+        (select Id from Users where Email = @csBasicEmail), 1)
+
+declare @csBasicConnectionId int
+set @csBasicConnectionId = (select top 1 Id from PersonOrganisationConnections where OrganisationId = @organisationId and PersonId = (select Id from Users where Email = @csBasicEmail))
+
+if not exists (select 1 from Enrolments where ConnectionId = @csBasicConnectionId)
+    insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
+    values (@csBasicConnectionId, 3, 3)
