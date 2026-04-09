@@ -167,14 +167,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ServiceBusConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
       ServiceBusQueueName: defra.epr.calculator.run.local
-      PipelineUrl: http://wiremock
-      GetOrgDataPipelineName: pip_paycal_get_org_data
-      GetPomDataPipelineName: pip_paycal_get_pom_data
-      MaxCheckCount: 10
-      CheckInterval: 5
       FUNCTIONS_WORKER_RUNTIME: dotnet
       FUNCTIONS_INPROC_NET8_ENABLED: 1
-      Execute_RPD_Pipeline: false
       DbConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;TrustServerCertificate=True"
       BlobConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
       StatusUpdateEndpoint: http://epr-calculator-api:8080/v1/internal/rpdStatus
@@ -185,6 +179,8 @@ services:
       ResultFileCSVContainerName: "paycal"
       BillingFileCSVBlobContainerName: "paycal-billingfilecsv"
       BillingFileJsonBlobContainerName: "paycal-billingfilejson"
+      CommonDataApi:HttpClient:BaseUrl: "https://localhost:8002"
+      CommonDataApi:DataLoader:Enabled: false
     ports:
       - "8001:80"
     healthcheck:
