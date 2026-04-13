@@ -787,6 +787,30 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-re-ex-engineering-prototype.git"
 
 [[repos]]
+path = "epr-register-enrol-backend"
+tags = ["backend", "cdp", "epr", "github", "public", "register"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-register-enrol-backend.git"
+
+[[repos]]
+path = "epr-register-enrol-fe-tests"
+tags = ["cdp", "epr", "github", "public", "register"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-register-enrol-fe-tests.git"
+
+[[repos]]
+path = "epr-register-enrol-frontend"
+tags = ["cdp", "epr", "frontend", "github", "public", "register"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-register-enrol-frontend.git"
+
+[[repos]]
 path = "epr-registration-validation-function-app"
 tags = ["azure-devops", "devops-sync-abandoned", "devops-sync-active", "epr", "epr-producer", "github", "primary-is-github", "public"]
 
