@@ -504,7 +504,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "FacadeAccountCreation.API.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -520,6 +520,8 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
+      epr-backend-account-microservice-migrations:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
