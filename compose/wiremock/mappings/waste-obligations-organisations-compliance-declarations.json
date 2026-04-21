@@ -1,0 +1,84 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "RegexMatcher",
+          "Pattern": "/organisations/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/compliance-declarations"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "BodyAsJson": {
+      "complianceDeclarations": [
+        {
+          "id": "b5aa3ef6-e7d5-4eb2-acea-589573d5a005",
+          "created": "2026-04-27T14:00:00+00:00",
+          "updated": "2026-04-27T14:00:00+00:00",
+          "status": "Submitted",
+          "organisationId": "923fa611-571c-4948-ab7d-fbb75e75ed65",
+          "obligationYear": 2026,
+          "obligations": [
+            {
+              "material": "Plastic",
+              "recyclingTarget": 0.75,
+              "tonnages": {
+                "material": 100,
+                "awaitingAcceptance": 10,
+                "accepted": 2,
+                "outstanding": 20,
+                "obligated": 5
+              },
+              "status": "NoDataYet"
+            }
+          ],
+          "declarationText": {
+            "text": "This is the text",
+            "language": "en"
+          },
+          "submitterName": "Submitter Name",
+          "user": {
+            "id": "e72be574-8b5b-4836-af47-dd7e0c0d1d87",
+            "email": "submitter@email.com"
+          }
+        },
+        {
+          "id": "41095a7f-3896-4347-b367-136f94725883",
+          "created": "2026-04-26T14:00:00+00:00",
+          "updated": "2026-04-26T14:00:00+00:00",
+          "status": "Submitted",
+          "organisationId": "923fa611-571c-4948-ab7d-fbb75e75ed65",
+          "obligationYear": 2026,
+          "obligations": [
+            {
+              "material": "Plastic",
+              "recyclingTarget": 0.75,
+              "tonnages": {
+                "material": 100,
+                "awaitingAcceptance": 10,
+                "accepted": 2,
+                "outstanding": 20,
+                "obligated": 5
+              },
+              "status": "NoDataYet"
+            }
+          ],
+          "declarationText": {
+            "text": "This is the text",
+            "language": "en"
+          },
+          "submitterName": "Submitter Name",
+          "user": {
+            "id": "e72be574-8b5b-4836-af47-dd7e0c0d1d87",
+            "email": "submitter@email.com"
+          }
+        }
+      ]
+    }
+  }
+}
