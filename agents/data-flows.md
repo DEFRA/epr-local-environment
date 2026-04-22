@@ -71,20 +71,26 @@ When documenting a new flow, use this structure (logseq-style indented bullets):
 
 ## Permalink Format
 
-**GitHub:**
+### Getting permalink SHAs
+
+```sh
+gitopolis exec -t epr-producer -- git rev-parse origin/main
+```
+
+### GitHub links
 ```
 https://github.com/DEFRA/{repo}/blob/{sha}/path/to/file.cs#L{start}-L{end}
 ```
 
-**Azure DevOps:**
+### Azure DevOps links
+
 ```
 https://dev.azure.com/{org}/{project}/_git/{repo}?path={path}&version=GC{sha}&line={start}&lineEnd={end}&lineStartColumn=1&lineEndColumn=1&lineStyle=plain&_a=contents
 ```
 
-**Getting SHAs:**
-```sh
-gitopolis exec -t epr-producer -- git rev-parse origin/main
-```
+- With line range: append `&line={start}&lineEnd={end}&lineStartColumn=1&lineEndColumn=1&lineStyle=plain&_a=contents`
+- Single line: `lineEnd` must be `line+1` (e.g., line 12 → `&line=12&lineEnd=13&...`)
+
 
 ## Quality Checklist
 
