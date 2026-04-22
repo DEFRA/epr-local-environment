@@ -167,14 +167,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ServiceBusConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
       ServiceBusQueueName: defra.epr.calculator.run.local
-      PipelineUrl: http://wiremock
-      GetOrgDataPipelineName: pip_paycal_get_org_data
-      GetPomDataPipelineName: pip_paycal_get_pom_data
-      MaxCheckCount: 10
-      CheckInterval: 5
       FUNCTIONS_WORKER_RUNTIME: dotnet
       FUNCTIONS_INPROC_NET8_ENABLED: 1
-      Execute_RPD_Pipeline: false
       DbConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;TrustServerCertificate=True"
       BlobConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
       StatusUpdateEndpoint: http://epr-calculator-api:8080/v1/internal/rpdStatus
@@ -185,6 +179,8 @@ services:
       ResultFileCSVContainerName: "paycal"
       BillingFileCSVBlobContainerName: "paycal-billingfilecsv"
       BillingFileJsonBlobContainerName: "paycal-billingfilejson"
+      CommonDataApi:HttpClient:BaseUrl: "https://localhost:8002"
+      CommonDataApi:DataLoader:Enabled: false
     ports:
       - "8001:80"
     healthcheck:
@@ -403,6 +399,7 @@ services:
     profiles:
       - prn
       - obligations
+      - packaging
 
   epr-common-data-api-migrations:
     pull_policy: always
@@ -424,6 +421,7 @@ services:
     profiles:
       - prn
       - obligations
+      - packaging
 
   epr-packaging-frontend:
     pull_policy: always
@@ -458,19 +456,7 @@ services:
       PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/api/v1/
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
-      # the following are temporary as https://github.com/DEFRA/epr-packaging-frontend/pull/55 includes them
-      SubmissionPeriods__6__DataPeriod: "January to June 2026"
-      SubmissionPeriods__6__StartMonth: "January"
-      SubmissionPeriods__6__EndMonth: "June"
-      SubmissionPeriods__6__Year: "2026"
-      SubmissionPeriods__6__Deadline: "1 Oct 2026 11:59:00 PM"
-      SubmissionPeriods__6__ActiveFrom: "1 Jul 2026 12:00:00 AM"
-      SubmissionPeriods__7__DataPeriod: "July to December 2026"
-      SubmissionPeriods__7__StartMonth: "July"
-      SubmissionPeriods__7__EndMonth: "December"
-      SubmissionPeriods__7__Year: "2026"
-      SubmissionPeriods__7__Deadline: "1 Apr 2027 11:59:00 PM"
-      SubmissionPeriods__7__ActiveFrom: "1 Jan 2027 12:00:00 AM"
+      FeatureManagement__CsocEnabled: true
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
@@ -518,7 +504,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "FacadeAccountCreation.API.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -534,6 +520,8 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
+      epr-backend-account-microservice-migrations:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -622,6 +610,8 @@ services:
         condition: service_healthy
       epr-prn-common-backend:
         condition: service_healthy
+      epr-common-data-api:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -639,6 +629,7 @@ services:
       # AccountApi__ClientId of d71ae4ca-49e0-46b9-bc49-71e00deb5005 skipped to avoid DefaultCredentials failure
       LoggingApi__BaseUrl: http://wiremock
       SubmissionStatusApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      CommonDataApi__BaseUrl: http://epr-common-data-api:8080
     ports:
       - "5291:8080" # taken from launch settings in epr-pom-api-web
       - "7265:8081" # taken from launch settings in epr-pom-api-web
