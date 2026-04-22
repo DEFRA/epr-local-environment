@@ -11,12 +11,14 @@ Uses [gitopolis](https://github.com/timabell/gitopolis) to manage the multi-repo
 mkdir workspace && cd workspace
 git clone https://github.com/DEFRA/epr-local-environment.git
 
-# 2. Symlink gitopolis config and AGENTS.md to workspace root
+# 2. Symlink gitopolis config to workspace root
 ln -s epr-local-environment/repo-list/.gitopolis.toml .gitopolis.toml
-ln -s epr-local-environment/agents/AGENTS.md AGENTS.md
-ln -s AGENTS.md CLAUDE.md # for claude users
 
-# 3. Clone all EPR service repos into workspace
+# 3. Create AGENTS.md pointer at workspace root (not a symlink - relative links must resolve from agents/)
+cp epr-local-environment/agents/AGENTS.md.template AGENTS.md
+cp AGENTS.md CLAUDE.md # for claude users
+
+# 4. Clone all EPR service repos into workspace
 gitopolis clone -t epr-producer
 ```
 
@@ -25,7 +27,7 @@ Your workspace should now look like:
 ```
 workspace/
 ├── .gitopolis.toml               → symlink to epr-local-environment/repo-list/.gitopolis.toml
-├── AGENTS.md                     → symlink to epr-local-environment/agents/AGENTS.md
+├── AGENTS.md                     → has a link to epr-local-environment/agents/AGENTS.md
 ├── epr-local-environment/
 │   └── agents/
 │       ├── AGENTS.md             ← full agent guidance (start here)
@@ -52,7 +54,7 @@ cd workspace/
 claude
 ```
 
-Claude will pick up the AGENTS.md symlink and follow links to the full guidance. Point it at issues, bugs, or features and it will use the architecture docs, gotchas, and traced flows to orient itself.
+Claude will pick up AGENTS.md, follow the link to the full guidance in `epr-local-environment/agents/`, and load the architecture docs, gotchas, and traced flows. Point it at issues, bugs, or features from there.
 
 ## What's in here
 
