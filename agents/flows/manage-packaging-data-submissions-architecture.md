@@ -1,0 +1,184 @@
+- # manage-packaging-data-submissions Data Flow Architecture
+- ## Overview
+	- The `/regulators/manage-packaging-data-submissions` page displays a table of packaging data submissions for regulators to review
+	- Data comes from **two sources** that are merged:
+		- **CosmosDB** (real-time change feed) - immediate decision updates
+		- **SQL Server/Synapse** (comprehensive data) - full submission details with slight delay
+- ## Complete Data Flow
+	- ### Frontend Layer
+		- **epr-regulator-service** (WA 411 - Regulator Frontend)
+			- Route: `/regulators/manage-packaging-data-submissions`
+			- Controller: [SubmissionsController.cs:66](https://github.com/DEFRA/epr-regulator-service/blob/8d17830a6e534ab176fc3c40767a0595c597fbd0/src/EPR.RegulatorService.Frontend.Web/Controllers/Submissions/SubmissionsController.cs#L66)
+			- Method: `Submissions(int? pageNumber)`
+			- Calls facade service: `_facadeService.GetOrganisationSubmissions<Submission>()`
+				- Implementation: [FacadeService.cs:207](https://github.com/DEFRA/epr-regulator-service/blob/8d17830a6e534ab176fc3c40767a0595c597fbd0/src/EPR.RegulatorService.Frontend.Core/Services/FacadeService.cs#L207)
+				- HTTP endpoint: `{BaseUrl}/pom/get-submissions`
+				- Configuration: [appsettings.json:153](https://github.com/DEFRA/epr-regulator-service/blob/8d17830a6e534ab176fc3c40767a0595c597fbd0/src/EPR.RegulatorService.Frontend.Web/appsettings.json#L153)
+	- ### Facade Layer (Orchestration)
+		- **epr-regulator-service-facade** (WA 406 - Regulator Service Facade)
+			- Route: `api/pom/get-submissions`
+			- Controller: [SubmissionsController.cs:100](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.API/Controllers/SubmissionsController.cs#L100)
+			- Method: `GetPoMSubmissions(PoMSubmissionsFilters request)`
+			- **Step 1**: Get last sync time
+				- Calls: `_commonDataService.GetSubmissionLastSyncTime()`
+				- [SubmissionsController.cs:107](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.API/Controllers/SubmissionsController.cs#L107)
+				- Returns: `SubmissionEventsLastSync` with timestamp
+			- **Step 2**: Get real-time delta from CosmosDB
+				- Calls: `_submissionService.GetDeltaPoMSubmissions(lastSyncTime, userId)`
+				- [SubmissionsController.cs:115](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.API/Controllers/SubmissionsController.cs#L115)
+				- Implementation: [SubmissionsService.cs:25](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.Core/Services/Submissions/SubmissionsService.cs#L25)
+				- Returns: `RegulatorPomDecision[]` - recent decisions since last sync
+			- **Step 3**: Get comprehensive data from Synapse
+				- Calls: `_commonDataService.GetPoMSubmissions(pomSubmissionsRequest)` with delta
+				- [SubmissionsController.cs:138](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.API/Controllers/SubmissionsController.cs#L138)
+				- Implementation: [CommonDataService.cs:33](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.Core/Services/CommonData/CommonDataService.cs#L33)
+				- Passes `DecisionsDelta` to be merged with Synapse data
+			- Configuration: [appsettings.json](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.API/appsettings.json)
+				- SubmissionsApiConfig endpoints (line 75): CosmosDB API
+				- CommonDataApiConfig endpoints (line 88): Synapse API
+	- ### Backend Layer - Source 1: Real-Time Change Feed (CosmosDB)
+		- **epr-pom-api-submission-status** (WA 408 - Submission Status API)
+			- Route: `v1/submissions/events/get-regulator-pom-decision?LastSyncTime=...`
+			- Controller: [SubmissionEventController.cs:99](https://github.com/DEFRA/epr-pom-api-submission-status/blob/f2133663a5125ff2957567e6c2293cb389bf7d43/src/EPR.SubmissionMicroservice.API/Controllers/SubmissionEventController.cs#L99)
+			- Method: `GetSubmissionEventsByType(RegulatorPoMDecisionSubmissionEventsGetRequest request)`
+			- Handler: [RegulatorPoMDecisionSubmissionEventsGetQueryHandler.cs](https://github.com/DEFRA/epr-pom-api-submission-status/blob/f2133663a5125ff2957567e6c2293cb389bf7d43/src/EPR.SubmissionMicroservice.Application/Features/Queries/SubmissionEventsGet/RegulatorPoMDecisionSubmissionEventsGetQueryHandler.cs)
+				- Lines 30-32: Queries CosmosDB for events where `Created > LastSyncTime`
+				- Filters by: `EventType.RegulatorPoMDecision`
+				- Orders by: `Created` descending
+			- **Database**: CosmosDB (NoSQL)
+				- Configuration: [ConfigureServices.cs:52](https://github.com/DEFRA/epr-pom-api-submission-status/blob/f2133663a5125ff2957567e6c2293cb389bf7d43/src/EPR.SubmissionMicroservice.Data/ConfigureServices.cs#L52) - `UseCosmos()`
+				- Contains: Real-time submission events as they happen
+				- Purpose: Fast, immediate updates for regulator decisions
+				- Data model: `RegulatorPoMDecisionEvent`
+			- **Architecture Pattern**: Event Sourcing
+				- Events are appended to CosmosDB as they occur
+				- Change feed provides incremental updates since last sync
+				- Ensures regulators see decisions immediately after they're made
+	- ### Backend Layer - Source 2: Comprehensive Data (Synapse)
+		- **epr-common-data-api** (Common Data API)
+			- Route: `api/submissions/pom/summary`
+			- Controller: [SubmissionsController.cs:27](https://github.com/DEFRA/epr-common-data-api/blob/8d0b9cf37cb89155a8ce39e2716076135ccb9f6e/src/EPR.CommonDataService.Api/Controllers/SubmissionsController.cs#L27)
+			- Method: `GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)`
+				- Receives `DecisionsDelta` from facade
+				- Line 30: Calls `submissionsService.GetSubmissionPomSummaries(request)`
+			- **Database**: SQL Server (Synapse-backed)
+				- Context: [SynapseContext.cs:19](https://github.com/DEFRA/epr-common-data-api/blob/8d0b9cf37cb89155a8ce39e2716076135ccb9f6e/src/EPR.CommonDataService.Data/Infrastructure/SynapseContext.cs#L19)
+				- DbSet: `SubmissionSummaries` (line 22) - `DbSet<PomSubmissionSummaryRow>`
+				- Purpose: Comprehensive submission data with full history
+				- Source: Azure Synapse ETL pipeline processing
+			- **Data Pipeline**:
+				- Synapse ingests data from multiple sources (CosmosDB, SQL databases)
+				- Processes and transforms data through ETL
+				- May have slight delay (minutes to hours) from real-time
+				- Provides rich querying capabilities and historical data
+			- **Merge Strategy**:
+				- Synapse data provides the base dataset with pagination
+				- `DecisionsDelta` overlays recent decisions from CosmosDB
+				- Ensures latest decisions override potentially stale Synapse data
+				- Returns: `PaginatedResponse<PomSubmissionSummary>`
+- ## Why Two Data Sources?
+	- ### Problem Statement
+		- Synapse provides comprehensive, queryable data but has processing delay
+		- Regulator decisions need to appear immediately in the UI
+		- Users expect real-time feedback when they approve/reject submissions
+	- ### Solution: Dual-Source Architecture
+		- **CosmosDB**: Real-time event store
+			- ✅ Immediate writes when decisions are made
+			- ✅ Fast change feed queries
+			- ✅ No ETL delay
+			- ❌ Limited query capabilities
+			- ❌ Not ideal for complex filtering/pagination
+		- **Synapse**: Analytical data warehouse
+			- ✅ Rich query capabilities (filtering, sorting, pagination)
+			- ✅ Comprehensive historical data
+			- ✅ Joins with other datasets
+			- ❌ Processing delay from ETL
+			- ❌ Not real-time
+	- ### Merge Benefits
+		- Users see latest decisions immediately (CosmosDB)
+		- Complex queries and filters work efficiently (Synapse)
+		- Historical data remains accessible (Synapse)
+		- System remains responsive during high load (distributed architecture)
+- ## C4 Architecture Mapping
+	- According to [model.producer-regulator.c4](https://github.com/DEFRA/extended-producer-responsibility-docs/blob/5014994a538a8545ee1e83c635ae68aa2f2ce78a/docs/architecture/report-packaging-data/model.producer-regulator.c4):
+	- **Regulator Frontend** (WA 411): Lines 315-346
+		- regulatorFrontend → regulatorServiceFacade (line 331)
+	- **Regulator Service Facade** (WA 406): Lines 364-403
+		- regulatorServiceFacade → dataReporting.commonDataAPI (line 379)
+		- regulatorServiceFacade → submissionStatusAPI (line 383)
+	- **Submission Status API** (WA 408): Lines 7-21
+		- submissionStatusAPI → cosmosDB (line 17) - "owns this database"
+	- **Cosmos Database**: Lines 203-214
+		- Title: "Submission database"
+		- Description: "Cosmos Database (NoSQL) database to store registration and POM file submission event meta data"
+- ## API Endpoints Summary
+	- ### Frontend → Facade
+		- ```
+		  GET /regulators/manage-packaging-data-submissions
+		    ↓
+		  GET {FacadeApi.BaseUrl}/pom/get-submissions
+		  ```
+	- ### Facade → Backend APIs
+		- ```
+		  GET {CommonDataApi}/api/submission-events/get-last-sync-time
+		    ↓ returns { LastSyncTime: "2025-01-13T10:30:00Z" }
+
+		  GET {SubmissionsApi}/v1/submissions/events/get-regulator-pom-decision?LastSyncTime=2025-01-13T10:30:00Z
+		    ↓ returns RegulatorPomDecision[] (delta)
+
+		  POST {CommonDataApi}/api/submissions/pom/summary
+		    body: {
+		      ...filters,
+		      DecisionsDelta: [...]  // from CosmosDB
+		    }
+		    ↓ returns PaginatedResponse<PomSubmissionSummary>
+		  ```
+- ## Key Source Files
+	- ### Frontend
+		- [epr-regulator-service/src/EPR.RegulatorService.Frontend.Web/Controllers/Submissions/SubmissionsController.cs](https://github.com/DEFRA/epr-regulator-service/blob/8d17830a6e534ab176fc3c40767a0595c597fbd0/src/EPR.RegulatorService.Frontend.Web/Controllers/Submissions/SubmissionsController.cs)
+		- [epr-regulator-service/src/EPR.RegulatorService.Frontend.Core/Services/FacadeService.cs](https://github.com/DEFRA/epr-regulator-service/blob/8d17830a6e534ab176fc3c40767a0595c597fbd0/src/EPR.RegulatorService.Frontend.Core/Services/FacadeService.cs)
+	- ### Facade
+		- [epr-regulator-service-facade/src/EPR.RegulatorService.Facade.API/Controllers/SubmissionsController.cs](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.API/Controllers/SubmissionsController.cs)
+		- [epr-regulator-service-facade/src/EPR.RegulatorService.Facade.Core/Services/Submissions/SubmissionsService.cs](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.Core/Services/Submissions/SubmissionsService.cs)
+		- [epr-regulator-service-facade/src/EPR.RegulatorService.Facade.Core/Services/CommonData/CommonDataService.cs](https://github.com/DEFRA/epr-regulator-service-facade/blob/c8d810a6c43dcf732d94c71baebe55515d27def1/src/EPR.RegulatorService.Facade.Core/Services/CommonData/CommonDataService.cs)
+	- ### Backend - CosmosDB
+		- [epr-pom-api-submission-status/src/EPR.SubmissionMicroservice.API/Controllers/SubmissionEventController.cs](https://github.com/DEFRA/epr-pom-api-submission-status/blob/f2133663a5125ff2957567e6c2293cb389bf7d43/src/EPR.SubmissionMicroservice.API/Controllers/SubmissionEventController.cs)
+		- [epr-pom-api-submission-status/src/EPR.SubmissionMicroservice.Application/Features/Queries/SubmissionEventsGet/RegulatorPoMDecisionSubmissionEventsGetQueryHandler.cs](https://github.com/DEFRA/epr-pom-api-submission-status/blob/f2133663a5125ff2957567e6c2293cb389bf7d43/src/EPR.SubmissionMicroservice.Application/Features/Queries/SubmissionEventsGet/RegulatorPoMDecisionSubmissionEventsGetQueryHandler.cs)
+		- [epr-pom-api-submission-status/src/EPR.SubmissionMicroservice.Data/ConfigureServices.cs](https://github.com/DEFRA/epr-pom-api-submission-status/blob/f2133663a5125ff2957567e6c2293cb389bf7d43/src/EPR.SubmissionMicroservice.Data/ConfigureServices.cs)
+	- ### Backend - Synapse
+		- [epr-common-data-api/src/EPR.CommonDataService.Api/Controllers/SubmissionsController.cs](https://github.com/DEFRA/epr-common-data-api/blob/8d0b9cf37cb89155a8ce39e2716076135ccb9f6e/src/EPR.CommonDataService.Api/Controllers/SubmissionsController.cs)
+		- [epr-common-data-api/src/EPR.CommonDataService.Data/Infrastructure/SynapseContext.cs](https://github.com/DEFRA/epr-common-data-api/blob/8d0b9cf37cb89155a8ce39e2716076135ccb9f6e/src/EPR.CommonDataService.Data/Infrastructure/SynapseContext.cs)
+		- [epr-common-data-api/src/EPR.CommonDataService.Core/Services/SubmissionsService.cs](https://github.com/DEFRA/epr-common-data-api/blob/8d0b9cf37cb89155a8ce39e2716076135ccb9f6e/src/EPR.CommonDataService.Core/Services/SubmissionsService.cs)
+- ## Azure Resources
+	- ### Services
+		- WA 411: epr-regulator-service (Frontend)
+		- WA 406: epr-regulator-service-facade (Facade)
+		- WA 408: epr-pom-api-submission-status (Submission Status API)
+		- WA 415: epr-common-data-api (Common Data API)
+	- ### Data Stores
+		- CosmosDB: {env}RWDDBSCOx401 (Submission database)
+		- SQL Server: Synapse-backed analytics database
+		- Azure Synapse: Analytics workspace for ETL processing
+- ## Testing Strategy for SMAL-286
+	- Based on the architecture, to test `/regulators/manage-packaging-data-submissions` without external dependencies:
+	- ### Mock Requirements
+		- 1. **Mock Facade API** (`epr-regulator-service-facade`)
+			- Endpoint: `GET /api/pom/get-submissions`
+			- Response: `PaginatedResponse<PomSubmissionSummaryResponse>`
+			- Must include test data with various statuses (Pending, Accepted, Rejected)
+		- 2. **Authentication Mock**
+			- Azure AD B2C token validation
+			- User claims with Regulator role
+		- 3. **Session Management**
+			- Redis session state (or in-memory for tests)
+	- ### WireMock Implementation Pattern
+		- Reference: [epr-packaging-frontend MockApiServer.cs](https://github.com/DEFRA/epr-packaging-frontend/blob/79ffe0517defbdd73448996548467ca83610b272/src/FrontendSchemeRegistration.MockServer/MockApiServer.cs#L11)
+		- Define stubs for facade endpoints
+		- Provide test data with known organisation IDs
+		- Support filtering and pagination parameters
+	- ### Test Scenarios
+		- ✅ Display table with submissions from mocked data
+		- ✅ Filter by organisation name, status, year, period
+		- ✅ Pagination through results
+		- ✅ Click submission to view details (requires additional mocks)
+		- ✅ Accept/Reject decision flows (requires POST endpoint mocks)

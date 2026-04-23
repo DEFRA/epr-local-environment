@@ -1,0 +1,429 @@
+- # Synapse ETL Pipeline - SubmissionsSummaries Population
+- ## Overview
+	- `apps.SubmissionsSummaries` is a materialized table in Azure Synapse that aggregates packaging data submissions for regulator review
+	- Populated through a multi-stage ETL pipeline orchestrated by stored procedures
+	- Data flows: **CosmosDB** → `rpd.*` schema → `apps.*` schema → **aggregated view** → **materialized table**
+	- Purpose: Provide fast, queryable submission data with complex joins and calculations pre-computed
+- ## Stage 1: CosmosDB to Synapse Sync
+	- ### Azure Synapse Link for Cosmos DB
+		- Automatically replicates CosmosDB data to Synapse in near real-time
+		- Destination schema: `rpd.*` (raw production data)
+		- Sync latency: Seconds to minutes
+	- ### Source Tables (rpd schema)
+		- **rpd.Submissions**
+			- Submission records from CosmosDB
+			- Contains: SubmissionId, OrganisationId, ComplianceSchemeId, UserId, SubmissionPeriod, SubmissionType
+			- Has `load_ts` timestamp indicating when synced from Cosmos
+		- **rpd.SubmissionEvents**
+			- Submission events from CosmosDB (event sourcing pattern)
+			- Contains: SubmissionEventId, SubmissionId, Type, FileId, Decision, Comments, IsResubmissionRequired, Created
+			- Event types: 'Submitted', 'RegulatorPomDecision', 'PackagingResubmissionReferenceNumberCreated', etc.
+			- Has `load_ts` timestamp for deduplication
+			- Table creation: [create-apps-submissions-events-table.sql:39](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Create%20Tables/create-apps-submissions-events-table.sql#L39)
+		- **rpd.cosmos_file_metadata**
+			- File metadata from uploads
+			- Contains: FileId, BlobName, OriginalFileName, Created
+		- **rpd.pom**
+			- POM (Producer Obligation) data
+			- Contains: filename, submission_period codes
+		- **Reference Data Tables**
+			- `rpd.Organisations` - Org details, NationId, ProducerTypeId, ReferenceNumber
+			- `rpd.Users` - User records
+			- `rpd.Persons` - Person details (FirstName, LastName, Email, Telephone)
+			- `rpd.PersonOrganisationConnections` - Links persons to orgs
+			- `rpd.Enrolments` - Service role enrolments
+			- `rpd.ServiceRoles` - Role names
+			- `rpd.ProducerTypes` - Producer type lookup
+			- `rpd.ComplianceSchemes` - Compliance scheme details, NationId
+- ## Stage 2: ETL Orchestration
+	- ### Main Orchestration Procedure
+		- **Procedure**: `sp_MergeSubmissionsSummaries`
+		- **File**: [execute-merge-submissions-rpd-to-apps-schema.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/execute-merge-submissions-rpd-to-apps-schema.sql)
+		- **Purpose**: Orchestrates complete ETL pipeline from raw Cosmos sync to aggregated tables
+		- **Logging**: Uses `dbo.batch_log` table to track each ETL step with timestamps and status
+	- ### Step 2a: Merge Submissions to apps schema
+		- **Line**: 816-822
+		- **Action**: `EXEC sp_DynamicTableMerge`
+		- **Source**: `rpd.Submissions`
+		- **Target**: `apps.Submissions`
+		- **Match Key**: SubmissionId
+		- **Purpose**: Copy submission records from raw Cosmos sync to apps schema, deduplicating by load_ts
+	- ### Step 2b: Merge SubmissionEvents to apps schema
+		- **Line**: 857-862
+		- **Action**: `EXEC sp_DynamicTableMerge`
+		- **Source**: `rpd.SubmissionEvents`
+		- **Target**: `apps.SubmissionEvents`
+		- **Match Key**: SubmissionEventId
+		- **Purpose**: Copy submission events from raw Cosmos sync to apps schema, deduplicating by load_ts
+		- **Table Structure**: [create-apps-submissions-events-table.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Create%20Tables/create-apps-submissions-events-table.sql)
+			- Distribution: HASH by SubmissionEventId
+			- Index: Clustered Columnstore
+- ## Stage 3: View Aggregation
+	- ### View Definition
+		- **View**: `apps.v_SubmissionsSummaries`
+		- **File**: [create-submissions-summaries-view.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Views/create-submissions-summaries-view.sql)
+		- **Purpose**: Complex aggregation query joining multiple data sources
+		- **Note**: This is a virtual view (not materialized) - defines the query logic
+	- ### Key CTEs in View
+		- **cf_meta_first_record** (Line 9-18)
+			- Gets first file metadata record per FileId
+			- Uses `ROW_NUMBER()` partitioned by FileId, ordered by Created
+			- Result: `FileId, BlobName, OriginalFileName`
+		- **File_id_code_description** (Line 19-28)
+			- Joins POM data with submission period codes
+			- Links `rpd.pom` → `dbo.v_PoM_Codes` → `rpd.cosmos_file_metadata`
+			- Gets human-readable submission period text
+		- **File_id_code_description_combined** (Line 29-39)
+			- Aggregates multiple submission codes per file using `STRING_AGG`
+			- Creates: `Combined_SubmissionCode`, `Combined_ActualSubmissionPeriod`
+		- **AllSubmittedEventsCTE** (Line 41-55)
+			- Queries: `apps.SubmissionEvents`
+			- Filters: `Type='Submitted'`
+			- `ROW_NUMBER()` partitioned by FileId, ordered by `load_ts DESC`
+			- Purpose: Get latest submitted event per file, removing Cosmos sync duplicates
+		- **FirstResubmissionReferenceNumberCreated** (Line 60-65)
+			- Finds first fee resubmission record per SubmissionId
+			- Filters: `Type = 'PackagingResubmissionReferenceNumberCreated'`
+			- Gets: `MIN(Created)` per SubmissionId
+		- **ResubmissionApplicationSubmittedData** (Line 67-75)
+			- Finds resubmission events that occurred AFTER first reference number created
+			- Filters: `Type = 'PackagingResubmissionApplicationSubmitted'`
+			- Logic: `se.Created > fr.FirstReferenceNumberCreated`
+		- **SubmittedOrResubmissionWithoutNewEvents** (Line 77-84)
+			- Finds submitted events that are either:
+				- Not resubmissions (FirstReferenceNumberCreated IS NULL)
+				- Or submitted BEFORE first reference number (original submission)
+		- **SubmissionsAggregated** (Line 86-90)
+			- **Critical CTE**: Determines which submissions to include
+			- UNION of:
+				- Resubmission events (from ResubmissionApplicationSubmittedData)
+				- Original/non-resubmission events (from SubmittedOrResubmissionWithoutNewEvents)
+			- Result: `FileId, SubmissionId` pairs that should appear in final view
+			- Used later to set `NEW_FLAG` column (Line 312, 327)
+		- **LatestSubmittedEventsCTE** (Line 96-106)
+			- Filters AllSubmittedEventsCTE to `RowNum = 1`
+			- Result: Latest submitted event per SubmissionEventId (removes duplicates)
+			- Includes: SubmissionEventId, SubmissionId, FileId, SubmittedDate, SubmittedUserId
+		- **AllRelatedDecisionEventsCTE** (Line 109-129)
+			- Queries: `apps.SubmissionEvents`
+			- Filters: `Type='RegulatorPomDecision'`
+			- Joins with LatestSubmittedEventsCTE on FileId
+			- Parses `IsResubmissionRequired` string to BIT (Line 117-119):
+				- `WHEN UPPER(ISNULL(decision.IsResubmissionRequired,'FALSE')) = 'TRUE' THEN 1 ELSE 0`
+			- `ROW_NUMBER()` partitioned by FileId, ordered by `load_ts DESC`
+			- Purpose: Get all decision events for submitted files
+		- **LatestRelatedDecisionEventsCTE** (Line 131-142)
+			- Filters AllRelatedDecisionEventsCTE to `RowNum = 1`
+			- Result: Latest decision event per FileId (removes duplicates)
+			- Includes: FileId, Decision, Comments, IsResubmissionRequired, DecisionDate
+		- **JoinedSubmittedAndDecisionsCTE** (Line 144-160)
+			- LEFT JOIN: LatestSubmittedEventsCTE + LatestRelatedDecisionEventsCTE (on FileId)
+			- **Critical Filter** (Line 156-159):
+				- `decision.Decision IS NULL` (pending decisions)
+				- OR `submitted.SubmittedDate >= FORMAT(DATEADD(MONTH, -6, GETDATE()), 'yyyy-MM-dd')` (last 6 months with decisions)
+			- Purpose: Limit view to recent/actionable submissions
+			- Result: SubmissionId, FileId, SubmittedDate, SubmittedUserId, DecisionDate, Decision, Comments, IsResubmissionRequired
+		- **AllRelatedSubmissionsCTE** (Line 162-173)
+			- Queries: `apps.Submissions`
+			- Filters: `SubmissionType='Producer'`
+			- Joins with JoinedSubmittedAndDecisionsCTE on SubmissionId
+			- `ROW_NUMBER()` partitioned by SubmissionId, ordered by `load_ts DESC`
+			- Purpose: Get latest submission record, removing Cosmos sync duplicates
+		- **LatestRelatedSubmissionsCTE** (Line 175-184)
+			- Filters AllRelatedSubmissionsCTE to `RowNum = 1`
+			- Result: SubmissionId, OrganisationId, ComplianceSchemeId, UserId, SubmissionPeriod
+		- **JoinedSubmissionsAndEventsCTE** (Line 187-207)
+			- Joins LatestRelatedSubmissionsCTE with JoinedSubmittedAndDecisionsCTE
+			- `ROW_NUMBER()` partitioned by SubmissionId, ordered by `SubmittedDate DESC` (Line 201-204)
+			- Purpose: Order submissions by submission date for resubmission counting
+		- **JoinedSubmissionsAndEventsWithResubmissionCTE** (Line 209-249)
+			- **Most Complex CTE**: Calculates resubmission context
+			- For each submission row (l), calculates:
+				- **PreviousAcceptedDecisions** (Line 212-218):
+					- `COUNT(*)` of rows with same SubmissionId, higher RowNum, Decision='Accepted'
+					- Counts how many times this submission was accepted BEFORE current submission
+				- **PreviousDecisions** (Line 220-226):
+					- `COUNT(*)` of rows with same SubmissionId, higher RowNum, Decision IS NOT NULL
+					- Counts all decisions BEFORE current submission
+				- **PreviousRejectionComments** (Line 228-235):
+					- `TOP 1` comments where Decision='Rejected' BEFORE current submission
+					- Ordered by SubmittedDate DESC (most recent rejection)
+				- **PreviousRejectionIsResubmissionRequired** (Line 237-244):
+					- `TOP 1` IsResubmissionRequired where Decision='Rejected' BEFORE current submission
+			- Filters to either (Line 246-248):
+				- Pending decisions that are latest (`Decision IS NULL AND RowNum=1`)
+				- OR all decided submissions (`Decision IS NOT NULL`)
+		- **LatestEnrolment** (Line 252-259)
+			- Gets latest enrolment per PersonOrganisationConnection
+			- `ROW_NUMBER()` partitioned by ConnectionId, ordered by LastUpdatedOn DESC
+			- Purpose: Determine current service role for submitter
+		- **LatestUserSubmissions** (Line 262-330)
+			- **Final CTE**: Produces view output with all display fields
+			- **Joins**:
+				- Base: JoinedSubmissionsAndEventsWithResubmissionCTE (alias `r`)
+				- `INNER JOIN rpd.Organisations o` - org details (Line 316)
+				- `LEFT JOIN rpd.ProducerTypes pt` - producer type name (Line 317)
+				- `INNER JOIN rpd.Users u` - user record (Line 318)
+				- `INNER JOIN rpd.Persons p` - person details (Line 319)
+				- `INNER JOIN rpd.PersonOrganisationConnections poc` - user-org link (Line 320)
+				- `LEFT JOIN LatestEnrolment le` - current service role (Line 321)
+				- `LEFT JOIN rpd.ServiceRoles sr` - service role name (Line 322)
+				- `LEFT JOIN rpd.ComplianceSchemes cs` - CS nation (Line 323)
+				- `LEFT JOIN File_id_code_description_combined file_desc` - submission codes (Line 324)
+				- `LEFT JOIN cf_meta_first_record meta` - file names (Line 325)
+				- `LEFT JOIN SubmissionsAggregated sa` - NEW_FLAG logic (Line 327)
+			- **Derived Fields**:
+				- `OrganisationType` (Line 269-272):
+					- `CASE WHEN r.ComplianceSchemeId IS NOT NULL THEN 'Compliance Scheme' ELSE 'Direct Producer' END`
+				- `SubmissionYear` (Line 281):
+					- `'20'+reverse(substring(reverse(trim(r.SubmissionPeriod)),1,2))`
+					- Extracts year from submission period code
+				- `Decision` (Line 288-291):
+					- `CASE WHEN Decision IS NULL THEN 'Pending' ELSE Decision END`
+				- `IsResubmissionRequired` (Line 292-294):
+					- If PreviousDecisions > 0: use PreviousRejectionIsResubmissionRequired
+					- Else: use current IsResubmissionRequired
+				- `IsResubmission` (Line 296-299):
+					- `CASE WHEN PreviousAcceptedDecisions > 0 THEN 1 ELSE 0 END`
+					- 1 if this is a resubmission after acceptance
+				- `NationId` (Line 301-304):
+					- From ComplianceScheme if CS, else from Organisation
+				- `NEW_FLAG` (Line 312):
+					- `CASE WHEN sa.FileId IS NULL THEN 0 ELSE 1 END`
+					- 1 if (FileId, SubmissionId) exists in SubmissionsAggregated
+					- Determines which rows appear in final query
+			- **Deduplication** (Line 307-310):
+				- `ROW_NUMBER()` partitioned by (SubmittedUserId, SubmissionPeriod, FileId)
+				- Ordered by: IsDeleted ASC (prefer not deleted), LastUpdatedOn DESC (prefer latest person record)
+				- Purpose: One row per submission, prioritizing active user records
+			- **Final Filter** (Line 329):
+				- `WHERE o.IsDeleted=0` - exclude deleted organisations
+	- ### Final View Output (Line 332-333)
+		- `SELECT * FROM LatestUserSubmissions WHERE UserRowNumber=1`
+		- Applies deduplication to get one row per submission
+- ## Stage 4: Materialization
+	- ### Materialization Procedure
+		- **Procedure**: `sp_AggregateAndMergePomData`
+		- **Called by**: [execute-merge-submissions-rpd-to-apps-schema.sql:971](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/execute-merge-submissions-rpd-to-apps-schema.sql#L971)
+		- **File**: [merge-submissions-summaries-from-view-to-table.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/merge-submissions-summaries-from-view-to-table.sql)
+		- **Purpose**: Materializes `v_SubmissionsSummaries` view into physical `apps.SubmissionsSummaries` table for query performance
+	- ### Materialization Process
+		- **Step 1: Create Temp Table** (Line 13-50)
+			- Drops `#SubmissionsSummariesTemp` if exists
+			- Creates temp table matching SubmissionsSummaries schema
+			- Columns: SubmissionId, OrganisationId, ComplianceSchemeId, OrganisationName, OrganisationReference, OrganisationType, ProducerType, UserId, FirstName, LastName, Email, Telephone, ServiceRole, FileId, SubmissionYear, SubmissionCode, ActualSubmissionPeriod, Combined_SubmissionCode, Combined_ActualSubmissionPeriod, SubmissionPeriod, SubmittedDate, Decision, IsResubmissionRequired, Comments, IsResubmission, PreviousRejectionComments, NationId, PomFileName, PomBlobName, NEW_FLAG
+		- **Step 2: Execute View** (Line 52-84)
+			- `INSERT INTO #SubmissionsSummariesTemp SELECT DISTINCT * FROM apps.v_SubmissionsSummaries`
+			- Executes the complex view query (all CTEs)
+			- Stores snapshot result in temp table
+			- `DISTINCT` ensures no duplicates
+		- **Step 3: MERGE to Target Table** (Line 86-187)
+			- Target: `apps.SubmissionsSummaries`
+			- Source: `#SubmissionsSummariesTemp`
+			- **Match Condition** (Line 88):
+				- `Target.FileId = Source.FileId AND Target.SubmissionCode = Source.SubmissionCode`
+				- Composite key: (FileId, SubmissionCode)
+			- **WHEN MATCHED** (Line 89-120):
+				- Updates all 28 columns
+				- Overwrites existing rows with latest data from view
+			- **WHEN NOT MATCHED BY TARGET** (Line 121-185):
+				- Inserts new rows
+				- Full column list specified for INSERT
+			- **WHEN NOT MATCHED BY SOURCE** (Line 186-187):
+				- `DELETE`
+				- Removes rows no longer in view (e.g., filtered out by 6-month window or NEW_FLAG logic)
+		- **Step 4: Cleanup** (Line 190)
+			- `DROP TABLE #SubmissionsSummariesTemp`
+	- ### Result
+		- `apps.SubmissionsSummaries` table is fully synchronized with view
+		- All complex joins and calculations are pre-computed
+		- Query performance significantly improved vs querying view directly
+- ## Stage 5: Query with Delta Overlay
+	- ### Query Procedure
+		- **Procedure**: `sp_FilterAndPaginateSubmissionsSummaries_resub`
+		- **File**: [filter-and-paginate-submissions-summaries-resub.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/filter-and-paginate-submissions-summaries-resub.sql)
+		- **Called by**: [SubmissionsService.cs:23](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Core/Services/SubmissionsService.cs#L23)
+		- **Purpose**: Query materialized table with filters, pagination, and real-time CosmosDB delta overlay
+	- ### Parameters
+		- **Filtering**:
+			- `@OrganisationName NVARCHAR(255)` - partial match filter
+			- `@OrganisationReference NVARCHAR(255)` - partial match filter
+			- `@RegulatorUserId NVARCHAR(50)` - for NationId security filtering
+			- `@StatusesCommaSeperated NVARCHAR(50)` - comma-separated status list (Pending, Accepted, Rejected)
+			- `@OrganisationType NVARCHAR(50)` - 'All', 'ComplianceScheme', 'DirectProducer'
+			- `@SubmissionYearsCommaSeperated NVARCHAR(1000)` - comma-separated years
+			- `@SubmissionPeriodsCommaSeperated NVARCHAR(1500)` - comma-separated period codes
+			- `@ActualSubmissionPeriodsCommaSeperated NVARCHAR(1500)` - comma-separated period text
+		- **Delta**:
+			- `@DecisionsDelta NVARCHAR(MAX)` - JSON array from CosmosDB
+		- **Pagination**:
+			- `@PageSize INT`
+			- `@PageNumber INT`
+	- ### Process
+		- **Step 1: Get Regulator NationId** (Line 10-22)
+			- Joins: `rpd.Users` → `rpd.Persons` → `rpd.PersonOrganisationConnections` → `rpd.Organisations` → `rpd.Enrolments` → `rpd.ServiceRoles`
+			- Filters: `sr.ServiceId=2` (regulator service), `u.UserId=@RegulatorUserId`
+			- Sets: `@NationId` variable
+			- Purpose: Security - regulators only see submissions for their nation
+		- **Step 2: InitialFilter CTE** (Line 25-50)
+			- Queries: `apps.SubmissionsSummaries` (materialized table)
+			- **Filters**:
+				- Organisation search (Line 29-35):
+					- `OrganisationName LIKE '%' + @OrganisationName + '%'`
+					- OR `OrganisationReference LIKE '%' + @OrganisationReference + '%'`
+					- OR both params NULL (no org filter)
+				- **Nation security** (Line 36):
+					- `NationId = @NationId`
+				- Organisation type (Line 38-44):
+					- 'All' or NULL: no filter
+					- 'ComplianceScheme': `ComplianceSchemeId IS NOT NULL`
+					- 'DirectProducer': `ComplianceSchemeId IS NULL`
+				- Years (Line 45): `SubmissionYear IN (SELECT value FROM STRING_SPLIT(...))`
+				- Periods (Line 46-47): `SubmissionPeriod IN (...)`, `ActualSubmissionPeriod IN (...)`
+				- **NEW_FLAG** (Line 49):
+					- `ss.NEW_FLAG = 1`
+					- Critical: Only include submissions from SubmissionsAggregated logic
+			- Selects: `Combined_SubmissionCode` and `Combined_ActualSubmissionPeriod` (aggregated codes)
+		- **Step 3: Parse JSON Delta** (Line 53-71)
+			- **RankedJsonParsedUpdates CTE** (Line 53-61):
+				- `OPENJSON(@DecisionsDelta)` - parse JSON array
+				- `JSON_VALUE([value], '$.FileId')` - extract FileId
+				- `JSON_VALUE([value], '$.Decision')` - extract Decision
+				- `JSON_VALUE([value], '$.Comments')` - extract Comments
+				- `JSON_VALUE([value], '$.IsResubmissionRequired')` - extract IsResubmissionRequired
+				- `ROW_NUMBER()` partitioned by FileId (Line 59)
+					- Deduplicates if multiple delta records for same FileId
+			- **JsonParsedUpdates CTE** (Line 63-71):
+				- Filters RankedJsonParsedUpdates to `rn = 1`
+				- Result: Latest delta decision per FileId
+		- **Step 4: Overlay Delta** (Line 73-82)
+			- **OverriddenStatuses CTE**:
+				- `FROM InitialFilter f LEFT JOIN JsonParsedUpdates j ON j.FileId = f.FileId` (Line 80-81)
+				- **Critical COALESCE Logic** (Line 76-78):
+					- `COALESCE(j.Decision, f.Decision) AS UpdatedDecision`
+					- `COALESCE(j.Comments, f.Comments) AS UpdatedComments`
+					- `COALESCE(j.IsResubmissionRequired, f.IsResubmissionRequired) AS UpdatedIsResubmissionRequired`
+				- **Effect**: If CosmosDB delta has newer decision for FileId, it overrides Synapse data
+				- Ensures regulators see decisions immediately after making them
+		- **Step 5: Filter by Status** (Line 84-100)
+			- **StatusFilteredResults CTE**:
+				- Filters: `UpdatedDecision IN (SELECT value FROM STRING_SPLIT(@StatusesCommaSeperated, ','))` (Line 99)
+				- **Ordering** (Line 88-96):
+					- Primary: Decision priority
+						- Pending = 1
+						- Rejected = 2
+						- Accepted = 3
+						- Other = 4
+					- Secondary: SubmittedDate
+				- `ROW_NUMBER()` assigns pagination row numbers
+		- **Step 6: Paginate and Return** (Line 103-136)
+			- **Pagination** (Line 133-134):
+				- `WHERE RowNum > (@PageSize * (@PageNumber - 1))`
+				- `AND RowNum <= @PageSize * @PageNumber`
+			- **Final Status Filter** (Line 135):
+				- `AND UpdatedDecision in ('Pending','Rejected','Accepted')`
+				- Excludes any other statuses
+			- **Total Count** (Line 131):
+				- `(SELECT COUNT(*) FROM StatusFilteredResults WHERE UpdatedDecision IN (...)) AS TotalItems`
+				- Returns total across all pages for pagination UI
+			- **Columns Returned**: All submission details with `UpdatedDecision`, `UpdatedIsResubmissionRequired`, `UpdatedComments`
+- ## Table Schema
+	- **Table**: `apps.SubmissionsSummaries`
+	- **File**: [create-submissions-summaries-table.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Create%20Tables/create-submissions-summaries-table.sql)
+	- **Distribution**: `HASH ([SubmissionId])` (Line 41)
+		- Synapse dedicated SQL pool distributes rows across compute nodes by SubmissionId hash
+	- **Index**: `CLUSTERED COLUMNSTORE INDEX` (Line 42)
+		- Optimized for analytics queries with high compression
+	- **Columns**:
+		- Submission identifiers:
+			- `[SubmissionId] NVARCHAR(4000)` (Line 8)
+			- `[OrganisationId] NVARCHAR(4000)` (Line 9)
+			- `[ComplianceSchemeId] NVARCHAR(4000)` (Line 10)
+			- `[FileId] NVARCHAR(4000)` (Line 21)
+		- Organisation details:
+			- `[OrganisationName] NVARCHAR(4000)` (Line 11)
+			- `[OrganisationReference] NVARCHAR(4000)` (Line 12)
+			- `[OrganisationType] NVARCHAR(4000)` (Line 13)
+			- `[ProducerType] NVARCHAR(4000)` (Line 14)
+		- Submitter user details:
+			- `[UserId] NVARCHAR(4000)` (Line 15)
+			- `[FirstName] NVARCHAR(4000)` (Line 16)
+			- `[LastName] NVARCHAR(4000)` (Line 17)
+			- `[Email] NVARCHAR(4000)` (Line 18)
+			- `[Telephone] NVARCHAR(4000)` (Line 19)
+			- `[ServiceRole] NVARCHAR(4000)` (Line 20)
+		- Submission period:
+			- `[SubmissionYear] INT` (Line 22)
+			- `[SubmissionCode] NVARCHAR(4000)` (Line 23)
+			- `[ActualSubmissionPeriod] NVARCHAR(4000)` (Line 24)
+			- `[Combined_SubmissionCode] NVARCHAR(4000)` (Line 25)
+			- `[Combined_ActualSubmissionPeriod] NVARCHAR(4000)` (Line 26)
+			- `[SubmissionPeriod] NVARCHAR(4000)` (Line 27)
+		- Submission status:
+			- `[SubmittedDate] NVARCHAR(4000)` (Line 28)
+			- `[Decision] NVARCHAR(4000)` (Line 29) - 'Pending', 'Accepted', 'Rejected'
+			- `[IsResubmissionRequired] BIT` (Line 30)
+			- `[Comments] NVARCHAR(4000)` (Line 31)
+			- `[IsResubmission] BIT` (Line 32)
+			- `[PreviousRejectionComments] NVARCHAR(4000)` (Line 33)
+		- File metadata:
+			- `[PomFileName] NVARCHAR(4000)` (Line 35)
+			- `[PomBlobName] NVARCHAR(4000)` (Line 36)
+		- Filtering:
+			- `[NationId] INT` (Line 34) - for regulator security filtering
+			- `[NEW_FLAG] BIT` (Line 37) - determines if row should be queried
+- ## ETL Schedule and Performance
+	- ### Schedule
+		- **Synapse Link sync**: Near real-time (seconds to minutes)
+			- CosmosDB → `rpd.*` schema continuous sync
+		- **`sp_MergeSubmissionsSummaries`**: Scheduled job (frequency TBD)
+			- Likely hourly or daily based on data volume
+			- Orchestrated by Azure Data Factory or Synapse pipeline
+		- **Result**: `apps.SubmissionsSummaries` can be minutes to hours behind CosmosDB
+	- ### Latency Mitigation
+		- **DecisionsDelta overlay**: Real-time decision updates
+			- Facade fetches recent CosmosDB decisions since last sync
+			- Stored procedure overlays delta on Synapse data
+			- Users see decisions immediately after making them
+		- **Trade-off**:
+			- Synapse provides comprehensive, queryable data
+			- CosmosDB provides real-time updates
+			- Merge gives best of both worlds
+	- ### Performance Optimization
+		- **Materialized table**: Pre-computed joins and aggregations
+			- Complex view query runs once during ETL
+			- Query procedure reads pre-computed table (fast)
+		- **Columnstore index**: High compression, fast analytics queries
+		- **Hash distribution**: Parallel query execution across Synapse nodes
+		- **NEW_FLAG filtering**: Reduces rows scanned
+			- Only includes submissions from SubmissionsAggregated logic
+			- Excludes outdated resubmission records
+- ## Data Flow Summary
+	- 1. **Producer submits packaging data** → Event written to CosmosDB
+	- 2. **Synapse Link syncs** → Data appears in `rpd.*` schema (seconds to minutes)
+	- 3. **ETL job runs** (hourly/daily):
+		- a. `sp_MergeSubmissionsSummaries` merges `rpd.Submissions` → `apps.Submissions`
+		- b. Merges `rpd.SubmissionEvents` → `apps.SubmissionEvents`
+		- c. `sp_AggregateAndMergePomData` materializes `v_SubmissionsSummaries` → `apps.SubmissionsSummaries`
+	- 4. **Regulator views page**:
+		- Facade fetches last sync time from Synapse
+		- Facade queries CosmosDB for delta decisions since last sync
+		- Facade calls `sp_FilterAndPaginateSubmissionsSummaries_resub` with delta
+		- Stored procedure overlays delta on Synapse data
+		- Returns paginated results with real-time decisions
+	- 5. **Regulator makes decision** → Event written to CosmosDB → Immediately available via delta
+	- 6. **Next ETL run** → Decision syncs to Synapse → Delta no longer needed for this decision
+- ## Key GitHub Source Files
+	- ### ETL Orchestration
+		- [execute-merge-submissions-rpd-to-apps-schema.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/execute-merge-submissions-rpd-to-apps-schema.sql) - `sp_MergeSubmissionsSummaries`
+	- ### View Definition
+		- [create-submissions-summaries-view.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Views/create-submissions-summaries-view.sql) - `v_SubmissionsSummaries`
+	- ### Materialization
+		- [merge-submissions-summaries-from-view-to-table.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/merge-submissions-summaries-from-view-to-table.sql) - `sp_AggregateAndMergePomData`
+	- ### Query with Delta
+		- [filter-and-paginate-submissions-summaries-resub.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Stored%20Procedures/filter-and-paginate-submissions-summaries-resub.sql) - `sp_FilterAndPaginateSubmissionsSummaries_resub`
+	- ### Table Schema
+		- [create-submissions-summaries-table.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Create%20Tables/create-submissions-summaries-table.sql) - `apps.SubmissionsSummaries`
+		- [create-apps-submissions-events-table.sql](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Data/Scripts/Create%20Tables/create-apps-submissions-events-table.sql) - `apps.SubmissionEvents`
+	- ### Service Layer
+		- [SubmissionsService.cs](https://github.com/DEFRA/epr-common-data-api/blob/main/src/EPR.CommonDataService.Core/Services/SubmissionsService.cs) - Calls stored procedure with delta
