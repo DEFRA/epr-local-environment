@@ -843,6 +843,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-regulator-frontend.git"
 
 [[repos]]
+path = "epr-regulator-gateway"
+tags = ["backend", "cdp", "epr-producer", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-regulator-gateway.git"
+
+[[repos]]
 path = "epr-regulator-service"
 tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
