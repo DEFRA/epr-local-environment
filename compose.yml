@@ -477,7 +477,7 @@ services:
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
       FeatureManagement__CsocEnabled: true
-      Csoc__UnderstandingObligationsEndpoint: http://localhost:8008
+      Csoc__WasteObligationsBaseAddress: http://localhost:8008
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
