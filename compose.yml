@@ -872,14 +872,30 @@ services:
       Acl__Clients__waste-obligations-frontend__Type: ApiKey
       Acl__Clients__waste-obligations-frontend__Secret: waste-obligations-frontend-pwd
       Acl__Clients__waste-obligations-frontend__Scopes__0: read
+      Acl__Clients__waste-organisations-seed__Type: ApiKey
+      Acl__Clients__waste-organisations-seed__Secret: waste-organisations-seed-pwd
+      Acl__Clients__waste-organisations-seed__Scopes__0: read
+      Acl__Clients__waste-organisations-seed__Scopes__1: write
     ports:
       - "8006:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/all" ]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 5s
+    profiles:
+      - obligations
+
+  waste-organisations-seed:
+    image: curlimages/curl:latest
+    depends_on:
+      waste-organisations:
+        condition: service_healthy
+    volumes:
+      - ./compose/waste-organisations-seed/payloads:/payloads:ro
+      - ./compose/waste-organisations-seed/seed.sh:/seed.sh:ro
+    entrypoint: [ "/bin/sh", "/seed.sh" ]
     profiles:
       - obligations
 
@@ -909,7 +925,7 @@ services:
     ports:
       - "8007:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/all" ]
       interval: 5s
       timeout: 5s
       retries: 30
