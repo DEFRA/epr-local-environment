@@ -154,6 +154,17 @@ services:
       - packaging
       - obligations
 
+  mongodb:
+    image: mongo:7.0.24
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb-data:/data
+    restart: unless-stopped
+    profiles:
+      - packaging
+      - obligations
+
   epr-calculator-service:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorservicerepository:${EPR_CALCULATOR_SERVICE:-main-latest}
@@ -205,6 +216,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      epr-calculator-api-migrations:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
@@ -330,6 +343,8 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
+      epr-prn-common-backend-migrations:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__EprConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprPrnBackend;TrustServerCertificate=True"
@@ -374,6 +389,8 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
+      epr-common-data-api-migrations:
+        condition: service_started
       # -----
       # - if connection to a Synapse instance running in Azure is needed then reenable the depends on below
       # -----
@@ -460,6 +477,7 @@ services:
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
       FeatureManagement__CsocEnabled: true
+      Csoc__UnderstandingObligationsEndpoint: http://localhost:8008
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
@@ -615,6 +633,10 @@ services:
         condition: service_healthy
       epr-common-data-api:
         condition: service_healthy
+      waste-obligations:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -634,9 +656,9 @@ services:
       SubmissionStatusApi__BaseUrl: https://epr-pom-api-submission-status:8081
       CommonDataApi__BaseUrl: http://epr-common-data-api:8080
       WasteObligations__TokenEndpoint: http://wiremock/oauth2/v2.0/token
-      WasteObligations__ClientId: client_id
-      WasteObligations__ClientSecret: client_secret
-      WasteObligations__BaseAddress: http://wiremock
+      WasteObligations__ClientId: epr-pom-api-web
+      WasteObligations__ClientSecret: secret
+      WasteObligations__BaseAddress: http://waste-obligations:8080/
     ports:
       - "5291:8080" # taken from launch settings in epr-pom-api-web
       - "7265:8081" # taken from launch settings in epr-pom-api-web
@@ -833,7 +855,67 @@ services:
     profiles:
       - obligations
 
+  waste-organisations:
+    image: defradigital/waste-organisations:${WASTE_ORGANISATIONS:-latest}
+    pull_policy: always
+    depends_on:
+      mongodb:
+        condition: service_started
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/cdp/dotnet-service.env'
+    environment:
+      Mongo__DatabaseUri: mongodb://mongodb:27017/
+      Acl__Clients__waste-obligations__Type: ApiKey
+      Acl__Clients__waste-obligations__Secret: waste-obligations-pwd
+      Acl__Clients__waste-obligations__Scopes__0: read
+    ports:
+      - "8006:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    profiles:
+      - obligations
+
+  waste-obligations:
+    image: defradigital/waste-obligations:${WASTE_OBLIGATIONS:-latest}
+    pull_policy: always
+    depends_on:
+      mongodb:
+        condition: service_started
+      wiremock:
+        condition: service_started
+      epr-prn-common-backend:
+        condition: service_healthy
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/cdp/dotnet-service.env'
+    environment:
+      Mongo__DatabaseUri: mongodb://mongodb:27017/
+      PrnCommonBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
+      PrnCommonBackend__ClientId: waste-obligations
+      PrnCommonBackend__BaseAddress: http://epr-prn-common-backend:8080/
+      WasteOrganisations__BaseAddress: http://waste-organisations:8080/
+      WasteOrganisations__ClientId: waste-obligations
+      WasteOrganisations__ClientSecret: waste-obligations-pwd
+      Acl__Clients__epr-pom-api-web__Type: OAuth
+      Acl__Clients__epr-pom-api-web__Scopes__0: read
+    ports:
+      - "8007:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    profiles:
+      - obligations
+
 volumes:
   azurite-data:
   sqledge-data:
   token-cache:
+  mongodb-data:

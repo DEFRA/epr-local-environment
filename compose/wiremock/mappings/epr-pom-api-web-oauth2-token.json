@@ -1,0 +1,32 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/oauth2/v2.0/token"
+        }
+      ]
+    },
+    "Methods": [
+      "POST"
+    ],
+    "Body": {
+      "Matcher": {
+        "Name": "FormUrlEncodedMatcher",
+        "Patterns": [
+          "client_id=epr-pom-api-web"
+        ],
+        "IgnoreCase": false,
+        "MatchOperator": "Or"
+      }
+    }
+  },
+  "Response": {
+    "StatusCode": 200,
+    "BodyAsJson": {
+      "expires_in": 60,
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlcHItcG9tLWFwaS13ZWIiLCJjbGllbnRfaWQiOiJlcHItcG9tLWFwaS13ZWIiLCJpc3MiOiJ0ZXN0LWlzc3VlciIsImF1ZCI6InRlc3QtYXVkaWVuY2UiLCJpYXQiOjE3Nzc5ODE4MjUsImV4cCI6NDkzMzc0MTgyNX0.0z-PpFb_lOYtJag2jSNk2z3kVhRyRZY0DtL-1r-pQlg"
+    }
+  }
+}
