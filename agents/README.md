@@ -2,6 +2,11 @@
 
 AI agent guidance for working with the Defra EPR microservices system. Designed for use with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or similar AI coding assistants.
 
+EPR spans two platforms:
+
+- **Azure** - original estate, primarily maintenance with some ongoing change. Synapse / PowerBI reporting expected to stay here for the foreseeable future.
+- **CDP** - Defra's internal microservices platform. Most new and migrated functionality lands here. See `cdp-documentation` for platform specifics.
+
 ## Setup
 
 Uses [gitopolis](https://github.com/timabell/gitopolis) to manage the multi-repo workspace. See [repo-list/](../repo-list/) for the config and further explanation.
@@ -16,11 +21,13 @@ ln -s epr-local-environment/repo-list/.gitopolis.toml .gitopolis.toml
 
 # 3. Create AGENTS.md pointer at workspace root (not a symlink - relative links must resolve from agents/)
 cp epr-local-environment/agents/AGENTS.md.template AGENTS.md
-cp AGENTS.md CLAUDE.md # for claude users
+ln -s AGENTS.md CLAUDE.md # for claude users
 
-# 4. Clone all EPR service repos into workspace
-gitopolis clone -t epr-producer
+# 4. Clone the producer team repo set + shared/common repos (incl. CDP platform docs & config)
+gitopolis clone --tag epr-producer --tag common
 ```
+
+`epr-producer` covers the producer-team repos on both platforms. `common` adds shared libs plus `cdp-documentation` and `cdp-app-config`. Other CDP repos clone with `gitopolis clone -t cdp`.
 
 Your workspace should now look like:
 
@@ -39,10 +46,13 @@ workspace/
 │       ├── data-flows.md
 │       ├── flows/                ← traced multi-service data flows
 │       └── repos/                ← per-service quick reference
-├── epr-regulator-service/
-├── epr-regulator-service-facade/
-├── epr-common-data-api/
-└── ...                           (all epr-* repos)
+├── epr-regulator-service/         ← Azure
+├── epr-regulator-service-facade/  ← Azure
+├── epr-regulator-frontend/        ← CDP
+├── epr-regulator-gateway/         ← CDP
+├── cdp-documentation/
+├── cdp-app-config/
+└── ...                            (all epr-producer + common repos)
 ```
 
 ## Usage
@@ -61,7 +71,9 @@ Claude will pick up AGENTS.md, follow the link to the full guidance in `epr-loca
 | File | Purpose |
 |------|---------|
 | [AGENTS.md](AGENTS.md) | Main entry point - quick start, doc index, report format, SonarQube |
-| [architecture.md](architecture.md) | System overview, service map, patterns, constraints |
+| [architecture.md](architecture.md) | Cross-platform overview + cross-cloud call paths |
+| [azure-architecture.md](azure-architecture.md) | Azure estate detail (services, data stores, patterns) |
+| [cdp-architecture.md](cdp-architecture.md) | CDP repos and their outbound calls |
 | [exploration-guide.md](exploration-guide.md) | How to trace data flows, debug, find code |
 | [gotchas.md](gotchas.md) | Traps, misleading names, things that look wrong but aren't |
 | [glossary.md](glossary.md) | EPR terminology, WA/FA numbers, business terms |
