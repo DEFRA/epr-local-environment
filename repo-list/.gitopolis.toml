@@ -23,6 +23,14 @@ name = "origin"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-sec-infrastructure"
 
 [[repos]]
+path = "cdp-app-config"
+tags = ["cdp", "common", "internal"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-app-config.git"
+
+[[repos]]
 path = "epr-accountmanagement-greenlist"
 tags = ["archived", "azure-devops", "epr", "github", "public"]
 
