@@ -1,8 +1,19 @@
 # Defra EPR Microservices
 
-**NOTE**: This is a large legacy system in maintenance mode. Verify patterns against actual code before assuming they are intentional. See [gotchas.md](gotchas.md) for known traps.
+**NOTE**: System spans two platforms. Azure is primarily maintenance (with some ongoing change); most new work lands on CDP. Verify patterns against actual code. See [gotchas.md](gotchas.md).
 
-**IMPORTANT**: Most EPR repos should be cloned locally as siblings of this repo (see [README.md](README.md) for setup). Always check local folders first before fetching from GitHub. Links in these docs point to GitHub as a fallback, but prefer reading and searching the local clones.
+**IMPORTANT**: Repos are cloned locally as siblings of this repo (see [README.md](README.md)). Search local clones first; GitHub links are fallback only.
+
+## Platforms
+
+Flows often cross the Azure/CDP boundary during the transition - follow the call, don't stop at the boundary.
+
+- **Azure** - original estate, primarily maintenance with some ongoing change. See [azure-architecture.md](azure-architecture.md). Synapse / PowerBI reporting expected to stay here for the foreseeable future. Tagged `epr-producer`.
+- **CDP** - active development. See `cdp-documentation` for platform specifics. Producer-team CDP repos:
+  - [epr-regulator-frontend](https://github.com/DEFRA/epr-regulator-frontend), [epr-regulator-gateway](https://github.com/DEFRA/epr-regulator-gateway) - regulator side.
+  - [epr-register-enrol-frontend](https://github.com/DEFRA/epr-register-enrol-frontend), [-backend](https://github.com/DEFRA/epr-register-enrol-backend), [-fe-tests](https://github.com/DEFRA/epr-register-enrol-fe-tests) - registration/enrolment.
+
+  Tagged `cdp`.
 
 ## In this folder you'll find
 
@@ -14,7 +25,9 @@
 
 ### Core Reference
 - [glossary.md](glossary.md) - EPR terminology, WA/FA numbers, business terms
-- [architecture.md](architecture.md) - System overview, patterns, known constraints
+- [architecture.md](architecture.md) - Cross-platform overview + cross-cloud call paths
+- [azure-architecture.md](azure-architecture.md) - Azure estate detail (3-tier, event-driven, dual-source, services, data stores)
+- [cdp-architecture.md](cdp-architecture.md) - CDP repos and their outbound calls
 - [gotchas.md](gotchas.md) - Misleading names, gotchas, architectural constraints
 - [about-epr.md](about-epr.md) - Business context, regulations, producer obligations
 - [repos/README.md](repos/README.md) - Find a specific service
@@ -45,11 +58,15 @@ Pre-traced multi-service flows. Use these to avoid re-discovering complex cross-
 ## Repo Management
 
 ```sh
-gitopolis list -t epr-producer # list relevant repos
-gitopolis exec -t epr-producer --oneline -- git st # check current branch
-gitopolis exec -t epr-producer -- git pull # bring branches up to latest
+gitopolis list -t epr-producer            # producer-team repos (Azure + the two producer repos now on CDP)
+gitopolis list -t cdp                     # all CDP repos (incl. non-producer ones like register-enrol-*)
+gitopolis list -t common                  # shared libs + CDP platform docs/config
+gitopolis exec -t epr-producer --oneline -- git st     # check current branch
+gitopolis exec -t epr-producer -- git pull              # bring branches up to latest
 gitopolis exec -t epr-producer -- git rev-parse origin/main # find sha for permalinks
 ```
+
+When a flow crosses the Azure/CDP boundary, run the same `git rev-parse origin/main` against both tag groups so all permalinks are accurate.
 
 ## Report format
 
