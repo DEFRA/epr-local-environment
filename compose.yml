@@ -869,14 +869,33 @@ services:
       Acl__Clients__waste-obligations__Type: ApiKey
       Acl__Clients__waste-obligations__Secret: waste-obligations-pwd
       Acl__Clients__waste-obligations__Scopes__0: read
+      Acl__Clients__waste-obligations-frontend__Type: ApiKey
+      Acl__Clients__waste-obligations-frontend__Secret: waste-obligations-frontend-pwd
+      Acl__Clients__waste-obligations-frontend__Scopes__0: read
+      Acl__Clients__waste-organisations-seed__Type: ApiKey
+      Acl__Clients__waste-organisations-seed__Secret: waste-organisations-seed-pwd
+      Acl__Clients__waste-organisations-seed__Scopes__0: read
+      Acl__Clients__waste-organisations-seed__Scopes__1: write
     ports:
       - "8006:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/all" ]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 5s
+    profiles:
+      - obligations
+
+  waste-organisations-seed:
+    image: curlimages/curl:latest
+    depends_on:
+      waste-organisations:
+        condition: service_healthy
+    volumes:
+      - ./compose/waste-organisations-seed/payloads:/payloads:ro
+      - ./compose/waste-organisations-seed/seed.sh:/seed.sh:ro
+    entrypoint: [ "/bin/sh", "/seed.sh" ]
     profiles:
       - obligations
 
@@ -906,11 +925,37 @@ services:
     ports:
       - "8007:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/all"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/all" ]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 5s
+    profiles:
+      - obligations
+
+  waste-obligations-frontend:
+    image: defradigital/waste-obligations-frontend:${WASTE_OBLIGATIONS_FRONTEND:-latest}
+    pull_policy: always
+    depends_on:
+      redis:
+        condition: service_started
+      waste-obligations:
+        condition: service_healthy
+      waste-organisations:
+        condition: service_healthy
+    env_file:
+      - 'compose/cdp/aws.env'
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      REDIS_HOST: redis
+      USE_SINGLE_INSTANCE_CACHE: true
+      WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080/
+      WASTE_ORGANISATIONS_API_AUTH_MODE: basic
+      WASTE_ORGANISATIONS_API_CLIENT_ID: waste-obligations-frontend
+      WASTE_ORGANISATIONS_API_CLIENT_SECRET: waste-obligations-frontend-pwd
+    ports:
+      - "8008:3000"
     profiles:
       - obligations
 
