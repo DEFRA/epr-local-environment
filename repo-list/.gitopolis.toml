@@ -39,6 +39,14 @@ name = "origin"
 url = "git@github.com:DEFRA/cdp-documentation.git"
 
 [[repos]]
+path = "cdp-tenant-config"
+tags = ["cdp", "common", "github", "internal", "platform"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-tenant-config"
+
+[[repos]]
 path = "epr-accountmanagement-greenlist"
 tags = ["archived", "azure-devops", "epr", "github", "public"]
 
