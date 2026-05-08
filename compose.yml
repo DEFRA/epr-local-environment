@@ -866,6 +866,10 @@ services:
       - 'compose/cdp/dotnet-service.env'
     environment:
       Mongo__DatabaseUri: mongodb://mongodb:27017/
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-pwd
+      Acl__Clients__Developer__Scopes__0: read
+      Acl__Clients__Developer__Scopes__1: write
       Acl__Clients__waste-obligations__Type: ApiKey
       Acl__Clients__waste-obligations__Secret: waste-obligations-pwd
       Acl__Clients__waste-obligations__Scopes__0: read
@@ -914,14 +918,18 @@ services:
       - 'compose/cdp/dotnet-service.env'
     environment:
       Mongo__DatabaseUri: mongodb://mongodb:27017/
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-pwd
+      Acl__Clients__Developer__Scopes__0: read
+      Acl__Clients__Developer__Scopes__1: write
+      Acl__Clients__epr-pom-api-web__Type: OAuth
+      Acl__Clients__epr-pom-api-web__Scopes__0: read
       PrnCommonBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       PrnCommonBackend__ClientId: waste-obligations
       PrnCommonBackend__BaseAddress: http://epr-prn-common-backend:8080/
       WasteOrganisations__BaseAddress: http://waste-organisations:8080/
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
-      Acl__Clients__epr-pom-api-web__Type: OAuth
-      Acl__Clients__epr-pom-api-web__Scopes__0: read
     ports:
       - "8007:8080"
     healthcheck:
