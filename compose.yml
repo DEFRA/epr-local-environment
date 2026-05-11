@@ -967,6 +967,19 @@ services:
     profiles:
       - obligations
 
+  waste-obligations-frontend-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-obligations-frontend:
+        condition: service_started
+    ports:
+      - "8010:443"
+    volumes:
+      - ./compose/waste-obligations-frontend-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
+    profiles:
+      - obligations
+
 volumes:
   azurite-data:
   sqledge-data:
