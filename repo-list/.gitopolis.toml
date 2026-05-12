@@ -995,6 +995,14 @@ name = "origin"
 url = "git@github.com:DEFRA/extended-producer-responsibility-docs.git"
 
 [[repos]]
+path = "regulator-responsibility-prototype"
+tags = ["design", "epr", "epr-producer", "github", "internal"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:defra-design/regulator-responsibility-prototype.git"
+
+[[repos]]
 path = "waste-obligations"
 tags = ["cdp", "epr", "github", "public"]
 
