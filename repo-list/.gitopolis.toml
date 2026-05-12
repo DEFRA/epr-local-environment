@@ -811,6 +811,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-re-ex-engineering-prototype.git"
 
 [[repos]]
+path = "epr-register-enrol"
+tags = ["cdp", "epr", "github", "public", "register", "tooling"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-register-enrol.git"
+
+[[repos]]
 path = "epr-register-enrol-backend"
 tags = ["backend", "cdp", "epr", "github", "public", "register"]
 
@@ -833,6 +841,22 @@ tags = ["cdp", "epr", "frontend", "github", "public", "register"]
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/epr-register-enrol-frontend.git"
+
+[[repos]]
+path = "epr-register-enrol-management-be"
+tags = ["backend", "cdp", "epr", "github", "public", "register"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-register-enrol-management-be.git"
+
+[[repos]]
+path = "epr-register-enrol-management-fe"
+tags = ["cdp", "epr", "frontend", "github", "public", "register"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-register-enrol-management-fe.git"
 
 [[repos]]
 path = "epr-registration-validation-function-app"
