@@ -939,6 +939,7 @@ services:
       retries: 30
       start_period: 5s
     profiles:
+      - packaging
       - obligations
 
   waste-obligations-frontend:
