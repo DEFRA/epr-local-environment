@@ -62,6 +62,7 @@ services:
       - packaging
       - prn
       - obligations
+      - regulator
 
   azurite:
     pull_policy: always
@@ -138,6 +139,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   wiremock:
     pull_policy: always
@@ -153,6 +155,7 @@ services:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   mongodb:
     image: mongo:7.0.24
@@ -361,6 +364,7 @@ services:
       - prn
       - packaging
       - obligations
+      - regulator
 
   epr-prn-common-backend-migrations:
     pull_policy: always
@@ -382,6 +386,7 @@ services:
       - prn
       - packaging
       - obligations
+      - regulator
 
   epr-common-data-api:
     pull_policy: always
@@ -420,6 +425,7 @@ services:
       - prn
       - obligations
       - packaging
+      - regulator
 
   epr-common-data-api-migrations:
     pull_policy: always
@@ -442,6 +448,7 @@ services:
       - prn
       - obligations
       - packaging
+      - regulator
 
   epr-packaging-frontend:
     pull_policy: always
@@ -568,6 +575,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-backend-account-microservice-migrations:
     pull_policy: always
@@ -588,6 +596,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-payment-facade:
     pull_policy: always
@@ -621,6 +630,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-pom-api-web:
     pull_policy: always
@@ -704,6 +714,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-prn-integration-function:
     pull_policy: always
@@ -1062,6 +1073,99 @@ services:
     profiles:
       - packaging
       - obligations
+
+  epr-regulator-facade:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprregulatorfacadeendregistry:${EPR_REGULATOR_FACADE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      epr-backend-account-microservice:
+        condition: service_healthy
+      epr-pom-api-submission-status:
+        condition: service_started
+      epr-common-data-api:
+        condition: service_healthy
+      epr-prn-common-backend:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      AzureAdB2C__ClientId: ${EprRegulatorFacade__AzureAdB2C__ClientId} # see .env
+      AzureAdB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureAdB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
+      AccountsServiceApiConfig__BaseUrl: https://epr-backend-account-microservice:8081/api/
+      SubmissionsApiConfig__BaseUrl: https://epr-pom-api-submission-status:8081
+      CommonDataApiConfig__BaseUrl: http://epr-common-data-api:8080/api/
+      PrnBackendServiceApiConfig__BaseUrl: http://epr-prn-common-backend:8080
+      PaymentBackendServiceApiConfig__BaseUrl: http://wiremock
+      MessagingConfig__ApiKey: ${EprRegulatorFacade__MessagingConfig__ApiKey} # see .env
+    ports:
+      - "5072:8080"
+      - "7240:8081"
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "EPR.RegulatorService.Facade.API.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - regulator
+
+  epr-regulator-service:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprregulatorfrontendregistry:${EPR_REGULATOR_SERVICE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      redis:
+        condition: service_healthy
+      epr-regulator-facade:
+        condition: service_healthy
+      epr-payment-facade:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      RedisInstanceName: epr-producers-
+      ConnectionStrings__REDIS_CONNECTION: redis:6379
+      UseLocalSession: false
+      AzureAdB2C__ClientId: ${EprRegulatorService__AzureAdB2C__ClientId} # see .env
+      AzureAdB2C__ClientSecret: ${EprRegulatorService__AzureAdB2C__ClientSecret} # see .env
+      AzureAdB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureAdB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      FacadeApi__BaseUrl: https://epr-regulator-facade:8081/api/
+      EprAuthorizationConfig__FacadeBaseUrl: https://epr-regulator-facade:8081/api/
+      ReprocessorExporterFacadeApi__BaseUrl: https://epr-regulator-facade:8081/api/
+      PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/
+    ports:
+      - "5229:8080" # taken from launch settings in epr-regulator-service
+      - "7154:8081" # taken from launch settings in epr-regulator-service
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "EPR.RegulatorService.Frontend.Web.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - regulator
 
 volumes:
   azurite-data:
