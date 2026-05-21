@@ -211,6 +211,13 @@ Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
 
 All enrolments are seeded with `EnrolmentStatusId = 3` (Approved/Active).
 
+## Govuk Notify emails
+
+The `waste-obligations` service uses Govuk Notify. The service is configured with an env var in the .env.example file that needs to be
+set. See guidance in the .env.example file.
+
+Default configuration is to use Wiremock but you can comment out the base address line in the compose.yml file and use the real service, alongside using a valid API key (ideally a test key that will allow you to observe what emails have been sent in the Govuk Notify portal).
+
 ## Licence Information
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:
