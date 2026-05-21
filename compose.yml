@@ -883,7 +883,7 @@ services:
     ports:
       - "8006:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/all" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -934,13 +934,16 @@ services:
       WasteOrganisations__BaseAddress: http://waste-organisations:8080/
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
-      # comment the following line to use the actual Govuk Notify service
+      AccountBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
+      AccountBackend__ClientId: waste-obligations
+      AccountBackend__BaseAddress: http://epr-backend-account-microservice:8080/
+      # Comment the following line to use the actual Govuk Notify service
       GovukNotify__BaseAddress: http://wiremock/
       GovukNotify__ApiKey: ${GovukNotify__ApiKey}
     ports:
       - "8007:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/all" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
       retries: 30
