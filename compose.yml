@@ -978,7 +978,28 @@ services:
       WASTE_OBLIGATIONS_API_AUTH_MODE: basic
       WASTE_OBLIGATIONS_API_CLIENT_ID: waste-obligations-frontend
       WASTE_OBLIGATIONS_API_CLIENT_SECRET: waste-obligations-frontend-pwd
+      EPR_PACKAGING_HOME_URL: https://localhost:7084/report-data
+      EPR_PACKAGING_MANAGE_ACCOUNT_URL: https://localhost:7084/manage-account
+      EPR_PACKAGING_SIGN_OUT_URL: https://localhost:7084/report-data/Account/SignOut
+      EPR_PACKAGING_COOKIES_URL: https://localhost:7084/report-data/cookies
       MANAGE_YOUR_RECYCLING_OBLIGATIONS_URL: https://localhost:7084/report-data/manage-your-recycling-obligations
+      SERVICE_FEEDBACK_URL: https://defragroup.eu.qualtrics.com/jfe/form/SV_e5HK8ijKACZGi1M
+      EPR_SUPPORT_EMAIL: eprcustomerservice@defra.gov.uk
+      EPR_SUPPORT_TELEPHONE: 0300 060 0002
+      EPR_PRIVACY_URL: https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging-privacy-policy
+      EPR_ACCESSIBILITY_URL: https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging-accessibility-statement
+      AZURE_AD_B2C_CLIENT_ID: ${WasteObligationsFrontend__AzureAdB2C__ClientId:-}
+      AZURE_AD_B2C_CLIENT_SECRET: ${WasteObligationsFrontend__AzureAdB2C__ClientSecret:-}
+      AZURE_AD_B2C_INSTANCE: https://AZDCUSPOC2.b2clogin.com
+      AZURE_AD_B2C_DOMAIN: AZDCUSPOC2.onmicrosoft.com
+      AZURE_AD_B2C_TENANT_ID: 8a3f509a-c892-4bec-bfe9-d5f5cf251813
+      AZURE_AD_B2C_USER_FLOW: B2C_1A_EPR_SignUpSignIn
+      AZURE_AD_B2C_REDIRECT_URI: https://localhost:8010/signin-oidc
+      AZURE_AD_B2C_POST_LOGOUT_REDIRECT_PATH: /signed-out
+      AUTH_COOKIE_PASSWORD: secret-password-must-be-at-least-32-characters-long
+      AUTH_COOKIE_SECURE: "true"
+      SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
+      SESSION_COOKIE_SECURE: "true"
     ports:
       - "8008:3000"
     profiles:

@@ -150,7 +150,12 @@ To remove all, append `-v --remove-orphans`
 
 ### obligations
 
-Obtain the necessary secrets.
+Obtain the necessary secrets (including from Key Vault or a teammate). For **waste-obligations-frontend** sign-in via Docker, set in `.env`:
+
+- `WasteObligationsFrontend__AzureAdB2C__ClientId`
+- `WasteObligationsFrontend__AzureAdB2C__ClientSecret`
+
+Use **https://localhost:8010** (HTTPS proxy) for the app and B2C redirect — not port 8008. Register `https://localhost:8010/signin-oidc` and `https://localhost:8010/signed-out` on the B2C app registration if they are not already present.
 
 To start:
 
