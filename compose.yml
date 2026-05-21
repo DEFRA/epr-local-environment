@@ -934,6 +934,7 @@ services:
       WasteOrganisations__BaseAddress: http://waste-organisations:8080/
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
+      GovukNotify__ApiKey: ${GovukNotify__ApiKey}
     ports:
       - "8007:8080"
     healthcheck:
