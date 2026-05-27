@@ -1041,3 +1041,11 @@ tags = ["cdp", "epr", "github", "public"]
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/waste-obligations-frontend.git"
+
+[[repos]]
+path = "waste-packaging-regulators-fe"
+tags = ["cdp", "epr", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-packaging-regulators-fe.git"
