@@ -884,7 +884,7 @@ url = "git@github.com:DEFRA/epr-regulator-enrolment-frontend.git"
 
 [[repos]]
 path = "epr-regulator-frontend"
-tags = ["cdp", "epr", "epr-producer", "frontend", "github", "public"]
+tags = ["cdp", "epr", "epr-producer", "epr-regulator", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -892,7 +892,7 @@ url = "git@github.com:DEFRA/epr-regulator-frontend.git"
 
 [[repos]]
 path = "epr-regulator-gateway"
-tags = ["backend", "cdp", "epr-producer", "github", "public"]
+tags = ["backend", "cdp", "epr-producer", "epr-regulator", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -900,7 +900,7 @@ url = "git@github.com:DEFRA/epr-regulator-gateway.git"
 
 [[repos]]
 path = "epr-regulator-service"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "epr-regulator", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -912,7 +912,7 @@ url = "git@github.com:DEFRA/epr-regulator-service.git"
 
 [[repos]]
 path = "epr-regulator-service-facade"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "epr-regulator", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -1044,7 +1044,7 @@ url = "git@github.com:DEFRA/waste-obligations-frontend.git"
 
 [[repos]]
 path = "waste-packaging-regulators-fe"
-tags = ["cdp", "epr", "frontend", "github"]
+tags = ["cdp", "epr", "epr-regulator", "frontend", "github"]
 
 [repos.remotes.origin]
 name = "origin"
