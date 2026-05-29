@@ -1,4 +1,348 @@
 [[repos]]
+path = "ace-workshop-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ace-workshop-frontend.git"
+
+[[repos]]
+path = "ai-agent-policy-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-agent-policy-frontend.git"
+
+[[repos]]
+path = "ai-cffld-feedback-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-cffld-feedback-frontend.git"
+
+[[repos]]
+path = "ai-jaf-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-jaf-frontend.git"
+
+[[repos]]
+path = "ai-model-test-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-model-test-frontend.git"
+
+[[repos]]
+path = "ai-pet-travel-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-pet-travel-frontend.git"
+
+[[repos]]
+path = "ai-project-triage-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-project-triage-frontend.git"
+
+[[repos]]
+path = "ai-sdlc-codereview-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-codereview-frontend.git"
+
+[[repos]]
+path = "ai-sdlc-governance-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-governance-frontend.git"
+
+[[repos]]
+path = "ai-sdlc-greyhound-form-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-greyhound-form-frontend.git"
+
+[[repos]]
+path = "ai-sdlc-prompt-library-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-prompt-library-frontend.git"
+
+[[repos]]
+path = "ai-sdlc-redaction-tool"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-redaction-tool.git"
+
+[[repos]]
+path = "ai-sdlc-sheep-weight-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-sheep-weight-frontend.git"
+
+[[repos]]
+path = "ai-sdlc-ucd-tool-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-sdlc-ucd-tool-frontend.git"
+
+[[repos]]
+path = "ai-self-service-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-self-service-frontend.git"
+
+[[repos]]
+path = "ai-service-manual"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-service-manual.git"
+
+[[repos]]
+path = "ai-tech-radar-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-tech-radar-frontend.git"
+
+[[repos]]
+path = "ai-techspike-cursor-form"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-techspike-cursor-form.git"
+
+[[repos]]
+path = "ai-techspike-cursor-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-techspike-cursor-frontend.git"
+
+[[repos]]
+path = "ai-techspike-form"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-techspike-form.git"
+
+[[repos]]
+path = "ai-uc-content-swarm-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-uc-content-swarm-ui.git"
+
+[[repos]]
+path = "ai-uc-rag-evaluation-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ai-uc-rag-evaluation-ui.git"
+
+[[repos]]
+path = "apha-apps-perms-case-mgmt-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-apps-perms-case-mgmt-ui.git"
+
+[[repos]]
+path = "apha-apps-perms-defra-forms"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-apps-perms-defra-forms.git"
+
+[[repos]]
+path = "apha-apps-perms-move-animal-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-apps-perms-move-animal-ui.git"
+
+[[repos]]
+path = "apha-file-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-file-frontend.git"
+
+[[repos]]
+path = "apha-file-njs-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-file-njs-frontend.git"
+
+[[repos]]
+path = "apha-integration-apoc-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-integration-apoc-frontend.git"
+
+[[repos]]
+path = "apha-sdo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/apha-sdo-frontend.git"
+
+[[repos]]
+path = "aqie-dataselector-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-dataselector-frontend.git"
+
+[[repos]]
+path = "aqie-dc-admin-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-dc-admin-frontend.git"
+
+[[repos]]
+path = "aqie-dc-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-dc-frontend.git"
+
+[[repos]]
+path = "aqie-dc-poc-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-dc-poc-frontend.git"
+
+[[repos]]
+path = "aqie-docanalysisawspoc-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-docanalysisawspoc-frontend.git"
+
+[[repos]]
+path = "aqie-docanalysispoc-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-docanalysispoc-frontend.git"
+
+[[repos]]
+path = "aqie-front-end"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-front-end.git"
+
+[[repos]]
+path = "aqie-kpi-metrics-dashboard"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-kpi-metrics-dashboard.git"
+
+[[repos]]
+path = "aqie-prtr-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/aqie-prtr-frontend.git"
+
+[[repos]]
+path = "assurance-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/assurance-frontend.git"
+
+[[repos]]
+path = "bng-metric-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/bng-metric-frontend.git"
+
+[[repos]]
+path = "btms-connectivity-tester"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/btms-connectivity-tester.git"
+
+[[repos]]
+path = "btms-portal-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/btms-portal-frontend.git"
+
+[[repos]]
+path = "cads-mis"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cads-mis.git"
+
+[[repos]]
 path = "ccoe-epr-infrastructure"
 tags = ["azure-devops", "epr"]
 
@@ -23,12 +367,44 @@ name = "origin"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-sec-infrastructure"
 
 [[repos]]
+path = "cdp-api-hub"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-api-hub.git"
+
+[[repos]]
 path = "cdp-app-config"
 tags = ["cdp", "common", "internal"]
 
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/cdp-app-config.git"
+
+[[repos]]
+path = "cdp-ct-bart-one"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-ct-bart-one.git"
+
+[[repos]]
+path = "cdp-defra-id-demo"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-defra-id-demo.git"
+
+[[repos]]
+path = "cdp-defra-id-stub"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-defra-id-stub.git"
 
 [[repos]]
 path = "cdp-documentation"
@@ -39,12 +415,148 @@ name = "origin"
 url = "git@github.com:DEFRA/cdp-documentation.git"
 
 [[repos]]
+path = "cdp-example-journey-test"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-example-journey-test.git"
+
+[[repos]]
+path = "cdp-example-node-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-example-node-frontend.git"
+
+[[repos]]
+path = "cdp-platform-status-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-platform-status-frontend.git"
+
+[[repos]]
+path = "cdp-ps-frontend-node-91225-2"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-ps-frontend-node-91225-2.git"
+
+[[repos]]
+path = "cdp-ps-frontend-node-test"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-ps-frontend-node-test.git"
+
+[[repos]]
+path = "cdp-ps-frontend-node-test-91225"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-ps-frontend-node-test-91225.git"
+
+[[repos]]
+path = "cdp-ps-frontend-node-test-91225-2"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-ps-frontend-node-test-91225-2.git"
+
+[[repos]]
+path = "cdp-sbom-demo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-sbom-demo-frontend.git"
+
+[[repos]]
 path = "cdp-tenant-config"
 tags = ["cdp", "common", "github", "internal", "platform"]
 
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/cdp-tenant-config"
+
+[[repos]]
+path = "cdp-test-iea-240904-001"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-test-iea-240904-001.git"
+
+[[repos]]
+path = "cdp-uploader"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cdp-uploader.git"
+
+[[repos]]
+path = "cff-bbox-polys"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cff-bbox-polys.git"
+
+[[repos]]
+path = "content-reviewer-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/content-reviewer-frontend.git"
+
+[[repos]]
+path = "cop-cdp-demo"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cop-cdp-demo.git"
+
+[[repos]]
+path = "cph-demo-dummy-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cph-demo-dummy-frontend.git"
+
+[[repos]]
+path = "cph-demo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/cph-demo-frontend.git"
+
+[[repos]]
+path = "disinfectant-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/disinfectant-frontend.git"
+
+[[repos]]
+path = "econtrol-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/econtrol-frontend.git"
 
 [[repos]]
 path = "epr-accountmanagement-greenlist"
@@ -296,7 +808,7 @@ url = "git@github.com:DEFRA/epr-facade-account-microservice.git"
 
 [[repos]]
 path = "epr-frontend"
-tags = ["epr", "frontend", "github", "public"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -388,7 +900,7 @@ url = "git@github.com:DEFRA/epr-laps-common.git"
 
 [[repos]]
 path = "epr-laps-frontend"
-tags = ["epr", "frontend", "github", "public"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -796,7 +1308,7 @@ url = "git@github.com:DEFRA/epr-prn-status-function-app.git"
 
 [[repos]]
 path = "epr-re-ex-admin-frontend"
-tags = ["epr", "frontend", "github", "public"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -809,6 +1321,14 @@ tags = ["epr", "github", "public"]
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/epr-re-ex-engineering-prototype.git"
+
+[[repos]]
+path = "epr-re-ex-entra-stub"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-re-ex-entra-stub.git"
 
 [[repos]]
 path = "epr-register-enrol"
@@ -836,7 +1356,7 @@ url = "git@github.com:DEFRA/epr-register-enrol-fe-tests.git"
 
 [[repos]]
 path = "epr-register-enrol-frontend"
-tags = ["cdp", "epr", "frontend", "github", "public", "register"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public", "register"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -884,7 +1404,7 @@ url = "git@github.com:DEFRA/epr-regulator-enrolment-frontend.git"
 
 [[repos]]
 path = "epr-regulator-frontend"
-tags = ["cdp", "epr", "epr-producer", "frontend", "github", "public"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-producer", "epr-regulator", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -892,7 +1412,7 @@ url = "git@github.com:DEFRA/epr-regulator-frontend.git"
 
 [[repos]]
 path = "epr-regulator-gateway"
-tags = ["backend", "cdp", "epr-producer", "github", "public"]
+tags = ["backend", "cdp", "epr-producer", "epr-regulator", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -900,7 +1420,7 @@ url = "git@github.com:DEFRA/epr-regulator-gateway.git"
 
 [[repos]]
 path = "epr-regulator-service"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "epr-regulator", "frontend", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -912,7 +1432,7 @@ url = "git@github.com:DEFRA/epr-regulator-service.git"
 
 [[repos]]
 path = "epr-regulator-service-facade"
-tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "github", "primary-is-github", "public"]
+tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "epr-producer", "epr-regulator", "github", "primary-is-github", "public"]
 
 [repos.remotes.devops]
 name = "devops"
@@ -1011,6 +1531,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-webapps-code-deploy-templates.git"
 
 [[repos]]
+path = "eutd-mmo-bc"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/eutd-mmo-bc.git"
+
+[[repos]]
 path = "extended-producer-responsibility-docs"
 tags = ["epr", "epr-producer", "private"]
 
@@ -1019,12 +1547,332 @@ name = "origin"
 url = "git@github.com:DEFRA/extended-producer-responsibility-docs.git"
 
 [[repos]]
+path = "farming-grants-agreements-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/farming-grants-agreements-ui.git"
+
+[[repos]]
+path = "fcp-sfd-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/fcp-sfd-frontend.git"
+
+[[repos]]
+path = "fcp-sfd-frontend-internal"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/fcp-sfd-frontend-internal.git"
+
+[[repos]]
+path = "fg-cw-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/fg-cw-frontend.git"
+
+[[repos]]
+path = "fg-entra-stub-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/fg-entra-stub-frontend.git"
+
+[[repos]]
+path = "fg-gas-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/fg-gas-frontend.git"
+
+[[repos]]
+path = "find-documents-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/find-documents-frontend.git"
+
+[[repos]]
+path = "find-ffa-mongodb-vector-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/find-ffa-mongodb-vector-frontend.git"
+
+[[repos]]
+path = "find-ffa-web"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/find-ffa-web.git"
+
+[[repos]]
+path = "find-techspike-search-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/find-techspike-search-frontend.git"
+
+[[repos]]
+path = "forms-engine-plugin-example-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/forms-engine-plugin-example-ui.git"
+
+[[repos]]
+path = "gep-find-geo-data-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/gep-find-geo-data-frontend.git"
+
+[[repos]]
+path = "gep-land-model-feedback-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/gep-land-model-feedback-frontend.git"
+
+[[repos]]
+path = "gep-land-model-viewer-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/gep-land-model-viewer-frontend.git"
+
+[[repos]]
+path = "grants-config-browser"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/grants-config-browser.git"
+
+[[repos]]
+path = "grants-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/grants-ui.git"
+
+[[repos]]
+path = "hydro-demo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/hydro-demo-frontend.git"
+
+[[repos]]
+path = "identity-service-handler"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/identity-service-handler.git"
+
+[[repos]]
+path = "ig-test-service"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ig-test-service.git"
+
+[[repos]]
+path = "iw-demo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/iw-demo-frontend.git"
+
+[[repos]]
+path = "land-grants-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/land-grants-ui.git"
+
+[[repos]]
+path = "land-grants-ui-poc"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/land-grants-ui-poc.git"
+
+[[repos]]
+path = "ls-keeper-data-api-admin-service"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ls-keeper-data-api-admin-service.git"
+
+[[repos]]
+path = "ls-keeper-data-bridge-admin-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ls-keeper-data-bridge-admin-ui.git"
+
+[[repos]]
+path = "ls-keeper-data-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ls-keeper-data-frontend.git"
+
+[[repos]]
+path = "ls-playground"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/ls-playground.git"
+
+[[repos]]
+path = "marine-licensing-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/marine-licensing-frontend.git"
+
+[[repos]]
+path = "mcp-portal"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/mcp-portal.git"
+
+[[repos]]
+path = "nms-frontend-alpha"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/nms-frontend-alpha.git"
+
+[[repos]]
+path = "nrf-admin-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/nrf-admin-frontend.git"
+
+[[repos]]
+path = "nrf-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/nrf-frontend.git"
+
+[[repos]]
+path = "pafs-portal-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/pafs-portal-frontend.git"
+
+[[repos]]
+path = "pd-cdp-flood-demo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/pd-cdp-flood-demo-frontend.git"
+
+[[repos]]
+path = "phi-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/phi-frontend.git"
+
+[[repos]]
+path = "phi-prototype-v5"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/phi-prototype-v5.git"
+
+[[repos]]
 path = "regulator-responsibility-prototype"
 tags = ["design", "epr", "epr-producer", "github", "internal"]
 
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:defra-design/regulator-responsibility-prototype.git"
+
+[[repos]]
+path = "service-manual-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/service-manual-ui.git"
+
+[[repos]]
+path = "trade-demo-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/trade-demo-frontend.git"
+
+[[repos]]
+path = "trade-imports-animals-admin"
+tags = ["cdp", "cdp-node-frontend-template", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/trade-imports-animals-admin.git"
+
+[[repos]]
+path = "trade-imports-animals-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/trade-imports-animals-frontend.git"
+
+[[repos]]
+path = "trade-imports-journey-config-ui"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/trade-imports-journey-config-ui.git"
 
 [[repos]]
 path = "waste-obligations"
@@ -1036,8 +1884,32 @@ url = "git@github.com:DEFRA/waste-obligations.git"
 
 [[repos]]
 path = "waste-obligations-frontend"
-tags = ["cdp", "epr", "github", "public"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/waste-obligations-frontend.git"
+
+[[repos]]
+path = "waste-organisation-frontend"
+tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-organisation-frontend.git"
+
+[[repos]]
+path = "waste-packaging-regulators-fe"
+tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-regulator", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-packaging-regulators-fe.git"
+
+[[repos]]
+path = "waste-regulator-dashboard-fe"
+tags = ["cdp", "epr", "epr-regulator", "frontend", "github"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-regulator-dashboard-fe.git"
