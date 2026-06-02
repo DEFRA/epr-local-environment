@@ -1443,6 +1443,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-regulator-service-facade.git"
 
 [[repos]]
+path = "epr-release-doc-automation"
+tags = ["azure-devops", "common", "epr", "platform", "primary-is-devops", "tooling"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-release-doc-automation"
+
+[[repos]]
 path = "epr-rpd-azure-ad-b2c-styling"
 tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "epr", "github", "primary-is-github", "public"]
 
