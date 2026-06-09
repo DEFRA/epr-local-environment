@@ -2,7 +2,12 @@
 
 ## oauth2-token.json
 
-Default access token response.
+Default client-credentials access token response (`access_token`, `expires_in`).
+
+Used locally by:
+
+- `waste-obligations` (AccountBackend, PrnCommonBackend token endpoints)
+- `waste-obligations-frontend` (`BACKEND_ACCOUNT_API_OAUTH_TOKEN_ENDPOINT`) after B2C sign-in when loading user organisations from epr-backend-account-microservice
 
 
 ## epr-pom-api-web-oauth2-token.json
