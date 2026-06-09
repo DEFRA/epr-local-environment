@@ -21,6 +21,7 @@ The following profiles are available:
 - paycal
 - prn
 - packaging
+- obligations
 
 ## Time shift
 
@@ -150,12 +151,42 @@ To remove all, append `-v --remove-orphans`
 
 ### obligations
 
-Obtain the necessary secrets (including from Key Vault or a teammate). For **waste-obligations-frontend** sign-in via Docker, set in `.env`:
+Obtain the necessary secrets (including from Key Vault or a teammate).
+
+#### waste-obligations-frontend sign-in
+
+Sign-in uses Azure AD B2C, then calls **epr-backend-account-microservice** (`GET /api/users/user-organisations`) to load the user. In this stack the account API runs in Development without JWT validation; the frontend still requests a bearer token via client credentials.
+
+| Service | Local URL |
+| --- | --- |
+| waste-obligations-frontend (Docker HTTP) | http://localhost:8008 |
+| waste-obligations-frontend (HTTPS proxy) | https://localhost:8010 |
+| epr-backend-account-microservice | http://localhost:8003/api/ |
+| waste-organisations | http://localhost:8006 |
+| waste-obligations | http://localhost:8007 |
+| wiremock | http://localhost:9090 |
+
+**Docker (packaged frontend):** set in `.env`:
 
 - `WasteObligationsFrontend__AzureAdB2C__ClientId`
 - `WasteObligationsFrontend__AzureAdB2C__ClientSecret`
 
+OAuth for the backend account API is wired in `compose.yml` to **Wiremock** (`BACKEND_ACCOUNT_API_OAUTH_TOKEN_ENDPOINT=http://wiremock/oauth2/v2.0/token`) — no MO-119 secret is required for Docker.
+
 Use **https://localhost:8010** (HTTPS proxy) for the app and B2C redirect — not port 8008. Register `https://localhost:8010/signin-oidc` and `https://localhost:8010/signed-out` on the B2C app registration if they are not already present.
+
+**npm run dev:** start the obligations profile, then configure [waste-obligations-frontend/.env.example](https://github.com/DEFRA/waste-obligations-frontend/blob/main/.env.example) in that repo:
+
+- Set `AZURE_AD_B2C_CLIENT_SECRET` (same B2C app as Docker).
+- For backend account OAuth, either use Wiremock (`BACKEND_ACCOUNT_API_OAUTH_TOKEN_ENDPOINT=http://localhost:9090/oauth2/v2.0/token` with the client id/secret from `compose.yml`) or real MO-119 Azure credentials (`BACKEND_ACCOUNT_API_OAUTH_CLIENT_ID` / `BACKEND_ACCOUNT_API_OAUTH_CLIENT_SECRET`).
+
+Stop the packaged frontend containers so port 8010 is free for the dev server:
+
+```bash
+docker compose --profile obligations stop waste-obligations-frontend waste-obligations-frontend-proxy
+```
+
+The B2C user's `oid`/`sub` must match a seeded account `UserId` — see [Seeded users](#seeded-users-packaging-profile).
 
 To start:
 
