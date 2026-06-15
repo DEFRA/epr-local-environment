@@ -351,14 +351,6 @@ name = "origin"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-infrastructure"
 
 [[repos]]
-path = "ccoe-epr-Pipeline.common"
-tags = ["azure-devops", "epr"]
-
-[repos.remotes.origin]
-name = "origin"
-url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ccoe-epr-Pipeline.common"
-
-[[repos]]
 path = "ccoe-epr-sec-infrastructure"
 tags = ["azure-devops", "epr"]
 
