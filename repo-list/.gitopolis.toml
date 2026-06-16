@@ -1899,6 +1899,14 @@ name = "origin"
 url = "git@github.com:DEFRA/waste-organisation-frontend.git"
 
 [[repos]]
+path = "waste-packaging-regulator-tests"
+tags = ["cdp", "epr", "epr-regulator", "github", "public", "tests"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-packaging-regulator-tests.git"
+
+[[repos]]
 path = "waste-packaging-regulators-fe"
 tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-regulator", "frontend", "github"]
 
