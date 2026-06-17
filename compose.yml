@@ -903,6 +903,23 @@ services:
     profiles:
       - obligations
 
+  waste-organisations-stub:
+    image: defradigital/waste-organisations-stub:${WASTE_ORGANISATIONS_STUB:-latest}
+    pull_policy: always
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/cdp/dotnet-service.env'
+    ports:
+      - "8012:8080"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    profiles:
+      - obligations
+
   waste-obligations:
     image: defradigital/waste-obligations:${WASTE_OBLIGATIONS:-latest}
     pull_policy: always
@@ -930,8 +947,8 @@ services:
       Acl__Clients__epr-pom-api-web__Scopes__0: read
       PrnCommonBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       PrnCommonBackend__ClientId: waste-obligations
-      PrnCommonBackend__BaseAddress: http://epr-prn-common-backend:8080/
-      WasteOrganisations__BaseAddress: http://waste-organisations:8080/
+      PrnCommonBackend__BaseAddress: ${WasteObligations__PrnCommonBackend__BaseAddress:-http://epr-prn-common-backend:8080/}
+      WasteOrganisations__BaseAddress: ${WasteObligations__WasteOrganisations__BaseAddress:-http://waste-organisations:8080/}
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
       AccountBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
@@ -974,7 +991,7 @@ services:
       REDIS_HOST: redis
       REDIS_TLS: false
       USE_SINGLE_INSTANCE_CACHE: true
-      WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080/
+      WASTE_ORGANISATIONS_API_BASE_URL: ${WasteObligationsFrontend__WASTE_ORGANISATIONS_API_BASE_URL:-http://waste-organisations:8080/}
       WASTE_ORGANISATIONS_API_AUTH_MODE: basic
       WASTE_ORGANISATIONS_API_CLIENT_ID: waste-obligations-frontend
       WASTE_ORGANISATIONS_API_CLIENT_SECRET: waste-obligations-frontend-pwd
@@ -982,7 +999,7 @@ services:
       WASTE_OBLIGATIONS_API_AUTH_MODE: basic
       WASTE_OBLIGATIONS_API_CLIENT_ID: waste-obligations-frontend
       WASTE_OBLIGATIONS_API_CLIENT_SECRET: waste-obligations-frontend-pwd
-      BACKEND_ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080/api/
+      BACKEND_ACCOUNT_API_BASE_URL: ${WasteObligationsFrontend__BACKEND_ACCOUNT_API_BASE_URL:-http://epr-backend-account-microservice:8080/api/}
       BACKEND_ACCOUNT_API_AUTH_MODE: bearer
       BACKEND_ACCOUNT_API_OAUTH_CLIENT_ID: waste-obligations-frontend
       BACKEND_ACCOUNT_API_OAUTH_CLIENT_SECRET: waste-obligations-frontend-pwd
@@ -1026,6 +1043,24 @@ services:
       - ./compose/waste-obligations-frontend-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
     profiles:
+      - obligations
+
+  epr-azure-stub:
+    image: defradigital/epr-azure-stub:${EPR_AZURE_STUB:-latest}
+    pull_policy: always
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/cdp/dotnet-service.env'
+    ports:
+      - "8011:8080"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    profiles:
+      - packaging
       - obligations
 
 volumes:
