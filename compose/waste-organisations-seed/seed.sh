@@ -15,12 +15,14 @@ put_organisation() {
 }
 
 for YEAR in 2025 2026 2027 2028 2029 2030; do
-  # User test+17122025143216@ee.com
+  # User test+17122025143216@ee.com - compliance scheme
+  # the ID is taken from the compliance scheme external ID and not the org
   put_organisation \
-    /payloads/94bfc917-b9b6-45d7-847b-e5f500bfe198.json \
+    /payloads/d93376e3-0681-46be-aeb4-7450a2e784d8.json \
     "$YEAR"
 
-  # User test+directproducer@ee.com
+  # User test+directproducer@ee.com - producer
+  # the ID is taken from the organisation external ID
   put_organisation \
     /payloads/e2316c5e-d434-41da-8274-494dc0762d20.json \
     "$YEAR"
