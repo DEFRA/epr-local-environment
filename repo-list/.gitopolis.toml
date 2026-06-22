@@ -587,6 +587,14 @@ name = "devops"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-app-config-settings"
 
 [[repos]]
+path = "epr-azure-stub"
+tags = ["cdp", "epr", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-azure-stub.git"
+
+[[repos]]
 path = "epr-backend"
 tags = ["common", "epr", "github", "public"]
 
@@ -1889,6 +1897,22 @@ tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "publi
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/waste-obligations-frontend.git"
+
+[[repos]]
+path = "waste-organisations"
+tags = ["cdp", "epr", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-organisations.git"
+
+[[repos]]
+path = "waste-organisations-stub"
+tags = ["cdp", "epr", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-organisations-stub.git"
 
 [[repos]]
 path = "waste-organisation-frontend"
