@@ -1192,8 +1192,19 @@ services:
       AUTH_COOKIE_SECURE: "true"
       SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
       SESSION_COOKIE_SECURE: "true"
+    profiles:
+      - regulator
+
+  waste-packaging-regulators-fe-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-packaging-regulators-fe:
+        condition: service_started
     ports:
-      - "8013:3000"
+      - "8013:443"
+    volumes:
+      - ./compose/waste-packaging-regulators-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
     profiles:
       - regulator
 
@@ -1206,7 +1217,7 @@ services:
     env_file:
       - 'compose/cdp/aws.env'
     environment:
-      HOST: 0.0.0.0  # image default is "localhost" — bind all interfaces so the published port is reachable
+      HOST: 0.0.0.0  # image default is "localhost" — bind all interfaces so the nginx proxy can reach it
       PORT: 7154
       NODE_ENV: production
       REDIS_HOST: redis
@@ -1223,8 +1234,19 @@ services:
       AUTH_COOKIE_SECURE: "true"
       SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
       SESSION_COOKIE_SECURE: "true"
+    profiles:
+      - regulator
+
+  waste-regulator-dashboard-fe-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-regulator-dashboard-fe:
+        condition: service_started
     ports:
-      - "8014:7154"
+      - "8014:443"
+    volumes:
+      - ./compose/waste-regulator-dashboard-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
     profiles:
       - regulator
 
