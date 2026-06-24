@@ -1,0 +1,53 @@
+{
+  "organisation": {
+    "id": "e2316c5e-d434-41da-8274-494dc0762d20",
+    "registrationType": "DirectProducer",
+    "name": "POP QUEST LTD",
+    "referenceNumber": "100001",
+    "address": {
+      "addressLine1": "1 Example Street",
+      "addressLine2": "",
+      "town": "Bristol",
+      "county": "Avon",
+      "postcode": "BS1 1AA",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligationYear": 2025,
+  "obligations": [
+    {
+      "material": "Plastic",
+      "recyclingTarget": 0.75,
+      "tonnages": {
+        "material": 1000,
+        "awaitingAcceptance": 100,
+        "accepted": 600,
+        "outstanding": 50,
+        "obligated": 750
+      },
+      "status": "Met"
+    },
+    {
+      "material": "Paper",
+      "recyclingTarget": 0.80,
+      "tonnages": {
+        "material": 500,
+        "awaitingAcceptance": 50,
+        "accepted": 350,
+        "outstanding": 0,
+        "obligated": 400
+      },
+      "status": "Met"
+    }
+  ],
+  "obligationStatus": "Met",
+  "submitterName": "Direct Producer Submitter",
+  "user": {
+    "id": "e72be574-8b5b-4836-af47-dd7e0c0d1d87",
+    "email": "submitter@example.com",
+    "name": "Direct Producer Submitter"
+  },
+  "isRegulation43Compliant": true
+}

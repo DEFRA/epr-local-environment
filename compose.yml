@@ -62,6 +62,7 @@ services:
       - packaging
       - prn
       - obligations
+      - regulator
 
   azurite:
     pull_policy: always
@@ -138,6 +139,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   wiremock:
     pull_policy: always
@@ -153,6 +155,7 @@ services:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   mongodb:
     image: mongo:7.0.24
@@ -164,6 +167,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-calculator-service:
     pull_policy: always
@@ -361,6 +365,7 @@ services:
       - prn
       - packaging
       - obligations
+      - regulator
 
   epr-prn-common-backend-migrations:
     pull_policy: always
@@ -382,6 +387,7 @@ services:
       - prn
       - packaging
       - obligations
+      - regulator
 
   epr-common-data-api:
     pull_policy: always
@@ -420,6 +426,7 @@ services:
       - prn
       - obligations
       - packaging
+      - regulator
 
   epr-common-data-api-migrations:
     pull_policy: always
@@ -442,6 +449,7 @@ services:
       - prn
       - obligations
       - packaging
+      - regulator
 
   epr-packaging-frontend:
     pull_policy: always
@@ -568,6 +576,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-backend-account-microservice-migrations:
     pull_policy: always
@@ -588,6 +597,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-payment-facade:
     pull_policy: always
@@ -621,6 +631,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-pom-api-web:
     pull_policy: always
@@ -704,6 +715,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-prn-integration-function:
     pull_policy: always
@@ -890,6 +902,7 @@ services:
       start_period: 5s
     profiles:
       - obligations
+      - regulator
 
   waste-organisations-seed:
     image: curlimages/curl:latest
@@ -902,6 +915,22 @@ services:
     entrypoint: [ "/bin/sh", "/seed.sh" ]
     profiles:
       - obligations
+      - regulator
+
+  waste-obligations-seed:
+    image: curlimages/curl:latest
+    depends_on:
+      waste-obligations:
+        condition: service_healthy
+      waste-organisations-seed:
+        condition: service_completed_successfully
+    volumes:
+      - ./compose/waste-obligations-seed/payloads:/payloads:ro
+      - ./compose/waste-obligations-seed/seed.sh:/seed.sh:ro
+    entrypoint: [ "/bin/sh", "/seed.sh" ]
+    profiles:
+      - obligations
+      - regulator
 
   waste-organisations-stub:
     image: defradigital/waste-organisations-stub:${WASTE_ORGANISATIONS_STUB:-latest}
@@ -968,6 +997,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   waste-obligations-frontend:
     image: defradigital/waste-obligations-frontend:${WASTE_OBLIGATIONS_FRONTEND:-latest}
@@ -1062,6 +1092,219 @@ services:
     profiles:
       - packaging
       - obligations
+
+  epr-regulator-facade:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprregulatorfacadeendregistry:${EPR_REGULATOR_FACADE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      epr-backend-account-microservice:
+        condition: service_healthy
+      epr-pom-api-submission-status:
+        condition: service_started
+      epr-common-data-api:
+        condition: service_healthy
+      epr-prn-common-backend:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      AzureAdB2C__ClientId: ${EprRegulatorFacade__AzureAdB2C__ClientId} # see .env
+      AzureAdB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureAdB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
+      AccountsServiceApiConfig__BaseUrl: https://epr-backend-account-microservice:8081/api/
+      SubmissionsApiConfig__BaseUrl: https://epr-pom-api-submission-status:8081
+      CommonDataApiConfig__BaseUrl: http://epr-common-data-api:8080/api/
+      PrnBackendServiceApiConfig__BaseUrl: http://epr-prn-common-backend:8080
+      PaymentBackendServiceApiConfig__BaseUrl: http://wiremock
+      MessagingConfig__ApiKey: ${EprRegulatorFacade__MessagingConfig__ApiKey} # see .env
+    ports:
+      - "5072:8080"
+      - "7240:8081"
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "EPR.RegulatorService.Facade.API.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - regulator
+
+  epr-regulator-service:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprregulatorfrontendregistry:${EPR_REGULATOR_SERVICE:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      redis:
+        condition: service_healthy
+      epr-regulator-facade:
+        condition: service_healthy
+      epr-payment-facade:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_ENVIRONMENT: Development
+      Logging__LogLevel__Microsoft.AspNetCore: Information
+      RedisInstanceName: epr-producers-
+      ConnectionStrings__REDIS_CONNECTION: redis:6379
+      UseLocalSession: false
+      AzureAdB2C__ClientId: ${EprRegulatorService__AzureAdB2C__ClientId} # see .env
+      AzureAdB2C__ClientSecret: ${EprRegulatorService__AzureAdB2C__ClientSecret} # see .env
+      AzureAdB2C__Instance: https://AZDCUSPOC2.b2clogin.com
+      AzureAdB2C__Domain: AZDCUSPOC2.onmicrosoft.com
+      FacadeApi__BaseUrl: https://epr-regulator-facade:8081/api/
+      EprAuthorizationConfig__FacadeBaseUrl: https://epr-regulator-facade:8081/api/
+      ReprocessorExporterFacadeApi__BaseUrl: https://epr-regulator-facade:8081/api/
+      PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/
+    ports:
+      - "5229:8080" # taken from launch settings in epr-regulator-service
+      - "7154:8081" # taken from launch settings in epr-regulator-service
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "EPR.RegulatorService.Frontend.Web.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - regulator
+
+  epr-regulator-gateway:
+    image: defradigital/epr-regulator-gateway:${EPR_REGULATOR_GATEWAY:-latest}
+    pull_policy: always
+    depends_on:
+      epr-backend-account-microservice:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Development
+      BackendAccountService__BaseUrl: http://epr-backend-account-microservice:8080/
+      BackendAccountService__Scope: ""  # disables OAuth on outbound calls to the backend as per appsettings.Development.json in the repo https://github.com/DEFRA/epr-regulator-gateway/blob/444b18a5bcfa752d13cbb87c14607777ffbdc40e/EprRegulatorGateway/appsettings.Development.json#L27-L35
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-rpd
+      Acl__Clients__Developer__Scopes__0: read
+      Acl__Clients__Developer__Scopes__1: write
+    ports:
+      - "8085:8080"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    profiles:
+      - regulator
+
+  waste-packaging-regulators-fe:
+    image: defradigital/waste-packaging-regulators-fe:${WASTE_PACKAGING_REGULATORS_FE:-latest}
+    pull_policy: always
+    depends_on:
+      redis:
+        condition: service_started
+    env_file:
+      - 'compose/cdp/aws.env'
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_TLS: false
+      USE_SINGLE_INSTANCE_CACHE: true
+      AZURE_AD_B2C_CLIENT_ID: ${WastePackagingRegulatorsFe__AzureAdB2C__ClientId:-}
+      AZURE_AD_B2C_CLIENT_SECRET: ${WastePackagingRegulatorsFe__AzureAdB2C__ClientSecret:-}
+      AZURE_AD_B2C_INSTANCE: https://AZDCUSPOC2.b2clogin.com
+      AZURE_AD_B2C_DOMAIN: AZDCUSPOC2.onmicrosoft.com
+      AZURE_AD_B2C_USER_FLOW: B2C_1A_EPR_SignUpSignIn
+      AZURE_AD_B2C_REDIRECT_URI: https://localhost:3000/signin-oidc
+      AZURE_AD_B2C_POST_LOGOUT_REDIRECT_PATH: /signed-out
+      AUTH_COOKIE_PASSWORD: secret-password-must-be-at-least-32-characters-long
+      AUTH_COOKIE_SECURE: "true"
+      SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
+      SESSION_COOKIE_SECURE: "true"
+      ACCOUNT_API_BASE_URL: http://epr-regulator-gateway:8080
+      WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
+      WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
+    profiles:
+      - regulator
+
+  waste-packaging-regulators-fe-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-packaging-regulators-fe:
+        condition: service_started
+    ports:
+      - "3000:443"
+    volumes:
+      - ./compose/waste-packaging-regulators-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
+    profiles:
+      - regulator
+
+  waste-regulator-dashboard-fe:
+    image: defradigital/waste-regulator-dashboard-fe:${WASTE_REGULATOR_DASHBOARD_FE:-latest}
+    pull_policy: always
+    depends_on:
+      redis:
+        condition: service_started
+      epr-regulator-gateway:
+        condition: service_healthy
+    env_file:
+      - 'compose/cdp/aws.env'
+    environment:
+      HOST: 0.0.0.0  # image default is "localhost" — bind all interfaces so the nginx proxy can reach it
+      PORT: 7154
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_TLS: false
+      USE_SINGLE_INSTANCE_CACHE: true
+      AZURE_AD_B2C_CLIENT_ID: ${WasteRegulatorDashboardFe__AzureAdB2C__ClientId:-}
+      AZURE_AD_B2C_CLIENT_SECRET: ${WasteRegulatorDashboardFe__AzureAdB2C__ClientSecret:-}
+      AZURE_AD_B2C_INSTANCE: https://AZDCUSPOC2.b2clogin.com
+      AZURE_AD_B2C_DOMAIN: AZDCUSPOC2.onmicrosoft.com
+      AZURE_AD_B2C_USER_FLOW: B2C_1A_EPR_SignUpSignIn
+      AZURE_AD_B2C_REDIRECT_URI: https://localhost:3000/signin-oidc
+      AZURE_AD_B2C_POST_LOGOUT_REDIRECT_PATH: /signed-out
+      AUTH_COOKIE_PASSWORD: secret-password-must-be-at-least-32-characters-long
+      AUTH_COOKIE_SECURE: "true"
+      SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
+      SESSION_COOKIE_SECURE: "true"
+      GATEWAY_API_BASE_URL: http://epr-regulator-gateway:8080
+      GATEWAY_API_BASIC_AUTH_USERNAME: Developer
+      GATEWAY_API_BASIC_AUTH_PASSWORD: developer-rpd
+      FEATURE_CERTIFICATE_OF_COMPLIANCE: "true"
+      REGULATOR_AZURE_BASE_URL: https://localhost:7154
+      CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:8013
+    profiles:
+      - regulator
+
+  waste-regulator-dashboard-fe-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-regulator-dashboard-fe:
+        condition: service_started
+    ports:
+      - "3000:443"
+    volumes:
+      - ./compose/waste-regulator-dashboard-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
+    profiles:
+      - regulator
 
 volumes:
   azurite-data:
