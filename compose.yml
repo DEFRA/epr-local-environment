@@ -915,6 +915,22 @@ services:
     entrypoint: [ "/bin/sh", "/seed.sh" ]
     profiles:
       - obligations
+      - regulator
+
+  waste-obligations-seed:
+    image: curlimages/curl:latest
+    depends_on:
+      waste-obligations:
+        condition: service_healthy
+      waste-organisations-seed:
+        condition: service_completed_successfully
+    volumes:
+      - ./compose/waste-obligations-seed/payloads:/payloads:ro
+      - ./compose/waste-obligations-seed/seed.sh:/seed.sh:ro
+    entrypoint: [ "/bin/sh", "/seed.sh" ]
+    profiles:
+      - obligations
+      - regulator
 
   waste-organisations-stub:
     image: defradigital/waste-organisations-stub:${WASTE_ORGANISATIONS_STUB:-latest}
