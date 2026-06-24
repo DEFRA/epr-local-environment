@@ -167,6 +167,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-calculator-service:
     pull_policy: always
@@ -901,6 +902,7 @@ services:
       start_period: 5s
     profiles:
       - obligations
+      - regulator
 
   waste-organisations-seed:
     image: curlimages/curl:latest
@@ -979,6 +981,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   waste-obligations-frontend:
     image: defradigital/waste-obligations-frontend:${WASTE_OBLIGATIONS_FRONTEND:-latest}
@@ -1218,6 +1221,9 @@ services:
       AUTH_COOKIE_SECURE: "true"
       SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
       SESSION_COOKIE_SECURE: "true"
+      ACCOUNT_API_BASE_URL: http://epr-regulator-gateway:8080
+      WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
+      WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
     profiles:
       - regulator
 
