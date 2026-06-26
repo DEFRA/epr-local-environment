@@ -1,0 +1,54 @@
+{
+  "organisation": {
+    "id": "8c910c57-4231-465d-905f-0e20cc083566",
+    "registrationType": "ComplianceScheme",
+    "complianceSchemeName": "GreenWaste CS",
+    "schemeOperatorName": "GreenWaste Operator Ltd",
+    "referenceNumber": "200002",
+    "address": {
+      "addressLine1": "14 Castle Street",
+      "addressLine2": "",
+      "town": "Cardiff",
+      "county": "South Glamorgan",
+      "postcode": "CF1 1AA",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligationYear": 2026,
+  "obligations": [
+    {
+      "material": "Glass",
+      "recyclingTarget": 0.70,
+      "tonnages": {
+        "material": 2800,
+        "awaitingAcceptance": 250,
+        "accepted": 2400,
+        "outstanding": 50,
+        "obligated": 2480
+      },
+      "status": "Met"
+    },
+    {
+      "material": "Aluminium",
+      "recyclingTarget": 0.65,
+      "tonnages": {
+        "material": 450,
+        "awaitingAcceptance": 30,
+        "accepted": 400,
+        "outstanding": 10,
+        "obligated": 420
+      },
+      "status": "Met"
+    }
+  ],
+  "obligationStatus": "Met",
+  "submitterName": "GreenWaste Submitter",
+  "user": {
+    "id": "ada2c1a4-faa1-48b1-ab10-ce266c946f9a",
+    "email": "submitter@greenwaste-cs.example",
+    "name": "GreenWaste Submitter"
+  },
+  "isRegulation43Compliant": true
+}

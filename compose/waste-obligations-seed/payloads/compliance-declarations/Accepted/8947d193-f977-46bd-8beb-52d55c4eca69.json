@@ -1,0 +1,54 @@
+{
+  "organisation": {
+    "id": "8947d193-f977-46bd-8beb-52d55c4eca69",
+    "registrationType": "ComplianceScheme",
+    "complianceSchemeName": "ReClaim CS",
+    "schemeOperatorName": "ReClaim Partners Ltd",
+    "referenceNumber": "200004",
+    "address": {
+      "addressLine1": "3 Donegall Square",
+      "addressLine2": "",
+      "town": "Belfast",
+      "county": "Antrim",
+      "postcode": "BT1 1AA",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligationYear": 2026,
+  "obligations": [
+    {
+      "material": "Glass",
+      "recyclingTarget": 0.70,
+      "tonnages": {
+        "material": 900,
+        "awaitingAcceptance": 50,
+        "accepted": 280,
+        "outstanding": 350,
+        "obligated": 750
+      },
+      "status": "NotMet"
+    },
+    {
+      "material": "Aluminium",
+      "recyclingTarget": 0.65,
+      "tonnages": {
+        "material": 120,
+        "awaitingAcceptance": 10,
+        "accepted": 30,
+        "outstanding": 60,
+        "obligated": 85
+      },
+      "status": "NotMet"
+    }
+  ],
+  "obligationStatus": "NotMet",
+  "submitterName": "ReClaim Submitter",
+  "user": {
+    "id": "5ac18f4f-0bab-4de8-b6a5-2d14dc14d2a7",
+    "email": "submitter@reclaim-cs.example",
+    "name": "ReClaim Submitter"
+  },
+  "isRegulation43Compliant": false
+}
