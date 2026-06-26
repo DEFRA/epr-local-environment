@@ -15,7 +15,7 @@
     "regulator": "Environment Agency",
     "regulatorEmail": "regulator@example.com"
   },
-  "obligationYear": 2025,
+  "obligationYear": 2026,
   "obligations": [
     {
       "material": "Plastic",
@@ -43,11 +43,11 @@
     }
   ],
   "obligationStatus": "Met",
-  "submitterName": "Direct Producer Submitter",
+  "submitterName": "Pop Quest Submitter",
   "user": {
-    "id": "e72be574-8b5b-4836-af47-dd7e0c0d1d87",
-    "email": "submitter@example.com",
-    "name": "Direct Producer Submitter"
+    "id": "039df6a5-0ba1-4993-a505-8843b77f574a",
+    "email": "submitter@popquest.example",
+    "name": "Pop Quest Submitter"
   },
   "isRegulation43Compliant": true
 }
