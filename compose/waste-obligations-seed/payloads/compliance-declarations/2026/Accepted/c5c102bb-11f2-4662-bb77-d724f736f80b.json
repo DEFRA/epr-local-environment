@@ -1,0 +1,52 @@
+{
+  "organisation": {
+    "id": "c5c102bb-11f2-4662-bb77-d724f736f80b",
+    "registrationType": "DirectProducer",
+    "name": "CRAFTY THINGS LTD",
+    "referenceNumber": "100004",
+    "address": {
+      "addressLine1": "7 Jewellery Quarter",
+      "addressLine2": "",
+      "town": "Birmingham",
+      "county": "West Midlands",
+      "postcode": "B1 1AA",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligations": [
+    {
+      "material": "Plastic",
+      "recyclingTarget": 0.75,
+      "tonnages": {
+        "material": 500,
+        "awaitingAcceptance": 30,
+        "accepted": 160,
+        "outstanding": 200,
+        "obligated": 380
+      },
+      "status": "NotMet"
+    },
+    {
+      "material": "Paper",
+      "recyclingTarget": 0.80,
+      "tonnages": {
+        "material": 300,
+        "awaitingAcceptance": 20,
+        "accepted": 110,
+        "outstanding": 120,
+        "obligated": 240
+      },
+      "status": "NotMet"
+    }
+  ],
+  "obligationStatus": "NotMet",
+  "submitterName": "Crafty Things Submitter",
+  "user": {
+    "id": "176f5ec3-e3f9-475c-9e38-c6fbdf3f61fc",
+    "email": "submitter@craftythings.example",
+    "name": "Crafty Things Submitter"
+  },
+  "isRegulation43Compliant": false
+}

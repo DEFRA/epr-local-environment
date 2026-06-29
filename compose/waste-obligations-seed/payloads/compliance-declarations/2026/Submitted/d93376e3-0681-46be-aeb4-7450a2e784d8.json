@@ -1,0 +1,53 @@
+{
+  "organisation": {
+    "id": "d93376e3-0681-46be-aeb4-7450a2e784d8",
+    "registrationType": "ComplianceScheme",
+    "complianceSchemeName": "Example Compliance Scheme",
+    "schemeOperatorName": "Example Operator Ltd",
+    "referenceNumber": "200001",
+    "address": {
+      "addressLine1": "2 Scheme Road",
+      "addressLine2": "",
+      "town": "London",
+      "county": "Greater London",
+      "postcode": "EC1A 1BB",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligations": [
+    {
+      "material": "Glass",
+      "recyclingTarget": 0.70,
+      "tonnages": {
+        "material": 2000,
+        "awaitingAcceptance": 200,
+        "accepted": 1200,
+        "outstanding": 100,
+        "obligated": 1400
+      },
+      "status": "Met"
+    },
+    {
+      "material": "Aluminium",
+      "recyclingTarget": 0.65,
+      "tonnages": {
+        "material": 300,
+        "awaitingAcceptance": 30,
+        "accepted": 150,
+        "outstanding": 25,
+        "obligated": 195
+      },
+      "status": "NotMet"
+    }
+  ],
+  "obligationStatus": "NotMet",
+  "submitterName": "Example CS Submitter",
+  "user": {
+    "id": "5367bef2-dad0-4b59-9bf7-45bedd441c34",
+    "email": "submitter@example-cs.example",
+    "name": "Example CS Submitter"
+  },
+  "isRegulation43Compliant": false
+}

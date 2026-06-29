@@ -905,20 +905,20 @@ services:
       - regulator
 
   waste-organisations-seed:
-    image: curlimages/curl:latest
+    image: node:20-alpine
     depends_on:
       waste-organisations:
         condition: service_healthy
     volumes:
       - ./compose/waste-organisations-seed/payloads:/payloads:ro
-      - ./compose/waste-organisations-seed/seed.sh:/seed.sh:ro
-    entrypoint: [ "/bin/sh", "/seed.sh" ]
+      - ./compose/waste-organisations-seed/seed.mjs:/seed.mjs:ro
+    entrypoint: [ "node", "/seed.mjs" ]
     profiles:
       - obligations
       - regulator
 
   waste-obligations-seed:
-    image: curlimages/curl:latest
+    image: node:20-alpine
     depends_on:
       waste-obligations:
         condition: service_healthy
@@ -926,8 +926,8 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./compose/waste-obligations-seed/payloads:/payloads:ro
-      - ./compose/waste-obligations-seed/seed.sh:/seed.sh:ro
-    entrypoint: [ "/bin/sh", "/seed.sh" ]
+      - ./compose/waste-obligations-seed/seed.mjs:/seed.mjs:ro
+    entrypoint: [ "node", "/seed.mjs" ]
     profiles:
       - obligations
       - regulator

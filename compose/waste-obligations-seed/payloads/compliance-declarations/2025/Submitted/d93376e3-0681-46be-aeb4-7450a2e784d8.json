@@ -16,7 +16,6 @@
     "regulator": "Environment Agency",
     "regulatorEmail": "regulator@example.com"
   },
-  "obligationYear": 2025,
   "obligations": [
     {
       "material": "Glass",
@@ -44,11 +43,11 @@
     }
   ],
   "obligationStatus": "NotMet",
-  "submitterName": "Compliance Scheme Submitter",
+  "submitterName": "Example CS Submitter",
   "user": {
-    "id": "c8d3a4b1-2f67-4e9d-9a12-6f8e3b7c4d91",
-    "email": "scheme-submitter@example.com",
-    "name": "Compliance Scheme Submitter"
+    "id": "5367bef2-dad0-4b59-9bf7-45bedd441c34",
+    "email": "submitter@example-cs.example",
+    "name": "Example CS Submitter"
   },
   "isRegulation43Compliant": false
 }
