@@ -1,0 +1,52 @@
+{
+  "organisation": {
+    "id": "34341291-b377-4047-ad96-93ddb0a1c469",
+    "registrationType": "DirectProducer",
+    "name": "ZESTY GOODS LTD",
+    "referenceNumber": "100002",
+    "address": {
+      "addressLine1": "12 Tangerine Way",
+      "addressLine2": "",
+      "town": "Leeds",
+      "county": "West Yorkshire",
+      "postcode": "LS1 1AA",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligations": [
+    {
+      "material": "Plastic",
+      "recyclingTarget": 0.75,
+      "tonnages": {
+        "material": 420,
+        "awaitingAcceptance": 40,
+        "accepted": 180,
+        "outstanding": 50,
+        "obligated": 320
+      },
+      "status": "NotMet"
+    },
+    {
+      "material": "Paper",
+      "recyclingTarget": 0.80,
+      "tonnages": {
+        "material": 200,
+        "awaitingAcceptance": 20,
+        "accepted": 130,
+        "outstanding": 10,
+        "obligated": 180
+      },
+      "status": "NotMet"
+    }
+  ],
+  "obligationStatus": "NotMet",
+  "submitterName": "Zesty Goods Submitter",
+  "user": {
+    "id": "92097e3e-806f-4e98-b14a-8e1f77e71e55",
+    "email": "submitter@zestygoods.example",
+    "name": "Zesty Goods Submitter"
+  },
+  "isRegulation43Compliant": true
+}
