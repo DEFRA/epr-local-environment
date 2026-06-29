@@ -1237,7 +1237,7 @@ services:
       AUTH_COOKIE_SECURE: "true"
       SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
       SESSION_COOKIE_SECURE: "true"
-      ACCOUNT_API_BASE_URL: http://epr-regulator-gateway:8080
+      ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080
       WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
       WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
     profiles:
