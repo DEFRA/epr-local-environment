@@ -57,13 +57,25 @@ async function listJsonFiles(dir) {
 }
 
 async function seedComplianceDeclaration(filePath, orgId, year) {
-  const { _status, ...payload } = JSON.parse(await readFile(filePath, 'utf8'))
+  const { _status, _reason, ...payload } = JSON.parse(await readFile(filePath, 'utf8'))
   payload.obligationYear = year
   const created = await postDeclaration(orgId, payload)
   console.log(`Created ${created.id} for ${orgId} year ${year} (target: ${_status})`)
-  if (_status === 'Submitted') return
-  await patchDeclaration(orgId, created.id, { status: _status, user: REGULATOR_USER })
-  console.log(`  Promoted ${created.id} to ${_status}`)
+  let patchBody
+  switch (_status) {
+    case 'Submitted':
+      return
+    case 'Cancelled':
+      patchBody = { status: 'Cancelled', reason: _reason, user: payload.user }
+      break
+    case 'Accepted':
+      patchBody = { status: 'Accepted', user: REGULATOR_USER }
+      break
+    default:
+      throw new Error(`Unknown _status "${_status}" in ${filePath}`)
+  }
+  await patchDeclaration(orgId, created.id, patchBody)
+  console.log(`  Patched ${created.id} to ${_status}`)
 }
 
 async function seedComplianceDeclarations() {

@@ -1,6 +1,5 @@
 {
-  "_status": "Cancelled",
-  "_reason": "Wrong material breakdown — Paper tonnage attributed to Plastic",
+  "_status": "Accepted",
   "organisation": {
     "id": "51478eff-46c5-4387-9e95-ad8dd1e6b20e",
     "registrationType": "DirectProducer",
@@ -22,28 +21,28 @@
       "material": "Plastic",
       "recyclingTarget": 0.75,
       "tonnages": {
-        "material": 2400,
-        "awaitingAcceptance": 200,
+        "material": 1500,
+        "awaitingAcceptance": 120,
         "accepted": 1150,
-        "outstanding": 1050,
-        "obligated": 1880
+        "outstanding": 30,
+        "obligated": 1180
       },
-      "status": "NotMet"
+      "status": "Met"
     },
     {
       "material": "Paper",
       "recyclingTarget": 0.80,
       "tonnages": {
-        "material": 0,
-        "awaitingAcceptance": 0,
-        "accepted": 0,
+        "material": 900,
+        "awaitingAcceptance": 70,
+        "accepted": 820,
         "outstanding": 0,
-        "obligated": 0
+        "obligated": 820
       },
-      "status": "NotMet"
+      "status": "Met"
     }
   ],
-  "obligationStatus": "NotMet",
+  "obligationStatus": "Met",
   "submitterName": "Big Box Submitter",
   "user": {
     "id": "79b318e1-69cc-482f-8560-9097df2e5c7a",
