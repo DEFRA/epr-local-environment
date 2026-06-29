@@ -15,7 +15,6 @@
     "regulator": "Environment Agency",
     "regulatorEmail": "regulator@example.com"
   },
-  "obligationYear": 2026,
   "obligations": [
     {
       "material": "Plastic",

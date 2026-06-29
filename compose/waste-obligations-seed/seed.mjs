@@ -47,24 +47,41 @@ async function patchToAccepted(orgId, declarationId) {
   if (!res.ok) throw new Error(`PATCH ${orgId}/${declarationId}: ${res.status} ${await res.text()}`)
 }
 
-async function seedDir(targetStatus) {
-  const dir = join(DECLARATIONS_DIR, targetStatus)
-  for (const file of (await readdir(dir)).filter(f => f.endsWith('.json'))) {
-    const payload = JSON.parse(await readFile(join(dir, file), 'utf8'))
-    const orgId = payload.organisation.id
-    const year = payload.obligationYear
-    if ((await fetchExisting(orgId, year)).length > 0) {
-      console.log(`Skipping ${orgId} year ${year} — already seeded`)
-      continue
-    }
-    const created = await postDeclaration(orgId, payload)
-    console.log(`Created ${created.id} for ${orgId} year ${year}`)
-    if (targetStatus === 'Accepted') {
-      await patchToAccepted(orgId, created.id)
-      console.log(`  Promoted ${created.id} to Accepted`)
+async function listJsonFiles(dir) {
+  try {
+    return (await readdir(dir)).filter(f => f.endsWith('.json'))
+  } catch (err) {
+    if (err.code === 'ENOENT') return []
+    throw err
+  }
+}
+
+async function seedFile(filePath, year, targetStatus) {
+  const body = JSON.parse(await readFile(filePath, 'utf8'))
+  const payload = { ...body, obligationYear: year }
+  const orgId = payload.organisation.id
+  if ((await fetchExisting(orgId, year)).length > 0) {
+    console.log(`Skipping ${orgId} year ${year} — already seeded`)
+    return
+  }
+  const created = await postDeclaration(orgId, payload)
+  console.log(`Created ${created.id} for ${orgId} year ${year}`)
+  if (targetStatus === 'Accepted') {
+    await patchToAccepted(orgId, created.id)
+    console.log(`  Promoted ${created.id} to Accepted`)
+  }
+}
+
+async function seed() {
+  for (const yearFolderName of (await readdir(DECLARATIONS_DIR)).sort()) {
+    const year = Number(yearFolderName)
+    for (const targetStatus of ['Submitted', 'Accepted']) {
+      const statusFolderPath = join(DECLARATIONS_DIR, yearFolderName, targetStatus)
+      for (const file of await listJsonFiles(statusFolderPath)) {
+        await seedFile(join(statusFolderPath, file), year, targetStatus)
+      }
     }
   }
 }
 
-await seedDir('Submitted')
-await seedDir('Accepted')
+await seed()
