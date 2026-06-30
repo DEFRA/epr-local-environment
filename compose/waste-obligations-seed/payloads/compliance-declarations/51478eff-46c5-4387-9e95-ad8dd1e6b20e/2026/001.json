@@ -1,0 +1,54 @@
+{
+  "_status": "Cancelled",
+  "_reason": "Wrong material breakdown — Paper tonnage attributed to Plastic",
+  "organisation": {
+    "id": "51478eff-46c5-4387-9e95-ad8dd1e6b20e",
+    "registrationType": "DirectProducer",
+    "name": "BIG BOX RETAIL LTD",
+    "referenceNumber": "100003",
+    "address": {
+      "addressLine1": "Unit 4, Trafford Park",
+      "addressLine2": "",
+      "town": "Manchester",
+      "county": "Greater Manchester",
+      "postcode": "M1 1AA",
+      "country": "UK"
+    },
+    "regulator": "Environment Agency",
+    "regulatorEmail": "regulator@example.com"
+  },
+  "obligations": [
+    {
+      "material": "Plastic",
+      "recyclingTarget": 0.75,
+      "tonnages": {
+        "material": 2400,
+        "awaitingAcceptance": 200,
+        "accepted": 1150,
+        "outstanding": 1050,
+        "obligated": 1880
+      },
+      "status": "NotMet"
+    },
+    {
+      "material": "Paper",
+      "recyclingTarget": 0.80,
+      "tonnages": {
+        "material": 0,
+        "awaitingAcceptance": 0,
+        "accepted": 0,
+        "outstanding": 0,
+        "obligated": 0
+      },
+      "status": "NotMet"
+    }
+  ],
+  "obligationStatus": "NotMet",
+  "submitterName": "Big Box Submitter",
+  "user": {
+    "id": "79b318e1-69cc-482f-8560-9097df2e5c7a",
+    "email": "submitter@bigboxretail.example",
+    "name": "Big Box Submitter"
+  },
+  "isRegulation43Compliant": true
+}
