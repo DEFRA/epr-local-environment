@@ -353,3 +353,26 @@ insert into rpd.SubmissionEvents (IsPackagingResubmissionFeeViewed, PaidAmount, 
 insert into rpd.SubmissionEvents (IsPackagingResubmissionFeeViewed, PaidAmount, DecisionDate, RequiresRowValidation, IsResubmitted, PaymentStatus, Created, OrganisationId, RequiresBrandsFile, ErrorCount, WarningCount, OrganisationMemberCount, UserEmail, RegistrationReferenceNumber, Comments, RegistrationSetId, IsResubmissionRequired, AppReferenceNumber, ApplicationReferenceNumber, SubmissionDate, SubmissionEventId, DataCount, SubmissionPeriod, RowErrorCount, SubmissionType, HasMaxRowErrors, RequiresValidation, ContentScan, SubmissionId, Decision, RegulatorDecision, PackagingResubmissionReferenceNumber, FileId, IsValid, BlobName, AntivirusScanResult, id, RequiresPartnershipsFile, Errors, FileName, AntivirusScanTrigger, FileType, UserId, ProducerId, SubmittedBy, RegulatorUserId, PaymentMethod, IsResubmission, Type, BlobContainerName, load_ts) values (null, null, null, null, null, null, N'2026-01-09T17:43:59.3356869Z', null, null, null, null, null, null, null, null, null, null, null, null, null, N'b3b3b3b3-3333-4333-8333-333333333333', null, null, null, null, null, null, null, N'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091', null, null, null, N'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f809112', null, null, null, N'Submitted|b3b3b3b3-3333-4333-8333-333333333333', null, N'[]', null, null, null, N'4756cd73-45e4-49c4-a101-36378fc75319', null, null, null, null, 0, N'Submitted', null, N'2026-01-12 07:17:31.1030980');
 -- RegulatorPoMDecision (Accepted)
 insert into rpd.SubmissionEvents (IsPackagingResubmissionFeeViewed, PaidAmount, DecisionDate, RequiresRowValidation, IsResubmitted, PaymentStatus, Created, OrganisationId, RequiresBrandsFile, ErrorCount, WarningCount, OrganisationMemberCount, UserEmail, RegistrationReferenceNumber, Comments, RegistrationSetId, IsResubmissionRequired, AppReferenceNumber, ApplicationReferenceNumber, SubmissionDate, SubmissionEventId, DataCount, SubmissionPeriod, RowErrorCount, SubmissionType, HasMaxRowErrors, RequiresValidation, ContentScan, SubmissionId, Decision, RegulatorDecision, PackagingResubmissionReferenceNumber, FileId, IsValid, BlobName, AntivirusScanResult, id, RequiresPartnershipsFile, Errors, FileName, AntivirusScanTrigger, FileType, UserId, ProducerId, SubmittedBy, RegulatorUserId, PaymentMethod, IsResubmission, Type, BlobContainerName, load_ts) values (null, null, null, null, null, null, N'2026-01-09T18:42:09.7247498Z', null, null, null, null, null, null, null, null, null, 0, null, null, null, N'b4b4b4b4-4444-4444-8444-444444444444', null, null, null, null, null, null, null, N'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091', N'Accepted', null, null, N'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f809112', null, null, null, N'RegulatorPoMDecision|b4b4b4b4-4444-4444-8444-444444444444', null, N'[]', null, null, null, N'a586e22f-0df0-4a24-8048-ae7d0aabbbbc', null, null, null, null, null, N'RegulatorPoMDecision', null, N'2026-01-12 07:17:31.1030980');
+
+-- Mirror rpd.SubmissionEvents into apps.SubmissionEvents so downstream services see them.
+-- In prod a merge job (execute-merge-submissions-rpd-to-apps-schema.sql) syncs rpd -> apps
+-- nightly; it isn't shipped into the local migrations container, so we inline the sync here.
+insert into apps.SubmissionEvents (
+    Created, RequiresBrandsFile, Comments, RegistrationSetId, IsResubmissionRequired,
+    RequiresRowValidation, SubmissionEventId, DataCount, RowErrorCount, HasMaxRowErrors,
+    RequiresValidation, SubmissionId, Decision, RegulatorDecision, FileId,
+    IsValid, BlobName, AntivirusScanResult, id, RequiresPartnershipsFile,
+    Errors, FileName, FileType, UserId, ProducerId,
+    SubmittedBy, RegulatorUserId, Type, BlobContainerName, load_ts,
+    PackagingResubmissionReferenceNumber
+)
+select
+    r.Created, r.RequiresBrandsFile, r.Comments, r.RegistrationSetId, r.IsResubmissionRequired,
+    r.RequiresRowValidation, r.SubmissionEventId, r.DataCount, r.RowErrorCount, r.HasMaxRowErrors,
+    r.RequiresValidation, r.SubmissionId, r.Decision, r.RegulatorDecision, r.FileId,
+    r.IsValid, r.BlobName, r.AntivirusScanResult, r.id, r.RequiresPartnershipsFile,
+    r.Errors, r.FileName, r.FileType, r.UserId, r.ProducerId,
+    r.SubmittedBy, r.RegulatorUserId, r.Type, r.BlobContainerName, r.load_ts,
+    r.PackagingResubmissionReferenceNumber
+from rpd.SubmissionEvents r
+where not exists (select 1 from apps.SubmissionEvents existing where existing.id = r.id);
