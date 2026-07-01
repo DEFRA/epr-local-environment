@@ -1278,7 +1278,7 @@ services:
       AZURE_AD_B2C_INSTANCE: https://AZDCUSPOC2.b2clogin.com
       AZURE_AD_B2C_DOMAIN: AZDCUSPOC2.onmicrosoft.com
       AZURE_AD_B2C_USER_FLOW: B2C_1A_EPR_SignUpSignIn
-      AZURE_AD_B2C_REDIRECT_URI: https://localhost:3000/signin-oidc
+      AZURE_AD_B2C_REDIRECT_URI: https://localhost:8014/signin-oidc
       AZURE_AD_B2C_POST_LOGOUT_REDIRECT_PATH: /signed-out
       AUTH_COOKIE_PASSWORD: secret-password-must-be-at-least-32-characters-long
       AUTH_COOKIE_SECURE: "true"
@@ -1289,7 +1289,7 @@ services:
       GATEWAY_API_BASIC_AUTH_PASSWORD: developer-rpd
       FEATURE_CERTIFICATE_OF_COMPLIANCE: "true"
       REGULATOR_AZURE_BASE_URL: https://localhost:7154
-      CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:8013
+      CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:3000
     profiles:
       - regulator
 
@@ -1299,7 +1299,7 @@ services:
       waste-regulator-dashboard-fe:
         condition: service_started
     ports:
-      - "3000:443"
+      - "8014:443"
     volumes:
       - ./compose/waste-regulator-dashboard-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
