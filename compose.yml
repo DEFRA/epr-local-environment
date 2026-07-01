@@ -1289,7 +1289,7 @@ services:
       GATEWAY_API_BASIC_AUTH_PASSWORD: developer-rpd
       FEATURE_CERTIFICATE_OF_COMPLIANCE: "true"
       REGULATOR_AZURE_BASE_URL: https://localhost:7154
-      CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:8013
+      CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:3000
     profiles:
       - regulator
 
