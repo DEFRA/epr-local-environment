@@ -1,35 +1,23 @@
 # Certs management
 
-If a new service is added that uses a different host name ie. the service name in compose.yml, then the self signed cert will need recreating.
+If a new service is added that uses a different host name ie. the service name in [`compose.yml`](../../compose.yml), then the self signed cert will need recreating:
 
-From the root of this README, run the following:
+1. Add the new hostname to [`cert.conf`](cert.conf) as another `DNS.N` entry under `[alt_names]`.
 
-```
-openssl req -x509 -newkey rsa:4096 -keyout https/aspnetapp.key -out https/aspnetapp.crt -days 3650 -nodes -config cert.conf -extensions v3_req
-```
+2. Regenerate `aspnetapp.{key,crt,pfx,cer}` with [`regenerate.sh`](regenerate.sh) — it prints the new SAN list at the end, check your hostname is there:
 
-Inspect the generated cert with the following and ensure the additional SAN is present:
+   ```sh
+   ./regenerate.sh
+   ```
 
-```
-openssl x509 -in https/aspnetapp.crt -text -noout
-```
+   The `password` baked in matches `ASPNETCORE_Kestrel__Certificates__Default__Password` in `compose.yml`.
 
-Then generate the .pfx as follows:
-
-```
-openssl pkcs12 -export -out https/aspnetapp.pfx -inkey https/aspnetapp.key -in https/aspnetapp.crt
-```
-
-Use `password` as the password when prompted.
+3. Commit all four regenerated files alongside `cert.conf`.
 
 ## Trusting the certificate
 
-```
-openssl pkcs12 -in https/aspnetapp.pfx -clcerts -nokeys -out https/aspnetapp.cer
-```
+Mac:
 
-Mac
-
-```
+```sh
 security add-trusted-cert -d -r trustRoot -k ~/Library/Keychains/login.keychain-db https/aspnetapp.cer
 ```

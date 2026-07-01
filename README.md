@@ -254,6 +254,12 @@ set. See guidance in the .env.example file.
 
 Default configuration is to use Wiremock but you can comment out the base address line in the compose.yml file and use the real service, alongside using a valid API key (ideally a test key that will allow you to observe what emails have been sent in the Govuk Notify portal).
 
+## Contributing
+
+### Adding services
+
+If the new service serves HTTPS on the docker network under its compose service name (i.e. anything else in the stack calls it as `https://<service-name>:...`), the self-signed cert needs that name added as a SAN or .NET clients will fail with `RemoteCertificateNameMismatch`. See [compose/certs/README.md](compose/certs/README.md) for the regen steps.
+
 ## Licence Information
 
 THIS INFORMATION IS LICENSED UNDER THE CONDITIONS OF THE OPEN GOVERNMENT LICENCE found at:
