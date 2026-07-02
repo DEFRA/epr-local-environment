@@ -1186,32 +1186,6 @@ services:
     profiles:
       - regulator
 
-  epr-regulator-gateway:
-    image: defradigital/epr-regulator-gateway:${EPR_REGULATOR_GATEWAY:-latest}
-    pull_policy: always
-    depends_on:
-      epr-backend-account-microservice:
-        condition: service_healthy
-    environment:
-      ASPNETCORE_URLS: http://+:8080
-      ASPNETCORE_ENVIRONMENT: Development
-      BackendAccountService__BaseUrl: http://epr-backend-account-microservice:8080/
-      BackendAccountService__Scope: ""  # disables OAuth on outbound calls to the backend as per appsettings.Development.json in the repo https://github.com/DEFRA/epr-regulator-gateway/blob/444b18a5bcfa752d13cbb87c14607777ffbdc40e/EprRegulatorGateway/appsettings.Development.json#L27-L35
-      Acl__Clients__Developer__Type: ApiKey
-      Acl__Clients__Developer__Secret: developer-rpd
-      Acl__Clients__Developer__Scopes__0: read
-      Acl__Clients__Developer__Scopes__1: write
-    ports:
-      - "8085:8080"
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    profiles:
-      - regulator
-
   waste-packaging-regulators-fe:
     image: defradigital/waste-packaging-regulators-fe:${WASTE_PACKAGING_REGULATORS_FE:-latest}
     pull_policy: always
