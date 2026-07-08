@@ -1307,6 +1307,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-prn-status-function-app.git"
 
 [[repos]]
+path = "epr-qa-control-plane"
+tags = ["epr", "github", "private", "qa"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-qa-control-plane.git"
+
+[[repos]]
 path = "epr-re-ex-admin-frontend"
 tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public"]
 
