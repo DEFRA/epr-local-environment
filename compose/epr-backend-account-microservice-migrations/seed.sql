@@ -197,3 +197,25 @@ set @csBasicConnectionId = (select top 1 Id from PersonOrganisationConnections w
 if not exists (select 1 from Enrolments where ConnectionId = @csBasicConnectionId)
     insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
     values (@csBasicConnectionId, 3, 3)
+
+-- Mirror the waste-organisations Mongo fixtures so /api/organisations/organisations-by-externalIds
+-- returns reference numbers for the compliance-scheme and direct-producer orgs that show up in the
+-- certificates-of-compliance "not-submitted" tabs.
+merge Organisations as tgt
+using (values
+    ('07D0A580-AB20-4EE2-BD78-702A793B4D34', N'EcoCircle Holdings',      1),
+    ('34341291-B377-4047-AD96-93DDB0A1C469', N'ZESTY GOODS LTD',         0),
+    ('42D6A04F-41DC-4E54-8A90-A4B662E5F6EF', N'GADGET CO LTD',           0),
+    ('51478EFF-46C5-4387-9E95-AD8DD1E6B20E', N'BIG BOX RETAIL LTD',      0),
+    ('7F72952A-1AAF-4D04-BD9B-146C04AA207D', N'WastePartners Group',     1),
+    ('8947D193-F977-46BD-8BEB-52D55C4ECA69', N'ReClaim Partners Ltd',    1),
+    ('8C910C57-4231-465D-905F-0E20CC083566', N'GreenWaste Operator Ltd', 1),
+    ('C5C102BB-11F2-4662-BB77-D724F736F80B', N'CRAFTY THINGS LTD',       0),
+    ('CCB3F815-7E75-4DFB-B52A-869D9E7A22C0', N'CleanLoop Operator Ltd',  1),
+    ('D0AB1AED-D4FC-4A88-98F0-B8BAE048F170', N'PARCEL PROS LTD',         0),
+    ('D93376E3-0681-46BE-AEB4-7450A2E784D8', N'Organisation Name',       1)
+) as src (ExternalId, Name, IsComplianceScheme)
+on tgt.ExternalId = src.ExternalId
+when not matched then
+    insert (OrganisationTypeId, Name, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, src.Name, 1, src.IsComplianceScheme, 1, src.ExternalId);
