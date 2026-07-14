@@ -94,10 +94,15 @@ services:
       az storage container create --name 'paycal-billingfilecsv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage container create --name 'paycal-billingfilejson' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage container create --name 'paycal-billingfilejsonauthorisedforfss' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage container create --name 'epr-antivirus-pom' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage container create --name 'epr-antivirus-registration' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage container create --name 'epr-antivirus-subsidiary' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage container create --name 'epr-antivirus-accreditation' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       echo 'containers created successfully'
       "
     profiles:
       - paycal
+      - packaging
 
   token-provider:
     image: mcr.microsoft.com/azure-cli
@@ -133,6 +138,48 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
+  cosmosdb-emulator:
+    pull_policy: always
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    environment:
+      PROTOCOL: https
+      ENABLE_EXPLORER: "true"
+      PORT: 8081
+      EXPLORER_PORT: 1234
+      HEALTH_PORT: 8080
+      # Must match how other containers reach this service - the Cosmos Gateway
+      # otherwise reports 127.0.0.1 as the physical address for follow-up requests.
+      GATEWAY_PUBLIC_ENDPOINT: https://cosmosdb-emulator:8081/
+    ports:
+      - "8081:8081" # Cosmos Gateway/API
+      - "1234:1234" # Data Explorer UI - http://localhost:1234
+    healthcheck:
+      test: [ "CMD", "curl", "-fk", "http://localhost:8080/ready" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
+  cosmosdb-emulator-init:
+    pull_policy: never
+    build:
+      context: ./mocks/CosmosDbInit
+    depends_on:
+      cosmosdb-emulator:
+        condition: service_healthy
+    environment:
+      COSMOS_ENDPOINT: https://cosmosdb-emulator:8081/
+      COSMOS_KEY: "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+      COSMOS_DATABASE: SubmissionDB
     profiles:
       - packaging
       - obligations
@@ -479,6 +526,7 @@ services:
       AccountsFacadeAPI__BaseEndpoint: https://epr-facade-account-microservice:8081/api/
       EprAuthorizationConfig__FacadeBaseUrl: https://epr-facade-account-microservice:8081/api/
       PaymentFacadeApi__BaseUrl: https://epr-payment-facade:8081/api/v1/
+      PaymentFacadeApi__DownstreamScope: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
       FeatureManagement__CsocEnabled: true
@@ -596,10 +644,30 @@ services:
       - obligations
       - regulator
 
+  managed-identity-mock:
+    pull_policy: never
+    build:
+      context: ./mocks/ManagedIdentityMock
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
   epr-payment-facade:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprpaymentfacaderepository:${EPR_PAYMENT_FACADE:-main-latest}
     user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      epr-payment-service:
+        condition: service_healthy
+      managed-identity-mock:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -611,6 +679,56 @@ services:
       AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
       AzureAdB2C__Scopes: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
+      # All of these route to controllers hosted by epr-payment-service itself (confirmed by
+      # reading its Controllers/ routes directly) - EndPointName v1/v2 matches each controller's
+      # actual API version, Url/ServiceClientId are the same for all of them since they're the
+      # same backend. GovPayService and PaymentServiceHealthCheck are deliberately not set here -
+      # GovPayService targets a real external GOV.UK Pay endpoint with its own bearer token, not
+      # epr-payment-service, and PaymentServiceHealthCheck isn't exercised by any code path we've
+      # traced.
+      Services__ProducerFeesService__Url: http://epr-payment-service:8080/api
+      Services__ProducerFeesService__EndPointName: v1
+      Services__ProducerFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__ProducerFeesV2Service__Url: http://epr-payment-service:8080/api
+      Services__ProducerFeesV2Service__EndPointName: v2
+      Services__ProducerFeesV2Service__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__ComplianceSchemeFeesService__Url: http://epr-payment-service:8080/api
+      Services__ComplianceSchemeFeesService__EndPointName: v1
+      Services__ComplianceSchemeFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__ComplianceSchemeFeesServiceV2__Url: http://epr-payment-service:8080/api
+      Services__ComplianceSchemeFeesServiceV2__EndPointName: v2
+      Services__ComplianceSchemeFeesServiceV2__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__ProducerResubmissionFeesService__Url: http://epr-payment-service:8080/api
+      Services__ProducerResubmissionFeesService__EndPointName: v1
+      Services__ProducerResubmissionFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__RexExpoRegistrationFeesService__Url: http://epr-payment-service:8080/api
+      Services__RexExpoRegistrationFeesService__EndPointName: v1
+      Services__RexExpoRegistrationFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__RexExpoAccreditationFeesService__Url: http://epr-payment-service:8080/api
+      Services__RexExpoAccreditationFeesService__EndPointName: v1
+      Services__RexExpoAccreditationFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__PaymentService__Url: http://epr-payment-service:8080/api
+      Services__PaymentService__EndPointName: v1
+      Services__PaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__OnlineV2PaymentService__Url: http://epr-payment-service:8080/api
+      Services__OnlineV2PaymentService__EndPointName: v2
+      Services__OnlineV2PaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__OfflinePaymentService__Url: http://epr-payment-service:8080/api
+      Services__OfflinePaymentService__EndPointName: v1
+      Services__OfflinePaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__OfflinePaymentServiceV2__Url: http://epr-payment-service:8080/api
+      Services__OfflinePaymentServiceV2__EndPointName: v2
+      Services__OfflinePaymentServiceV2__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__RegistrationSubmissionDataService__Url: http://epr-payment-service:8080/api
+      Services__RegistrationSubmissionDataService__EndPointName: v1
+      Services__RegistrationSubmissionDataService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      # Makes DefaultAzureCredential (used by TokenAuthorizationHandler) succeed locally by
+      # pointing its App Service-style managed identity check at our mock instead of timing
+      # out against the real (nonexistent-here) managed identity endpoint. See
+      # mocks/ManagedIdentityMock for why this is safe: epr-payment-service never validates
+      # the token it receives, so a fake one is sufficient.
+      IDENTITY_ENDPOINT: http://managed-identity-mock:8080/token
+      IDENTITY_HEADER: local-dev-not-validated
     ports:
       - "5106:8080" # taken from launch settings in epr-payment-facade
       - "7166:8081" # taken from launch settings in epr-payment-facade
@@ -630,6 +748,57 @@ services:
       - obligations
       - regulator
 
+  epr-payment-service-migrations:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprpaymentbackendrepository:${EPR_PAYMENT_SERVICE_MIGRATIONS:-main-latest-database-migrations}
+    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql" ]
+    depends_on:
+      sqledge:
+        condition: service_healthy
+    volumes:
+      - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+    environment:
+      SERVER: sqledge
+      PORT: 1433
+      USER: sa
+      PASSWORD: "s4usag3s!"
+      DATABASE: EprPaymentService
+    profiles:
+      - packaging
+
+  epr-payment-service:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprpaymentbackendrepository:${EPR_PAYMENT_SERVICE:-main-latest}
+    depends_on:
+      sqledge:
+        condition: service_healthy
+      epr-payment-service-migrations:
+        condition: service_completed_successfully
+      asb:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__PaymentConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprPaymentService;TrustServerCertificate=True"
+      StorageAccount__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      StorageAccount__RegistrationContainer: epr-antivirus-registration
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__AdminConnectionString: "Endpoint=sb://asb-backend:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__TopicName: defra.epr.pom.registrationsubmittedforfeescalculation.local
+      ServiceBus__SubscriptionName: registration-submitted-payment-service
+      RunMigration: "false"
+    ports:
+      - "5108:8080"
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - packaging
+
   epr-pom-api-web:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/apiwebrepository:${EPR_POM_API_WEB:-main-latest}
@@ -645,6 +814,10 @@ services:
         condition: service_healthy
       wiremock:
         condition: service_started
+      trade-antivirus-mock:
+        condition: service_healthy
+      epr-payment-facade:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -667,6 +840,11 @@ services:
       WasteObligations__ClientId: epr-pom-api-web
       WasteObligations__ClientSecret: secret
       WasteObligations__BaseAddress: http://waste-obligations:8080/
+      AntivirusApi__BaseUrl: http://trade-antivirus-mock:8080
+      AntivirusApi__EnableDirectAccess: "true"
+      AntivirusApi__Timeout: "300"
+      PaymentService__BaseUrl: https://epr-payment-facade:8081
+      # PaymentService__ClientId skipped to avoid DefaultCredentials failure
     ports:
       - "5291:8080" # taken from launch settings in epr-pom-api-web
       - "7265:8081" # taken from launch settings in epr-pom-api-web
@@ -685,6 +863,28 @@ services:
       - packaging
       - obligations
 
+  trade-antivirus-mock:
+    pull_policy: never
+    build:
+      context: ./mocks/TradeAntivirusApi.Mock
+    depends_on:
+      asb:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__TopicName: defra.epr.antivirus.scanresult.local
+      VirusFilenamePattern: virus
+      ScanDelaySeconds: "1"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    profiles:
+      - packaging
+
   epr-pom-api-submission-status:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/submissionstatusrepository:${EPR_POM_SUBMISSION_STATUS:-main-latest}
@@ -692,6 +892,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      asb:
+        condition: service_healthy
+      cosmosdb-emulator-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -700,7 +904,13 @@ services:
       Logging__LogLevel__Microsoft.AspNetCore: Information
       ConnectionStrings__REDIS_CONNECTION: redis:6379
       LoggingApi__BaseUrl: http://wiremock
-      Database__AccountKey: ${EprPomApiSubmissionStatus__Database__AccountKey} # see .env
+      Database__ConnectionString: https://cosmosdb-emulator:8081/
+      Database__AccountKey: "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+      Database__Name: SubmissionDB
+      Database__IgnoreCertificateErrors: "true"
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__AdminConnectionString: "Endpoint=sb://asb-backend:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__RegistrationSubmittedForFeesCalculationTopicName: defra.epr.pom.registrationsubmittedforfeescalculation.local
     ports:
       - "5167:8080" # taken from launch settings in epr-pom-api-web
       - "7206:8081" # taken from launch settings in epr-pom-api-web
@@ -709,10 +919,128 @@ services:
       - ./compose/certs/init-container.sh:/init-container.sh:ro
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.SubmissionMicroservice.API.dll" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     profiles:
       - packaging
       - obligations
       - regulator
+
+  epr-anti-virus-function-app:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/antivirusrepository:${EPR_ANTIVIRUS_FUNCTION:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      asb:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+      epr-pom-api-submission-status:
+        condition: service_healthy
+      trade-antivirus-mock:
+        condition: service_healthy
+    volumes:
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "/opt/startup/start_nonappservice.sh" ]
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      SubmissionApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__PomUploadQueueName: defra.epr.antivirus.pomupload.local
+      ServiceBus__RegistrationDataQueueName: defra.epr.antivirus.registrationdata.local
+      BlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      BlobStorage__PomContainerName: epr-antivirus-pom
+      BlobStorage__RegistrationContainerName: epr-antivirus-registration
+      BlobStorage__SubsidiaryContainerName: epr-antivirus-subsidiary
+      BlobStorage__AccreditationContainerName: epr-antivirus-accreditation
+      TradeAntivirusApi__BaseUrl: http://trade-antivirus-mock:8080
+      TradeAntivirusApi__EnableDirectAccess: "true"
+      TradeAntivirusApi__Timeout: "300"
+      TradeAntivirusApi__SubscriptionKey: not-used-locally
+      TradeAntivirusApi__Scope: not-used-locally
+      TradeAntivirusApi__TenantId: not-used-locally
+      TradeAntivirusApi__ClientId: not-used-locally
+      TradeAntivirusApi__ClientSecret: not-used-locally
+      TradeAntivirusServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      TradeAntivirusServiceBus__AntivirusTopicName: defra.epr.antivirus.scanresult.local
+      TradeAntivirusServiceBus__SubscriptionName: epr-anti-virus-function-app
+      LoggingApi__BaseUrl: http://wiremock
+      FeatureManagement__EnableRegistrationRowValidation: "false"
+    healthcheck:
+      # Azure Functions' isolated-worker host doesn't expose an unauthenticated health
+      # endpoint locally (its own /admin/host/status requires Bearer auth we don't have).
+      # This only confirms the Kestrel host is up and responding - not that the Service
+      # Bus trigger/subscription setup has finished. Check logs for "Service bus
+      # subscription ... is ready" if you need to be sure it's actually consuming messages.
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    profiles:
+      - packaging
+
+  epr-registration-validation-function-app:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/registrationvalidationrepository:${EPR_REGISTRATION_VALIDATION_FUNCTION:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      asb:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+      epr-pom-api-submission-status:
+        condition: service_healthy
+    volumes:
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "/opt/startup/start_nonappservice.sh" ]
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__UploadQueueName: defra.epr.antivirus.registrationdata.local
+      StorageAccount__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      StorageAccount__BlobContainerName: epr-antivirus-registration
+      SubmissionApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      CompanyDetailsApi__BaseUrl: http://epr-backend-account-microservice:8080
+      CompanyDetailsApi__Timeout: "10"
+      FeatureManagement__EnableAdditionalValidationForJoinerLeaverColumns: "false"
+      FeatureManagement__EnableBrandPartnerDataRowValidation: "true"
+      FeatureManagement__EnableBrandPartnerCrossFileValidation: "true"
+      FeatureManagement__EnableClosedLoopRegistrationColumn: "true"
+      FeatureManagement__EnableCompanyDetailsValidation: "false"
+      FeatureManagement__EnableLeaverCodeValidation: "false"
+      FeatureManagement__EnableOrganisationDataRowValidation: "true"
+      FeatureManagement__EnableOrganisationSizeFieldValidation: "true"
+      FeatureManagement__EnableRowValidation: "true"
+      FeatureManagement__EnableStatusCodeColumn: "false"
+      FeatureManagement__EnableSubsidiaryValidation: "true"
+      FeatureManagement__EnableSubsidiaryJoinerAndLeaverColumns: "true"
+    healthcheck:
+      # Same caveat as epr-anti-virus-function-app: confirms the host is up and
+      # responding, not that its Service Bus consumer has finished starting.
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    profiles:
+      - packaging
 
   epr-prn-integration-function:
     pull_policy: always
@@ -1099,7 +1427,7 @@ services:
       epr-backend-account-microservice:
         condition: service_healthy
       epr-pom-api-submission-status:
-        condition: service_started
+        condition: service_healthy
       epr-common-data-api:
         condition: service_healthy
       epr-prn-common-backend:

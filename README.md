@@ -149,6 +149,31 @@ docker compose --profile packaging down
 
 To remove all, append `-v --remove-orphans`
 
+#### Antivirus scanning
+
+File uploads (`epr-pom-api-web`) are scanned via a local stand-in for the real "Trade Antivirus API": `trade-antivirus-mock` (source at `mocks/TradeAntivirusApi.Mock`). It accepts the uploaded file, then asynchronously publishes a scan result onto the `defra.epr.antivirus.scanresult.local` Service Bus topic, which `epr-anti-virus-function-app` consumes to update the submission status (same as the real production flow, minus the actual scanning).
+
+- By default every upload is reported as clean (`Success`) after ~1 second.
+- To exercise the "virus found" path, name the uploaded file so it contains `virus` (case-insensitive), e.g. `test-virus-file.csv` — the mock will report `Quarantined` instead, and the submission status should show the antivirus-failure outcome.
+- The match pattern and scan delay are configurable via the `VirusFilenamePattern` / `ScanDelaySeconds` environment variables on `trade-antivirus-mock` in `compose.yml`.
+
+Once a registration file passes the antivirus check, `epr-registration-validation-function-app` picks it up (via the same Service Bus flow) to run CSV row validation and post the final result back to submission status — this is what clears the "uploading organisation details" spinner page in the frontend. Both this and the antivirus function need the stack's self-signed dev cert trusted inside their containers (see the `init-container.sh` mount on each service) since they call `epr-pom-api-submission-status` over HTTPS.
+
+#### Registration fee calculation
+
+On submit, `epr-pom-api-submission-status` publishes a `RegistrationSubmittedForFeesCalculation` message onto the `defra.epr.pom.registrationsubmittedforfeescalculation.local` Service Bus topic (self-provisioned at startup — see `ServiceBus:AdminConnectionString`, which needs the emulator's management port, `asb-backend:5300`, not the AMQP endpoint). `epr-payment-service` subscribes to this topic, reads the submitted CSV from blob storage, and stores the fee-calculation snapshot in its own SQL Server database (migrated by `epr-payment-service-migrations`, same `sqledge` instance used elsewhere).
+
+The frontend/facade read that snapshot via `epr-payment-facade`, which proxies to `epr-payment-service` using a `TokenAuthorizationHandler` that calls `DefaultAzureCredential` for service-to-service auth in Release builds. Since there's no real Azure AD app-to-app credentials or managed identity available locally, `managed-identity-mock` (source at `mocks/ManagedIdentityMock`) stands in for Azure's managed-identity token endpoint: `epr-payment-facade` points at it via the App Service-style `IDENTITY_ENDPOINT`/`IDENTITY_HEADER` env vars, which `DefaultAzureCredential`'s `ManagedIdentityCredential` picks up automatically instead of trying (and timing out against) the real IMDS endpoint. The issued token is a fixed placeholder string, not a real JWT — this only works because `epr-payment-service` never validates the bearer token it receives. Verified directly: ran `DefaultAzureCredential.GetTokenAsync` against the mock standalone and confirmed it returns a token instead of throwing `CredentialUnavailableException`.
+
+#### Local Cosmos DB (submission data)
+
+`epr-pom-api-submission-status` no longer connects to the real cloud Cosmos DB account — `cosmosdb-emulator` (the same `azure-cosmos-emulator:vnext-preview` image this repo's own integration tests use) runs locally instead, with `cosmosdb-emulator-init` (source at `mocks/CosmosDbInit`) creating the database and containers on startup.
+
+- Data Explorer UI: `http://localhost:1234`.
+- The emulator's self-signed cert is handled via `Database__IgnoreCertificateErrors: true` — an escape hatch already built into the app for exactly this case, so no cert-trust dance is needed here (unlike the antivirus/registration-validation functions above).
+- All four containers defined in the app's EF Core model (`SubmissionContext.cs`) are created: `Submissions`, `SubmissionEvents`, `ProducerValidationErrors`, `ProducerValidationWarnings` — including the Producer/POM validation error/warning containers, which the registration flow this stack is set up to test doesn't exercise, but are ready if needed.
+- If you ever see `Connection refused (127.0.0.1:8081)` from a client after its first successful call, check `GATEWAY_PUBLIC_ENDPOINT` on `cosmosdb-emulator` — it must match the hostname other containers use to reach it, or the emulator's Gateway-mode responses point clients back at its own loopback address.
+
 ### obligations
 
 Obtain the necessary secrets (including from Key Vault or a teammate).
