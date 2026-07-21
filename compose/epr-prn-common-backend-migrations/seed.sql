@@ -73,3 +73,54 @@ insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, Re
 -- Paper/board
 insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('DP-PRN-009-RREPW', @dpOrgExternalId, 'POP QUEST LTD', 'Producer Agency', 'Reprocessor Exporter Agency', 4, 1, 'Paper/board', 'Issuer Reference', '2026-04-15T00:00:00+00:00', 0, 'Issued By Org', 'Accred Num', '2026', '2026', 'Packaging Producer', '2026-04-15', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2026-03-01', 'RREPW')
 insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('DP-PRN-010-RREPW', @dpOrgExternalId, 'POP QUEST LTD', 'Producer Agency', 'Reprocessor Exporter Agency', 4, 1, 'Paper/board', 'Issuer Reference', '2026-04-16T00:00:00+00:00', 1, 'Issued By Org', 'Accred Num', '2026', '2026', 'Packaging Producer', '2026-04-16', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2026-03-01', 'RREPW')
+
+-- PRN status history
+-- The backend records PRNs as awaiting acceptance when issued, then adds a second row when accepted or rejected.
+declare @seedPrnUserId uniqueidentifier
+set @seedPrnUserId = '00000000-0000-0000-0000-000000000000'
+
+insert into PrnStatusHistory (CreatedOn, CreatedByUser, CreatedByOrganisationId, PrnStatusIdFk, PrnIdFk, Comment, ObligationYear)
+select DATEADD(hour, 9, CAST(p.IssueDate as datetime2)), @seedPrnUserId, p.OrganisationId, 4, p.Id, NULL, p.ObligationYear
+from Prn p
+where p.PrnNumber in (
+    'PRN-001-NPWD',
+    'PRN-002-NPWD-DEC',
+    'PRN-003-RREPW',
+    'PRN-004-RREPW-DEC',
+    'PRN-005-OLD',
+    'PRN-006-OLD-DEC',
+    'PRN-007-OLD-DEC',
+    'PRN-008-CURRENT',
+    'PRN-009-RREPW',
+    'PRN-010-RREPW-DEC',
+    'PRN-011-OLD-DEC',
+    'PRN-012-RREPW',
+    'PRN-013-RREPW',
+    'PRN-014-RREPW',
+    'PRN-015-RREPW',
+    'PRN-016-RREPW',
+    'PRN-017-RREPW',
+    'DP-PRN-001-NPWD',
+    'DP-PRN-002-NPWD-DEC',
+    'DP-PRN-003-RREPW',
+    'DP-PRN-004-RREPW-DEC',
+    'DP-PRN-005-RREPW',
+    'DP-PRN-006-OLD',
+    'DP-PRN-007-OLD-DEC',
+    'DP-PRN-008-RREPW',
+    'DP-PRN-009-RREPW',
+    'DP-PRN-010-RREPW'
+)
+
+insert into PrnStatusHistory (CreatedOn, CreatedByUser, CreatedByOrganisationId, PrnStatusIdFk, PrnIdFk, Comment, ObligationYear)
+select DATEADD(minute, 75, DATEADD(hour, 10, DATEADD(day, 1, CAST(p.IssueDate as datetime2)))), @seedPrnUserId, '00000000-0000-0000-0000-000000000000', 1, p.Id, NULL, p.ObligationYear
+from Prn p
+where p.PrnNumber in (
+    'PRN-005-OLD',
+    'PRN-006-OLD-DEC',
+    'PRN-007-OLD-DEC',
+    'PRN-008-CURRENT',
+    'DP-PRN-004-RREPW-DEC',
+    'DP-PRN-006-OLD',
+    'DP-PRN-007-OLD-DEC'
+)
