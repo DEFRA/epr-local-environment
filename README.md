@@ -165,6 +165,7 @@ Sign-in uses Azure AD B2C, then calls **epr-backend-account-microservice** (`GET
 | waste-organisations | http://localhost:8006 |
 | waste-obligations | http://localhost:8007 |
 | wiremock | http://localhost:9090 |
+| Floci (SNS/SQS emulator) | http://localhost:4566 |
 
 **Docker (packaged frontend):** set in `.env`:
 
@@ -195,6 +196,8 @@ docker compose --profile obligations up -d
 ```
 
 The packaging front end will be started alongside all necessary services that allow the obligation calculation process to function.
+
+The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
 
 A local emulated version of Synapse will be started in sqledge. Currently only the obligation calculation process is supported in the SQL definitions applied within Synapse.
 
