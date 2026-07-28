@@ -195,6 +195,12 @@ services:
     volumes:
       - ./compose/wiremock/mappings:/app/__admin/mappings
     command: ["--ReadStaticMappings", "true", "--WireMockLogger", "WireMockConsoleLogger"]
+    healthcheck:
+      test: [ "CMD-SHELL", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/80'" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     profiles:
       - paycal
       - packaging
@@ -392,7 +398,7 @@ services:
       sqledge:
         condition: service_healthy
       epr-prn-common-backend-migrations:
-        condition: service_started
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__EprConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprPrnBackend;TrustServerCertificate=True"
@@ -440,7 +446,7 @@ services:
       sqledge:
         condition: service_healthy
       epr-common-data-api-migrations:
-        condition: service_started
+        condition: service_completed_successfully
       # -----
       # - if connection to a Synapse instance running in Azure is needed then reenable the depends on below
       # -----
@@ -529,7 +535,21 @@ services:
       PaymentFacadeApi__DownstreamScope: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
-      FeatureManagement__CsocEnabled: true
+      FeatureManagement__CsocEnabled: false
+      FeatureManagement__EnableCsvDownload: "true"
+      FeatureManagement__EnableRecyclabilityRatingColumn: "true"
+      FeatureManagement__EnableSubsidiaryJoinerAndLeaverColumns: "true"
+      FeatureManagement__EnableTransitionalPackagingUnitsColumn: "true"
+      FeatureManagement__ImplementPackagingDataResubmissionJourney: "true"
+      FeatureManagement__ShowAllSubsidiaries: "true"
+      FeatureManagement__ShowComplianceSchemeMemberManagement: "true"
+      FeatureManagement__ShowLanguageSwitcher: "true"
+      FeatureManagement__ShowPrn: "true"
+      FeatureManagement__ShowRegistrationResubmission: "true"
+      FeatureManagement__ShowSubsidiaries: "true"
+      FeatureManagement__ShowSubsidiariesRemoveLink: "true"
+      FeatureManagement__ShowSubsidiariesSingleUploadJourney: "true"
+      FeatureManagement__ShowSubsidiaryJoinerAndLeaverColumns: "false"
       Csoc__WasteObligationsBaseAddress: https://localhost:8010
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
@@ -689,15 +709,9 @@ services:
       Services__ProducerFeesService__Url: http://epr-payment-service:8080/api
       Services__ProducerFeesService__EndPointName: v1
       Services__ProducerFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
-      Services__ProducerFeesV2Service__Url: http://epr-payment-service:8080/api
-      Services__ProducerFeesV2Service__EndPointName: v2
-      Services__ProducerFeesV2Service__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__ComplianceSchemeFeesService__Url: http://epr-payment-service:8080/api
       Services__ComplianceSchemeFeesService__EndPointName: v1
       Services__ComplianceSchemeFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
-      Services__ComplianceSchemeFeesServiceV2__Url: http://epr-payment-service:8080/api
-      Services__ComplianceSchemeFeesServiceV2__EndPointName: v2
-      Services__ComplianceSchemeFeesServiceV2__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__ProducerResubmissionFeesService__Url: http://epr-payment-service:8080/api
       Services__ProducerResubmissionFeesService__EndPointName: v1
       Services__ProducerResubmissionFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
@@ -710,18 +724,16 @@ services:
       Services__PaymentService__Url: http://epr-payment-service:8080/api
       Services__PaymentService__EndPointName: v1
       Services__PaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
-      Services__OnlineV2PaymentService__Url: http://epr-payment-service:8080/api
-      Services__OnlineV2PaymentService__EndPointName: v2
-      Services__OnlineV2PaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__OfflinePaymentService__Url: http://epr-payment-service:8080/api
       Services__OfflinePaymentService__EndPointName: v1
       Services__OfflinePaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
-      Services__OfflinePaymentServiceV2__Url: http://epr-payment-service:8080/api
-      Services__OfflinePaymentServiceV2__EndPointName: v2
-      Services__OfflinePaymentServiceV2__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__RegistrationSubmissionDataService__Url: http://epr-payment-service:8080/api
       Services__RegistrationSubmissionDataService__EndPointName: v1
       Services__RegistrationSubmissionDataService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__SubmissionPeriodsService__HttpClientName: submission_periods_service_client
+      Services__SubmissionPeriodsService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__SubmissionPeriodsService__Url: http://epr-payment-service:8080/api
+      Services__SubmissionPeriodsService__EndPointName: v1
       # Makes DefaultAzureCredential (used by TokenAuthorizationHandler) succeed locally by
       # pointing its App Service-style managed identity check at our mock instead of timing
       # out against the real (nonexistent-here) managed identity endpoint. See
@@ -751,12 +763,17 @@ services:
   epr-payment-service-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprpaymentbackendrepository:${EPR_PAYMENT_SERVICE_MIGRATIONS:-main-latest-database-migrations}
-    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql" ]
+    # Second arg is run after the image's baked-in EF migrations.sql (see run-migrations.sh) -
+    # seeds Northbridge Compliance Solutions Ltd's PayCal registration fee data so it survives a
+    # stack restart, matching the same SubmissionIds seeded into Cosmos/Synapse (see
+    # compose/epr-payment-service-migrations/seed.sql for why this must stay in sync with those).
+    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql" ]
     depends_on:
       sqledge:
         condition: service_healthy
     volumes:
       - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+      - ./compose/epr-payment-service-migrations/seed.sql:/home/nonroot/sql/seed.sql
     environment:
       SERVER: sqledge
       PORT: 1433
@@ -813,7 +830,7 @@ services:
       waste-obligations:
         condition: service_healthy
       wiremock:
-        condition: service_started
+        condition: service_healthy
       trade-antivirus-mock:
         condition: service_healthy
       epr-payment-facade:
@@ -975,7 +992,7 @@ services:
       TradeAntivirusServiceBus__AntivirusTopicName: defra.epr.antivirus.scanresult.local
       TradeAntivirusServiceBus__SubscriptionName: epr-anti-virus-function-app
       LoggingApi__BaseUrl: http://wiremock
-      FeatureManagement__EnableRegistrationRowValidation: "false"
+      FeatureManagement__EnableRegistrationRowValidation: "true"
     healthcheck:
       # Azure Functions' isolated-worker host doesn't expose an unauthenticated health
       # endpoint locally (its own /admin/host/status requires Bearer auth we don't have).
@@ -1024,7 +1041,7 @@ services:
       FeatureManagement__EnableBrandPartnerCrossFileValidation: "true"
       FeatureManagement__EnableClosedLoopRegistrationColumn: "true"
       FeatureManagement__EnableCompanyDetailsValidation: "false"
-      FeatureManagement__EnableLeaverCodeValidation: "false"
+      FeatureManagement__EnableLeaverCodeValidation: "true"
       FeatureManagement__EnableOrganisationDataRowValidation: "true"
       FeatureManagement__EnableOrganisationSizeFieldValidation: "true"
       FeatureManagement__EnableRowValidation: "true"
@@ -1281,7 +1298,7 @@ services:
       mongodb:
         condition: service_started
       wiremock:
-        condition: service_started
+        condition: service_healthy
       epr-prn-common-backend:
         condition: service_healthy
     env_file:
