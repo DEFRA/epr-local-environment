@@ -137,6 +137,7 @@ process_sql_files "./scripts/functions" false
 echo ""
 echo "Procedures (only specific ones added for specific functionality)"
 process_sql_file "./scripts/procedures/get-approved-submissions_myc.sql"
+process_sql_files "./scripts/compose/procedures" false
 
 if [[ -n "$1" ]]; then
     echo ""

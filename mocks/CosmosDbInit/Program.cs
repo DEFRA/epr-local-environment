@@ -1,0 +1,650 @@
+using Microsoft.Azure.Cosmos;
+
+var endpoint = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT")
+    ?? throw new InvalidOperationException("COSMOS_ENDPOINT is not configured");
+var key = Environment.GetEnvironmentVariable("COSMOS_KEY")
+    ?? throw new InvalidOperationException("COSMOS_KEY is not configured");
+var databaseName = Environment.GetEnvironmentVariable("COSMOS_DATABASE")
+    ?? throw new InvalidOperationException("COSMOS_DATABASE is not configured");
+
+var handler = new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+};
+
+var clientOptions = new CosmosClientOptions
+{
+    ConnectionMode = ConnectionMode.Gateway,
+    HttpClientFactory = () => new HttpClient(handler),
+};
+
+using var client = new CosmosClient(endpoint, key, clientOptions);
+
+var database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
+Console.WriteLine($"Database ready: {database.Database.Id}");
+
+// epr-pom-api-submission-status's SubmissionContext maps these containers via
+// HasPartitionKey + ToJsonProperty, so the physical partition key path must match
+// the renamed JSON property, not the C# property name (ValidationEventId is the
+// exception - it isn't renamed, so its JSON property name is unchanged).
+var containers = new (string Name, string PartitionKeyPath)[]
+{
+    ("Submissions", "/SubmissionId"),
+    ("SubmissionEvents", "/SubmissionEventId"),
+    ("ProducerValidationErrors", "/ProducerValidationErrorId"),
+    ("ProducerValidationWarnings", "/ValidationEventId"),
+};
+
+foreach (var (name, partitionKeyPath) in containers)
+{
+    var container = await database.Database.CreateContainerIfNotExistsAsync(name, partitionKeyPath);
+    Console.WriteLine($"Container ready: {container.Container.Id} (partition key {partitionKeyPath})");
+}
+
+await SeedNorthbridgeRegistrationsAsync(database.Database);
+await SeedNorthbridgePackagingDataAsync(database.Database);
+
+Console.WriteLine("Cosmos DB emulator initialisation complete.");
+
+// Northbridge Compliance Solutions Ltd (CHN 11000000): 2025/2026 accepted registration
+// submissions. 2025 is a single combined submission covering all 10 members (5 Large + 5
+// Small); 2026 is still split into a Large-producer submission and a Small-producer submission
+// (RegistrationJourney is submission-level, so the two bands can't share a submission there).
+// Mirrors the same SubmissionId/FileId/SubmissionEventId GUIDs and field values seeded into
+// the Synapse mirror in epr-common-data-api-migrations/seed.sql, so both stores describe the
+// same underlying events.
+static async Task SeedNorthbridgeRegistrationsAsync(Database database)
+{
+    const string csApprovedPersonUserId = "94BFD894-8F64-4F8D-9975-259D08786C2B";
+    const string northbridgeOrgId = "0BB650B9-125E-4D64-B1D0-06B9E167B2D4";
+    const string northbridgeSchemeId = "CAC58048-62A1-4419-9BEE-4B386454D776";
+    const string regulatorUserId = "a586e22f-0df0-4a24-8048-ae7d0aabbbbc";
+    const string uploadContainerName = "registration-upload-container";
+
+    var submissions = new[]
+    {
+        new RegistrationSubmissionSeed(
+            SubmissionId: "D05A39BD-EC9B-4D4E-AC19-AC4A7A981DE2",
+            FileId: "BDA483FE-A1AD-44AB-A3AA-75AF4DE72820",
+            BlobName: "6688ED9B-AC4C-4550-B834-5698F3523597",
+            AntivirusCheckEventId: "BE793186-B178-46CC-B0A9-36CCFED9B082",
+            AntivirusResultEventId: "6A27E408-C054-4F68-8019-4D1DB75F49CC",
+            ValidationEventId: "B3114E98-2450-4D59-BD8D-5E8495ED6279",
+            SubmittedEventId: "B517E551-8306-4402-AB7A-A72E31F2F048",
+            FeePaymentEventId: "BFC79410-3C34-4D3A-AED1-EC050F1337FB",
+            AppSubmittedEventId: "EB0CB92D-6AB8-43DA-859C-204945F8902E",
+            DecisionEventId: "FA603971-DC12-47FB-AC4E-CFDEF649EAA1",
+            FileName: "Northbridge_CompanyDetails_2025.csv",
+            SubmissionPeriod: "January to December 2025",
+            RegistrationJourney: null,
+            MemberCount: 14,
+            AppReferenceNumber: "NBCS-2025-L-APP-0001",
+            RegistrationReferenceNumber: "NBCS-2025-L-REG-0001",
+            PaidAmount: "8500.00",
+            AntivirusCheckCreated: "2025-04-01T09:15:00.0000000Z",
+            AntivirusResultCreated: "2025-04-01T09:17:32.0000000Z",
+            ValidationCreated: "2025-04-01T09:18:10.0000000Z",
+            SubmittedCreated: "2025-04-01T09:20:00.0000000Z",
+            FeePaymentCreated: "2025-04-01T09:25:44.0000000Z",
+            AppSubmittedCreated: "2025-04-01T09:26:05.0000000Z",
+            DecisionCreated: "2025-04-19T11:00:00.0000000Z"),
+        new RegistrationSubmissionSeed(
+            SubmissionId: "601A176C-B17B-4B6B-B672-D0C61A44E733",
+            FileId: "D88098E5-500C-48EB-A494-9E81D417A2C9",
+            BlobName: "7113CC97-A799-48E4-8A5E-F214532C32E4",
+            AntivirusCheckEventId: "F15D51D3-C684-4F7F-A3B1-21C58195F251",
+            AntivirusResultEventId: "92CEB81A-2C9A-4633-877F-22FECE5EC216",
+            ValidationEventId: "1432D871-DC42-4220-8EA5-C0466AE5F438",
+            SubmittedEventId: "2B7CCDB4-CBD1-43AA-B01E-FF2089B835BB",
+            FeePaymentEventId: "673B6DCD-02FB-4DD6-8987-50AF57F75D16",
+            AppSubmittedEventId: "224831B8-50C4-4C66-A31F-60EBC9C1DE75",
+            DecisionEventId: "04505BAD-0FA2-4E16-9A1C-C9719DE6A29D",
+            FileName: "Northbridge_CompanyDetails_2026_Large.csv",
+            SubmissionPeriod: "January to December 2026",
+            RegistrationJourney: null,
+            MemberCount: 9,
+            AppReferenceNumber: "NBCS-2026-L-APP-0001",
+            RegistrationReferenceNumber: "NBCS-2026-L-REG-0001",
+            PaidAmount: "8925.00",
+            AntivirusCheckCreated: "2026-04-08T09:00:00.0000000Z",
+            AntivirusResultCreated: "2026-04-08T09:02:11.0000000Z",
+            ValidationCreated: "2026-04-08T09:03:00.0000000Z",
+            SubmittedCreated: "2026-04-08T09:05:00.0000000Z",
+            FeePaymentCreated: "2026-04-08T09:09:30.0000000Z",
+            AppSubmittedCreated: "2026-04-08T09:09:52.0000000Z",
+            DecisionCreated: "2026-04-24T10:45:00.0000000Z"),
+        new RegistrationSubmissionSeed(
+            SubmissionId: "ECE0880A-B713-42D4-A018-92FD3D8053C6",
+            FileId: "520EAFD0-C6E1-4B88-B353-BFD5650E93E1",
+            BlobName: "B1DF2A8B-5435-47D8-946A-07B5155B3CA4",
+            AntivirusCheckEventId: "E07799B0-0229-49A2-91D3-003F753DD589",
+            AntivirusResultEventId: "950A71F9-2461-45E5-83B8-FC995973D836",
+            ValidationEventId: "E95BA52D-3A86-4FA5-9CD1-03420E8D1208",
+            SubmittedEventId: "A7D6F738-C7FD-45CC-8E49-FE3A2B59DA73",
+            FeePaymentEventId: "5687F7F9-AC45-4369-ADBA-A0A0540A7758",
+            AppSubmittedEventId: "C6521622-5849-45F4-BA8C-06A16BE5BDF5",
+            DecisionEventId: "99D71946-8F40-437B-8264-93A86FA7E540",
+            FileName: "Northbridge_CompanyDetails_2026_Small.csv",
+            SubmissionPeriod: "January to December 2026",
+            RegistrationJourney: "CsoSmallProducer",
+            MemberCount: 5,
+            AppReferenceNumber: "NBCS-2026-S-APP-0001",
+            RegistrationReferenceNumber: "NBCS-2026-S-REG-0001",
+            PaidAmount: "2625.00",
+            AntivirusCheckCreated: "2026-04-09T09:30:00.0000000Z",
+            AntivirusResultCreated: "2026-04-09T09:32:09.0000000Z",
+            ValidationCreated: "2026-04-09T09:33:00.0000000Z",
+            SubmittedCreated: "2026-04-09T09:35:00.0000000Z",
+            FeePaymentCreated: "2026-04-09T09:39:21.0000000Z",
+            AppSubmittedCreated: "2026-04-09T09:39:45.0000000Z",
+            DecisionCreated: "2026-04-25T11:15:00.0000000Z"),
+    };
+
+    var submissionsContainer = database.GetContainer("Submissions");
+    var eventsContainer = database.GetContainer("SubmissionEvents");
+
+    foreach (var s in submissions)
+    {
+        // EF Core's Cosmos provider always serializes Guid-typed properties via Guid.ToString()
+        // (lowercase "D" format) both when writing documents and when binding LINQ query
+        // parameters - e.g. `x.OrganisationId == request.OrganisationId` compiles to a
+        // case-sensitive Cosmos string comparison against a lowercase parameter value. Every
+        // Guid-shaped field below must be lowercased or real queries (like the submission
+        // history screen) silently return zero rows despite the IDs being "the same".
+        await submissionsContainer.UpsertItemAsync(new Dictionary<string, object?>
+        {
+            ["id"] = s.SubmissionId.ToLowerInvariant(),
+            ["SubmissionId"] = s.SubmissionId.ToLowerInvariant(),
+            ["SubmissionType"] = "Registration",
+            ["SubmissionPeriod"] = s.SubmissionPeriod,
+            ["DataSourceType"] = "File",
+            ["OrganisationId"] = northbridgeOrgId.ToLowerInvariant(),
+            ["UserId"] = csApprovedPersonUserId.ToLowerInvariant(),
+            ["IsSubmitted"] = true,
+            ["IsResubmission"] = false,
+            ["ComplianceSchemeId"] = northbridgeSchemeId.ToLowerInvariant(),
+            ["AppReferenceNumber"] = s.AppReferenceNumber,
+            ["Created"] = s.AntivirusCheckCreated,
+            ["RegistrationJourney"] = s.RegistrationJourney,
+        }, new PartitionKey(s.SubmissionId.ToLowerInvariant()));
+
+        Task UpsertEvent(string rawEventId, string type, string created, Dictionary<string, object?> extra)
+        {
+            var eventId = rawEventId.ToLowerInvariant();
+            var doc = new Dictionary<string, object?>
+            {
+                ["id"] = $"{type}|{eventId}",
+                ["SubmissionEventId"] = eventId,
+                ["SubmissionId"] = s.SubmissionId.ToLowerInvariant(),
+                ["Type"] = type,
+                ["UserId"] = csApprovedPersonUserId.ToLowerInvariant(),
+                ["Created"] = created,
+                ["Errors"] = Array.Empty<string>(),
+                ["BlobContainerName"] = uploadContainerName,
+            };
+            foreach (var (key, value) in extra)
+            {
+                doc[key] = value;
+            }
+
+            return eventsContainer.UpsertItemAsync(doc, new PartitionKey(eventId));
+        }
+
+        await UpsertEvent(s.AntivirusCheckEventId, "AntivirusCheck", s.AntivirusCheckCreated, new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["FileType"] = "CompanyDetails",
+            ["FileName"] = s.FileName,
+            ["RegistrationSetId"] = null,
+        });
+
+        await UpsertEvent(s.AntivirusResultEventId, "AntivirusResult", s.AntivirusResultCreated, new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["BlobName"] = s.BlobName.ToLowerInvariant(),
+            ["AntivirusScanResult"] = "Success",
+            ["AntivirusScanTrigger"] = "Upload",
+            ["RequiresRowValidation"] = false,
+        });
+
+        // BlobName must match the AntivirusResult event above:
+        // RegistrationSubmissionEventHelper.SetValidationEvents looks up this event by BlobName
+        // (GetRegistrationValidationEventByBlobName), and when isSubmitted is true it dereferences
+        // the result unguarded - an unmatched/missing BlobName here produces a NullReferenceException
+        // on every GET for this submission, not just a missing-data gap.
+        await UpsertEvent(s.ValidationEventId, "Registration", s.ValidationCreated, new()
+        {
+            ["IsValid"] = true,
+            ["ErrorCount"] = 0,
+            ["WarningCount"] = 0,
+            ["RequiresBrandsFile"] = false,
+            ["RequiresPartnershipsFile"] = false,
+            ["HasMaxRowErrors"] = false,
+            ["RowErrorCount"] = 0,
+            ["OrganisationMemberCount"] = s.MemberCount,
+            ["BlobName"] = s.BlobName.ToLowerInvariant(),
+        });
+
+        await UpsertEvent(s.SubmittedEventId, "Submitted", s.SubmittedCreated, new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["SubmittedBy"] = "Olivia Bennett",
+            ["IsResubmission"] = false,
+            ["RegistrationJourney"] = s.RegistrationJourney,
+        });
+
+        await UpsertEvent(s.FeePaymentEventId, "RegistrationFeePayment", s.FeePaymentCreated, new()
+        {
+            ["ApplicationReferenceNumber"] = s.AppReferenceNumber,
+            // Frontend's RegistrationApplicationStatusCalculator.IsRegistrationFeePaid only treats
+            // PaymentMethod (not PaymentStatus) as evidence of payment, and only for these 4 exact
+            // values - see FrontendSchemeRegistration.UI/Helpers/RegistrationApplicationStatusCalculator.cs.
+            ["PaymentMethod"] = "PayOnline",
+            ["PaymentStatus"] = "Paid",
+            ["PaidAmount"] = s.PaidAmount,
+            ["IsResubmission"] = false,
+            ["RegistrationJourney"] = s.RegistrationJourney,
+        });
+
+        await UpsertEvent(s.AppSubmittedEventId, "RegistrationApplicationSubmitted", s.AppSubmittedCreated, new()
+        {
+            ["ApplicationReferenceNumber"] = s.AppReferenceNumber,
+            ["SubmissionDate"] = s.AppSubmittedCreated,
+            ["IsResubmission"] = false,
+            ["RegistrationJourney"] = s.RegistrationJourney,
+        });
+
+        await UpsertEvent(s.DecisionEventId, "RegulatorRegistrationDecision", s.DecisionCreated, new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["Decision"] = "Accepted",
+            ["RegistrationReferenceNumber"] = s.RegistrationReferenceNumber,
+            ["DecisionDate"] = s.DecisionCreated,
+            ["Comments"] = "Registration approved",
+            ["UserId"] = regulatorUserId.ToLowerInvariant(),
+        });
+
+        Console.WriteLine($"Seeded registration submission {s.SubmissionId} ({s.FileName})");
+    }
+}
+
+// Northbridge Compliance Solutions Ltd (CHN 11000000): Packaging Data (POM) submissions - a
+// distinct data source/journey from Registration above (SubmissionType "Producer", half-year
+// SubmissionPeriod, no RegistrationJourney field). 3 submissions: 2025 H1 (Large only, Accepted),
+// 2025 H2 (mixed Large+Small, Accepted, then a resubmission already in progress - new file
+// uploaded and fee viewed, but not yet paid or finally submitted), 2026 H1 (Large only, Rejected).
+// Each submission's shape genuinely differs (decision outcome, resubmission tail on 2025 H2 only),
+// so the event chains are written out explicitly per submission rather than forced through a
+// shared record shape. Mirrors the same GUIDs/values seeded into the Synapse mirror in
+// epr-common-data-api-migrations/seed.sql, so both stores describe the same underlying events.
+static async Task SeedNorthbridgePackagingDataAsync(Database database)
+{
+    const string csApprovedPersonUserId = "94BFD894-8F64-4F8D-9975-259D08786C2B";
+    const string northbridgeOrgId = "0BB650B9-125E-4D64-B1D0-06B9E167B2D4";
+    const string northbridgeSchemeId = "CAC58048-62A1-4419-9BEE-4B386454D776";
+    const string regulatorUserId = "a586e22f-0df0-4a24-8048-ae7d0aabbbbc";
+    const string uploadContainerName = "pom-upload-container-recyclers";
+
+    var submissionsContainer = database.GetContainer("Submissions");
+    var eventsContainer = database.GetContainer("SubmissionEvents");
+
+    // Created must be set: EF Core's Submission entity declares it non-nullable, and the real
+    // SubmissionsPeriodGetQueryHandler (backing GetSubmissionIdsAsync, which
+    // IsAnySubmissionAcceptedForDataPeriod depends on) filters "x.Created != null" - a Cosmos
+    // document missing this property entirely evaluates to undefined against that filter, not
+    // true, so the submission silently drops out of the result set even though everything else
+    // about it is correct.
+    Task UpsertSubmission(string submissionId, string submissionPeriod, bool isResubmission, string created) =>
+        submissionsContainer.UpsertItemAsync(new Dictionary<string, object?>
+        {
+            ["id"] = submissionId.ToLowerInvariant(),
+            ["SubmissionId"] = submissionId.ToLowerInvariant(),
+            ["SubmissionType"] = "Producer",
+            ["SubmissionPeriod"] = submissionPeriod,
+            ["DataSourceType"] = "File",
+            ["OrganisationId"] = northbridgeOrgId.ToLowerInvariant(),
+            ["UserId"] = csApprovedPersonUserId.ToLowerInvariant(),
+            ["IsSubmitted"] = true,
+            ["IsResubmission"] = isResubmission,
+            ["ComplianceSchemeId"] = northbridgeSchemeId.ToLowerInvariant(),
+            ["Created"] = created,
+        }, new PartitionKey(submissionId.ToLowerInvariant()));
+
+    Task UpsertEvent(string submissionId, string eventId, string type, string created, Dictionary<string, object?> extra)
+    {
+        var lowerEventId = eventId.ToLowerInvariant();
+        var doc = new Dictionary<string, object?>
+        {
+            ["id"] = $"{type}|{lowerEventId}",
+            ["SubmissionEventId"] = lowerEventId,
+            ["SubmissionId"] = submissionId.ToLowerInvariant(),
+            ["Type"] = type,
+            ["UserId"] = csApprovedPersonUserId.ToLowerInvariant(),
+            ["Created"] = created,
+            ["Errors"] = Array.Empty<string>(),
+        };
+        foreach (var (key, value) in extra)
+        {
+            doc[key] = value;
+        }
+
+        return eventsContainer.UpsertItemAsync(doc, new PartitionKey(lowerEventId));
+    }
+
+    // ---- 2025 H1: Large only, Accepted ----
+    const string h1SubmissionId = "8447509F-A90E-4436-BB34-06CDDE1C7AB9";
+    const string h1FileId = "99A60710-11CC-45A7-BCEF-170E9CDDB56E";
+    const string h1BlobName = "5EE9C2CA-0100-488A-BE21-7A7F6546C913";
+
+    await UpsertSubmission(h1SubmissionId, "January to June 2025", isResubmission: false, created: "2025-07-08T09:10:00.0000000Z");
+    await UpsertEvent(h1SubmissionId, "574412FE-4AC1-4CB3-A1B6-BC5DBA4ED684", "AntivirusCheck", "2025-07-08T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = h1FileId.ToLowerInvariant(),
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2025H1.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h1SubmissionId, "A4C9868A-F462-4EA3-8FB3-A54C0D3EFA59", "AntivirusResult", "2025-07-08T09:12:22.0000000Z", new()
+    {
+        ["FileId"] = h1FileId.ToLowerInvariant(),
+        ["BlobName"] = h1BlobName.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h1SubmissionId, "00CD4BAE-1C48-47BE-B94B-5ED6CFF975AD", "CheckSplitter", "2025-07-08T09:13:05.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = h1BlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h1SubmissionId, "7E4E74E1-ED6D-4EC1-8870-979D2DB676C0", "ProducerValidation", "2025-07-08T09:13:40.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["BlobName"] = h1BlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h1SubmissionId, "A7B56495-9992-4388-B408-CFED1351BD35", "Submitted", "2025-07-08T09:15:00.0000000Z", new()
+    {
+        ["FileId"] = h1FileId.ToLowerInvariant(),
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "January to June 2025",
+    });
+    await UpsertEvent(h1SubmissionId, "BB76CD87-F1C9-4DCA-AE3F-57909E6FB7B4", "RegulatorPoMDecision", "2025-07-22T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = h1FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "NBCS-2025H1-POM-DEC-0001",
+        ["DecisionDate"] = "2025-07-22T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded packaging data submission {h1SubmissionId} (2025 H1, Accepted)");
+
+    // ---- 2025 H2: mixed Large+Small, Accepted, then a resubmission already in progress ----
+    const string h2SubmissionId = "C18BF17E-DEC1-434E-A5CA-A37D9811C72D";
+    const string h2FileId = "DC607430-00DC-40FE-92E9-4B6A6BB491C1";
+    const string h2BlobName = "2918E82C-BD28-45A3-8C14-5FE2AF464849";
+    const string h2ResubFileId = "A5372C4B-EF7D-4FBD-B665-02805694C071";
+    const string h2ResubBlobName = "0DB4F56A-E98C-4B34-B020-9C67E2ADBD5C";
+
+    // Submission-level IsResubmission=true: this submission is currently mid-resubmission.
+    await UpsertSubmission(h2SubmissionId, "July to December 2025", isResubmission: true, created: "2025-10-06T10:00:00.0000000Z");
+
+    // Original submission, accepted by the regulator.
+    await UpsertEvent(h2SubmissionId, "521652F1-3856-41E7-8B7D-D223BB5DF4F3", "AntivirusCheck", "2025-10-06T10:00:00.0000000Z", new()
+    {
+        ["FileId"] = h2FileId.ToLowerInvariant(),
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2025H2.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "263410B7-57EA-4BA8-80F4-05C087B2A00A", "AntivirusResult", "2025-10-06T10:02:15.0000000Z", new()
+    {
+        ["FileId"] = h2FileId.ToLowerInvariant(),
+        ["BlobName"] = h2BlobName.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "556BDC2B-2D72-4E99-B1C8-B836AFCD8BDF", "CheckSplitter", "2025-10-06T10:03:00.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = h2BlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h2SubmissionId, "FD2ADFC1-96AB-4D94-A4ED-57E27E7180A2", "ProducerValidation", "2025-10-06T10:03:45.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["BlobName"] = h2BlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h2SubmissionId, "BAA4E703-6B3A-4D75-B9D5-FC6C465F3F1C", "Submitted", "2025-10-06T10:05:00.0000000Z", new()
+    {
+        ["FileId"] = h2FileId.ToLowerInvariant(),
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "July to December 2025",
+    });
+    await UpsertEvent(h2SubmissionId, "EA054576-5331-4BAD-9856-B51C27EAD755", "RegulatorPoMDecision", "2025-10-20T11:00:00.0000000Z", new()
+    {
+        ["FileId"] = h2FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "NBCS-2025H2-POM-DEC-0001",
+        ["DecisionDate"] = "2025-10-20T11:00:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+
+    // Resubmission in progress: reference number issued, corrected file uploaded and validated,
+    // fee viewed but deliberately not yet paid and not yet finally submitted to the regulator.
+    await UpsertEvent(h2SubmissionId, "94DDEB72-0233-45DA-8A1B-BB6E826AC618", "PackagingResubmissionReferenceNumberCreated", "2026-01-15T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "NBCS-2025H2-POM-RESUB-0001",
+    });
+    await UpsertEvent(h2SubmissionId, "EF82DC4E-3812-4EDB-9A7E-1F020B267D05", "AntivirusCheck", "2026-01-15T09:30:00.0000000Z", new()
+    {
+        ["FileId"] = h2ResubFileId.ToLowerInvariant(),
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2025H2_Resubmission.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "93BEBD40-10BB-45E9-AF30-AF52FBE39C5C", "AntivirusResult", "2026-01-15T09:32:10.0000000Z", new()
+    {
+        ["FileId"] = h2ResubFileId.ToLowerInvariant(),
+        ["BlobName"] = h2ResubBlobName.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "8A3783E4-9180-4D06-B097-8295E82C772B", "CheckSplitter", "2026-01-15T09:33:00.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = h2ResubBlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h2SubmissionId, "8A5C6578-474C-44AD-AC97-BC2892CBA5F8", "ProducerValidation", "2026-01-15T09:33:50.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["BlobName"] = h2ResubBlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h2SubmissionId, "313BA353-A541-4A9D-9E3F-B4ED0A301FB9", "Submitted", "2026-01-15T09:35:00.0000000Z", new()
+    {
+        ["FileId"] = h2ResubFileId.ToLowerInvariant(),
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = true,
+        ["SubmissionPeriod"] = "July to December 2025",
+    });
+    // Fee has been viewed (ready to pay) - deliberately no PackagingDataResubmissionFeePayment
+    // event yet, and no PackagingResubmissionApplicationSubmitted event: payment and the final
+    // "submit application" step haven't happened.
+    await UpsertEvent(h2SubmissionId, "E1CBF577-9AD7-4314-B92D-C62786FC9486", "PackagingResubmissionFeeViewed", "2026-01-15T09:40:00.0000000Z", new()
+    {
+        ["FileId"] = h2ResubFileId.ToLowerInvariant(),
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    Console.WriteLine($"Seeded packaging data submission {h2SubmissionId} (2025 H2, Accepted + resubmission in progress)");
+
+    // ---- 2026 H1: Large only. Two cycles under the same SubmissionId: an original file that
+    // was Accepted, then - months later - a corrected file the compliance scheme resubmitted
+    // that the regulator went on to Reject. This is deliberate, not incidental: the packaging
+    // frontend's own resubmission routing (FileUploadSubLandingController.HandleSubmissionBasedOnStatus
+    // -> SubmissionService.IsAnySubmissionAcceptedForDataPeriod) only shows the "Resubmit packaging
+    // data" intermediate page (UploadNewFileToSubmitController) for a submission whose OWN event
+    // history contains at least one Accepted decision - a submission that has only ever been
+    // Rejected, with no prior Accepted cycle, instead falls through to the plain first-time
+    // upload flow (FileUploadController), which is the wrong page for a rejected resubmission.
+    // Deliberately no PackagingResubmissionReferenceNumberCreatedEvent here yet, for either cycle -
+    // that only gets created once the user actually starts the newer fee-based resubmission
+    // journey; its absence is what keeps this submission routed to UploadNewFileToSubmitController
+    // instead of being skipped straight to PackagingDataResubmissionController.ResubmissionTaskList.
+    const string h1_2026SubmissionId = "84FA8B3B-ACF0-4FAE-8B70-27137AF5F24C";
+
+    // Cycle A: original file, Accepted.
+    const string h1_2026FileIdA = "68DD58D5-B0A5-4B67-95D5-47FD7946F5B7";
+    const string h1_2026BlobNameA = "62D90EC6-0A28-439F-A09B-DF79EE919F39";
+
+    // Cycle B: corrected file submitted later, Rejected - this is the current/latest state, and
+    // the file the "File already submitted" table on the intermediate page shows as needing to
+    // be replaced.
+    const string h1_2026FileIdB = "559469D2-FBEB-4DC6-B670-CA2AC9E2F319";
+    const string h1_2026BlobNameB = "B52AAEE6-5C64-4C55-B194-6140488F6063";
+
+    await UpsertSubmission(h1_2026SubmissionId, "January to June 2026", isResubmission: false, created: "2026-01-08T09:00:00.0000000Z");
+
+    await UpsertEvent(h1_2026SubmissionId, "B7997346-D063-4E51-8244-E9904D608ED0", "AntivirusCheck", "2026-01-08T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdA.ToLowerInvariant(),
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2026H1.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h1_2026SubmissionId, "3C6247D4-9983-48BD-A5E7-32260BF45998", "AntivirusResult", "2026-01-08T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdA.ToLowerInvariant(),
+        ["BlobName"] = h1_2026BlobNameA.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h1_2026SubmissionId, "789E16BD-BF4F-4EE6-AB55-398F8FBA4F83", "CheckSplitter", "2026-01-08T09:03:00.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = h1_2026BlobNameA.ToLowerInvariant(),
+    });
+    await UpsertEvent(h1_2026SubmissionId, "5E60C8D7-2E39-4948-AE91-7AC9B3E5ABCA", "ProducerValidation", "2026-01-08T09:03:40.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["BlobName"] = h1_2026BlobNameA.ToLowerInvariant(),
+    });
+    await UpsertEvent(h1_2026SubmissionId, "9AA5ADCD-D038-4A0F-849A-C74BB345C28E", "Submitted", "2026-01-08T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdA.ToLowerInvariant(),
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "January to June 2026",
+    });
+    await UpsertEvent(h1_2026SubmissionId, "74827CA2-CA30-4BC2-9299-9402AEA27577", "RegulatorPoMDecision", "2026-01-22T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdA.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "NBCS-2026H1-POM-DEC-0001",
+        ["DecisionDate"] = "2026-01-22T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+
+    await UpsertEvent(h1_2026SubmissionId, "E2AC17CC-1EE2-47B9-B5AC-49AAC2284FE4", "AntivirusCheck", "2026-07-07T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2026H1_Corrected.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h1_2026SubmissionId, "EE853F07-FFB1-41E8-A3ED-2290156322FB", "AntivirusResult", "2026-07-07T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["BlobName"] = h1_2026BlobNameB.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h1_2026SubmissionId, "B824A29E-56A7-4D66-98B5-E6472DD922D0", "CheckSplitter", "2026-07-07T09:03:00.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = h1_2026BlobNameB.ToLowerInvariant(),
+    });
+    await UpsertEvent(h1_2026SubmissionId, "AB84FB18-CE80-42E5-BEFD-A7E321C19440", "ProducerValidation", "2026-07-07T09:03:40.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["BlobName"] = h1_2026BlobNameB.ToLowerInvariant(),
+    });
+    await UpsertEvent(h1_2026SubmissionId, "EF2060D4-8901-43DF-A334-68A8F6C29812", "Submitted", "2026-07-07T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "January to June 2026",
+    });
+    await UpsertEvent(h1_2026SubmissionId, "FAD8ABE3-72C1-46AA-9CD1-2BD513672EDB", "RegulatorPoMDecision", "2026-07-21T10:15:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["Decision"] = "Rejected",
+        ["RegistrationReferenceNumber"] = "NBCS-2026H1-POM-DEC-0002",
+        ["DecisionDate"] = "2026-07-21T10:15:00.0000000Z",
+        ["Comments"] = "Packaging data rejected: the corrected material weight figures do not reconcile with the originally accepted submission for this period",
+        ["IsResubmissionRequired"] = true,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded packaging data submission {h1_2026SubmissionId} (2026 H1, Accepted then Rejected on resubmission)");
+}
+
+record RegistrationSubmissionSeed(
+    string SubmissionId,
+    string FileId,
+    string BlobName,
+    string AntivirusCheckEventId,
+    string AntivirusResultEventId,
+    string ValidationEventId,
+    string SubmittedEventId,
+    string FeePaymentEventId,
+    string AppSubmittedEventId,
+    string DecisionEventId,
+    string FileName,
+    string SubmissionPeriod,
+    string? RegistrationJourney,
+    int MemberCount,
+    string AppReferenceNumber,
+    string RegistrationReferenceNumber,
+    string PaidAmount,
+    string AntivirusCheckCreated,
+    string AntivirusResultCreated,
+    string ValidationCreated,
+    string SubmittedCreated,
+    string FeePaymentCreated,
+    string AppSubmittedCreated,
+    string DecisionCreated);

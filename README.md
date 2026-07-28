@@ -149,6 +149,31 @@ docker compose --profile packaging down
 
 To remove all, append `-v --remove-orphans`
 
+#### Antivirus scanning
+
+File uploads (`epr-pom-api-web`) are scanned via a local stand-in for the real "Trade Antivirus API": `trade-antivirus-mock` (source at `mocks/TradeAntivirusApi.Mock`). It accepts the uploaded file, then asynchronously publishes a scan result onto the `defra.epr.antivirus.scanresult.local` Service Bus topic, which `epr-anti-virus-function-app` consumes to update the submission status (same as the real production flow, minus the actual scanning).
+
+- By default every upload is reported as clean (`Success`) after ~1 second.
+- To exercise the "virus found" path, name the uploaded file so it contains `virus` (case-insensitive), e.g. `test-virus-file.csv` — the mock will report `Quarantined` instead, and the submission status should show the antivirus-failure outcome.
+- The match pattern and scan delay are configurable via the `VirusFilenamePattern` / `ScanDelaySeconds` environment variables on `trade-antivirus-mock` in `compose.yml`.
+
+Once a registration file passes the antivirus check, `epr-registration-validation-function-app` picks it up (via the same Service Bus flow) to run CSV row validation and post the final result back to submission status — this is what clears the "uploading organisation details" spinner page in the frontend. Both this and the antivirus function need the stack's self-signed dev cert trusted inside their containers (see the `init-container.sh` mount on each service) since they call `epr-pom-api-submission-status` over HTTPS.
+
+#### Registration fee calculation
+
+On submit, `epr-pom-api-submission-status` publishes a `RegistrationSubmittedForFeesCalculation` message onto the `defra.epr.pom.registrationsubmittedforfeescalculation.local` Service Bus topic (self-provisioned at startup — see `ServiceBus:AdminConnectionString`, which needs the emulator's management port, `asb-backend:5300`, not the AMQP endpoint). `epr-payment-service` subscribes to this topic, reads the submitted CSV from blob storage, and stores the fee-calculation snapshot in its own SQL Server database (migrated by `epr-payment-service-migrations`, same `sqledge` instance used elsewhere).
+
+The frontend/facade read that snapshot via `epr-payment-facade`, which proxies to `epr-payment-service` using a `TokenAuthorizationHandler` that calls `DefaultAzureCredential` for service-to-service auth in Release builds. Since there's no real Azure AD app-to-app credentials or managed identity available locally, `managed-identity-mock` (source at `mocks/ManagedIdentityMock`) stands in for Azure's managed-identity token endpoint: `epr-payment-facade` points at it via the App Service-style `IDENTITY_ENDPOINT`/`IDENTITY_HEADER` env vars, which `DefaultAzureCredential`'s `ManagedIdentityCredential` picks up automatically instead of trying (and timing out against) the real IMDS endpoint. The issued token is a fixed placeholder string, not a real JWT — this only works because `epr-payment-service` never validates the bearer token it receives. Verified directly: ran `DefaultAzureCredential.GetTokenAsync` against the mock standalone and confirmed it returns a token instead of throwing `CredentialUnavailableException`.
+
+#### Local Cosmos DB (submission data)
+
+`epr-pom-api-submission-status` no longer connects to the real cloud Cosmos DB account — `cosmosdb-emulator` (the same `azure-cosmos-emulator:vnext-preview` image this repo's own integration tests use) runs locally instead, with `cosmosdb-emulator-init` (source at `mocks/CosmosDbInit`) creating the database and containers on startup.
+
+- Data Explorer UI: `http://localhost:1234`.
+- The emulator's self-signed cert is handled via `Database__IgnoreCertificateErrors: true` — an escape hatch already built into the app for exactly this case, so no cert-trust dance is needed here (unlike the antivirus/registration-validation functions above).
+- All four containers defined in the app's EF Core model (`SubmissionContext.cs`) are created: `Submissions`, `SubmissionEvents`, `ProducerValidationErrors`, `ProducerValidationWarnings` — including the Producer/POM validation error/warning containers, which the registration flow this stack is set up to test doesn't exercise, but are ready if needed.
+- If you ever see `Connection refused (127.0.0.1:8081)` from a client after its first successful call, check `GATEWAY_PUBLIC_ENDPOINT` on `cosmosdb-emulator` — it must match the hostname other containers use to reach it, or the emulator's Gateway-mode responses point clients back at its own loopback address.
+
 ### obligations
 
 Obtain the necessary secrets (including from Key Vault or a teammate).
@@ -247,6 +272,46 @@ Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
 | `test+directproducer@ee.com` | Approved Person | `79d0deab-c22d-4c30-8082-508ff8dc1bd7` |
 | `bmmmdmgz@sharklasers.com` | Delegated Person (nominated by `test+directproducer@ee.com`) | `513a78ee-d5bf-4fa4-9d8f-136550ea6072` |
 | `francis.chelladurai+31032026@equalexperts.com` | Basic User | `d062d4fe-34f8-468e-ada8-d950cc9a3c2a` |
+
+### Compliance Scheme — "Northbridge Compliance Solutions Ltd" (CHN `11000000`)
+
+| Email | Role | UserId |
+|-------|------|--------|
+| `ahmed.hussein+dev9+1784615966009+09640-DONT_USE@equalexperts.com` | Approved Person | `94BFD894-8F64-4F8D-9975-259D08786C2B` |
+| `ahmed.hussein+dev9+1784616197060+61532-DONT_USE@equalexperts.com` | Delegated Person (nominated by the Approved Person above) | `F0CA633F-C62F-4DDB-8009-893C1DF9EBC3` |
+| `ahmed.hussein+dev9+1784616229626+56548-DONT_USE@equalexperts.com` | Basic User | `637B0DEA-83FA-49CE-AFD9-C5527A820CE1` |
+
+Viewing the scheme members panel on this account's landing page requires the `FeatureManagement__ShowComplianceSchemeMemberManagement` env var set to `true` on the `epr-packaging-frontend` service in `compose.yml` (defaults to `false` in the shipped image).
+
+#### Members of Northbridge Compliance Solutions Ltd (10)
+
+Each row is its own direct producer organisation, linked to the scheme via `OrganisationsConnections` + `SelectedSchemes`, with a single Approved Person account.
+
+| Organisation | CHN | Email | UserId |
+|---|---|---|---|
+| BRAMBLEWOOD PACKAGING LTD | `11000001` | `ahmed.hussein+dev9+1782714701839+98807-DONT_USE@equalexperts.com` | `A16AE06C-3629-4F04-89A6-B8D1912C99FE` |
+| SILVERDALE FOODS LTD | `11000002` | `ahmed.hussein+dev9+1782714726947+48306-DONT_USE@equalexperts.com` | `972111C5-42D1-4AAA-A076-BD61098A75C7` |
+| TIDELINE BEVERAGES LTD | `11000003` | `ahmed.hussein+dev9+1782714740443+61628-DONT_USE@equalexperts.com` | `8CE8A6C7-16E6-412F-ABBE-036C2DD7E11A` |
+| COPPERGATE HOMEWARES LTD | `11000004` | `ahmed.hussein+dev9+1782714811219+93870-DONT_USE@equalexperts.com` | `410953E4-5D24-4A3C-95F6-E38E8E6802A1` |
+| FERNLEIGH COSMETICS LTD | `11000005` | `ahmed.hussein+dev9+1782714821734+90170-DONT_USE@equalexperts.com` | `575067A3-F25E-4B5A-91BC-5BC763BF7556` |
+| QUARRYSTONE HARDWARE LTD | `11000006` | `ahmed.hussein+dev9+1782714833475+55076-DONT_USE@equalexperts.com` | `9ECC9140-47E7-4E5E-9B71-1FF3129C5EB5` |
+| MAPLECROFT STATIONERY LTD | `11000007` | `ahmed.hussein+dev9+1782714878221+10813-DONT_USE@equalexperts.com` | `103B8411-58F4-4B71-B985-B3A4450B32B3` |
+| HARBOURVIEW TEXTILES LTD | `11000008` | `ahmed.hussein+dev9+1782714888354+70374-DONT_USE@equalexperts.com` | `FFD8A042-7BFB-4CE6-BC3A-3BD2E6CDEFE9` |
+| GREENFIELD DAIRY LTD | `11000009` | `ahmed.hussein+dev9+1782714921449+05316-DONT_USE@equalexperts.com` | `296C40CC-6694-4E42-95C3-DFD1C0F9692C` |
+| STONEBRIDGE ELECTRONICS LTD | `11000010` | `ahmed.hussein+dev9+1782715019923+87659-DONT_USE@equalexperts.com` | `F3F0C069-B981-44CE-946C-484B943B763A` |
+
+#### Subsidiaries (4)
+
+Linked via `OrganisationRelationships` (type `Parent`) + `SubsidiaryOrganisations`. Subsidiaries have no login account of their own — they're managed under their parent member's account.
+
+| Subsidiary | CHN | Parent member |
+|---|---|---|
+| BRAMBLEWOOD PACKAGING (NORTH) LTD | `11000011` | BRAMBLEWOOD PACKAGING LTD |
+| BRAMBLEWOOD PACKAGING (SOUTH) LTD | `11000012` | BRAMBLEWOOD PACKAGING LTD |
+| SILVERDALE FOODS DISTRIBUTION LTD | `11000013` | SILVERDALE FOODS LTD |
+| SILVERDALE FOODS RETAIL LTD | `11000014` | SILVERDALE FOODS LTD |
+
+All emails above end `-DONT_USE@equalexperts.com` and their `UserId` values are the real Azure B2C Object IDs (`oid`) for those accounts in the shared tenant — see the note earlier in this README that the B2C user's `oid`/`sub` must match a seeded account `UserId` for why this matters.
 
 All enrolments are seeded with `EnrolmentStatusId = 3` (Approved/Active).
 
