@@ -73,6 +73,111 @@ Then start the services.
 
 Multiple varibles can be specified if needed for each service you want to override.
 
+## Build services from local source (zsh)
+
+The `eprlocalenv` zsh function can start a profile while building selected services from sibling source repositories, rather than pulling those services' published images. It expects this repository and each source repository to have the same parent directory, for example:
+
+```
+github/
+├── epr-local-environment/
+└── waste-obligations-frontend/
+```
+
+Add the following to your `~/.zshrc`, then run `source ~/.zshrc`. This is a function rather than a shell alias because it accepts a profile, an action and optional service names.
+
+```zsh
+typeset -A eprlocalenv_targets
+eprlocalenv_targets=(
+  waste-obligations-frontend production
+)
+
+eprlocalenv() {
+  if (( $# < 2 )); then
+    print -u2 'Usage: eprlocalenv <profile> <up|down> [service ...]'
+    return 2
+  fi
+
+  local profile=$1 action=$2 env_root service source_dir target
+  shift 2
+
+  env_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 2
+  [[ -f "$env_root/compose.yml" ]] || {
+    print -u2 'Run eprlocalenv from the epr-local-environment repository.'
+    return 2
+  }
+
+  case "$action" in
+    up)
+      if (( $# == 0 )); then
+        docker compose -f "$env_root/compose.yml" \
+          --profile "$profile" up -d --build --wait
+        return
+      fi
+
+      for service in "$@"; do
+        source_dir="${env_root%/*}/$service"
+        [[ -f "$source_dir/Dockerfile" ]] || {
+          print -u2 -- "Expected source/Dockerfile at: $source_dir"
+          return 2
+        }
+      done
+
+      {
+        print 'services:'
+        for service in "$@"; do
+          source_dir="${env_root%/*}/$service"
+          target=${eprlocalenv_targets[$service]}
+
+          print "  $service:"
+          print "    image: local/$service:dev"
+          print "    pull_policy: build"
+          print "    build:"
+          print "      context: $source_dir"
+          print "      dockerfile: Dockerfile"
+          [[ -n "$target" ]] && print "      target: $target"
+        done
+      } | docker compose -f "$env_root/compose.yml" -f - \
+        --profile "$profile" up -d --build --wait
+      ;;
+
+    down)
+      if (( $# == 0 )); then
+        docker compose -f "$env_root/compose.yml" \
+          --profile "$profile" down -v --remove-orphans
+      else
+        docker compose -f "$env_root/compose.yml" \
+          --profile "$profile" down "$@"
+      fi
+      ;;
+
+    *)
+      print -u2 'Action must be up or down.'
+      return 2
+      ;;
+  esac
+}
+```
+
+Examples:
+
+```zsh
+# Start the profile with its normal registry images.
+eprlocalenv obligations up
+
+# Start the full profile, building this service from ../waste-obligations-frontend.
+eprlocalenv obligations up waste-obligations-frontend
+
+# Build multiple selected services from their sibling source folders.
+eprlocalenv obligations up waste-obligations-frontend waste-obligations
+
+# Stop and remove the full profile, including its volumes.
+eprlocalenv obligations down
+```
+
+The services supplied to `up` choose which images are built locally; they do not limit which services in the profile are started. `pull_policy: build` prevents Docker Compose from pulling those service images, although Docker may still pull base images named in a source Dockerfile's `FROM` instruction.
+
+The `eprlocalenv_targets` map is only needed for Dockerfiles whose normal runtime image is not their final build stage. `waste-obligations-frontend` uses its `production` stage so that the local image matches the runtime image rather than its final `integration` stage.
+
 ## Specific service profile instructions
 
 ### paycal
