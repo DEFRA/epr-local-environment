@@ -829,6 +829,7 @@ services:
       DATABASE: EprPaymentService
     profiles:
       - packaging
+      - obligations
 
   epr-payment-service:
     pull_policy: always
@@ -862,6 +863,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-pom-api-web:
     pull_policy: always
@@ -948,6 +950,7 @@ services:
       start_period: 5s
     profiles:
       - packaging
+      - obligations
 
   epr-pom-api-submission-status:
     pull_policy: always
