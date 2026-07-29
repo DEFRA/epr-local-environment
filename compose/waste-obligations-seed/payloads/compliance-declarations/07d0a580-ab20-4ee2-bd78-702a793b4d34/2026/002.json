@@ -48,7 +48,8 @@
   "user": {
     "id": "6fc7cd0b-933a-40d2-bac2-c2b5d9be363f",
     "email": "submitter@ecocircle-cs.example",
-    "name": "EcoCircle Submitter"
+    "name": "EcoCircle Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": true
 }

@@ -48,7 +48,8 @@
   "user": {
     "id": "5367bef2-dad0-4b59-9bf7-45bedd441c34",
     "email": "submitter@example-cs.example",
-    "name": "Example CS Submitter"
+    "name": "Example CS Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": false
 }

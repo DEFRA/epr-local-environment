@@ -48,7 +48,8 @@
   "user": {
     "id": "ada2c1a4-faa1-48b1-ab10-ce266c946f9a",
     "email": "submitter@greenwaste-cs.example",
-    "name": "GreenWaste Submitter"
+    "name": "GreenWaste Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": true
 }

@@ -47,7 +47,8 @@
   "user": {
     "id": "92097e3e-806f-4e98-b14a-8e1f77e71e55",
     "email": "submitter@zestygoods.example",
-    "name": "Zesty Goods Submitter"
+    "name": "Zesty Goods Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": true
 }

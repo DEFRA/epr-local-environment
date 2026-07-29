@@ -47,7 +47,8 @@
   "user": {
     "id": "039df6a5-0ba1-4993-a505-8843b77f574a",
     "email": "submitter@popquest.example",
-    "name": "Pop Quest Submitter"
+    "name": "Pop Quest Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": true
 }
