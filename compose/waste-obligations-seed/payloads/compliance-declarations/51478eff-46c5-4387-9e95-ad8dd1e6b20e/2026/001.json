@@ -48,7 +48,8 @@
   "user": {
     "id": "79b318e1-69cc-482f-8560-9097df2e5c7a",
     "email": "submitter@bigboxretail.example",
-    "name": "Big Box Submitter"
+    "name": "Big Box Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": true
 }

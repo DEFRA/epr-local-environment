@@ -47,7 +47,8 @@
   "user": {
     "id": "176f5ec3-e3f9-475c-9e38-c6fbdf3f61fc",
     "email": "submitter@craftythings.example",
-    "name": "Crafty Things Submitter"
+    "name": "Crafty Things Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": false
 }

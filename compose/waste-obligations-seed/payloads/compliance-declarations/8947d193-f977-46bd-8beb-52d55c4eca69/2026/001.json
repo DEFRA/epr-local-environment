@@ -48,7 +48,8 @@
   "user": {
     "id": "5ac18f4f-0bab-4de8-b6a5-2d14dc14d2a7",
     "email": "submitter@reclaim-cs.example",
-    "name": "ReClaim Submitter"
+    "name": "ReClaim Submitter",
+    "locale": "en"
   },
   "isRegulation43Compliant": false
 }
