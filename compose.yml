@@ -600,7 +600,7 @@ services:
       PaymentFacadeApi__DownstreamScope: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
-      FeatureManagement__CsocEnabled: false
+      FeatureManagement__CsocEnabled: true
       FeatureManagement__EnableCsvDownload: "true"
       FeatureManagement__EnableRecyclabilityRatingColumn: "true"
       FeatureManagement__EnableSubsidiaryJoinerAndLeaverColumns: "true"
