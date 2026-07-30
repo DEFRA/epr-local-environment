@@ -94,6 +94,8 @@ services:
     depends_on:
       azurite:
         condition: service_healthy
+    volumes:
+      - ./compose/seed-data/northbridge:/seed-data/northbridge:ro
     entrypoint: >
       sh -c "
       az storage container create --name 'paycal' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
@@ -104,7 +106,14 @@ services:
       az storage container create --name 'epr-antivirus-registration' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage container create --name 'epr-antivirus-subsidiary' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage container create --name 'epr-antivirus-accreditation' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
-      echo 'containers created successfully'
+      echo 'containers created successfully' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name '6688ed9b-ac4c-4550-b834-5698f3523597' --file '/seed-data/northbridge/Northbridge_CompanyDetails_2025.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name '7113cc97-a799-48e4-8a5e-f214532c32e4' --file '/seed-data/northbridge/Northbridge_CompanyDetails_2026_Large.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name 'b1df2a8b-5435-47d8-946a-07b5155b3ca4' --file '/seed-data/northbridge/Northbridge_CompanyDetails_2026_Small.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name '5ee9c2ca-0100-488a-be21-7a7f6546c913' --file '/seed-data/northbridge/Northbridge_Pom_2025H1.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name '0db4f56a-e98c-4b34-b020-9c67e2adbd5c' --file '/seed-data/northbridge/Northbridge_Pom_2025H2_Resubmission.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'b52aaee6-5c64-4c55-b194-6140488f6063' --file '/seed-data/northbridge/Northbridge_Pom_2026H1_Corrected.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      echo 'Northbridge seed blobs uploaded successfully'
       "
     profiles:
       - paycal
@@ -732,6 +741,32 @@ services:
       - obligations
       - regulator
 
+  epr-backend-account-validationdata-api:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/validationdataapiregistry:${EPR_VALIDATION_DATA_API:-main-latest}
+    depends_on:
+      sqledge:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      epr-backend-account-microservice-migrations:
+        condition: service_completed_successfully
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      AccountsDatabase__ConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprBackendAccountMicroservice;TrustServerCertificate=True;Encrypt=False"
+    healthcheck:
+      # Confirms the Functions host is up and responding - not that any particular
+      # trigger has finished initialising. This app only serves HTTP triggers so
+      # there's no queue/subscription readiness to wait on.
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    profiles:
+      - packaging
+
   managed-identity-mock:
     pull_policy: never
     build:
@@ -898,6 +933,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      azurite:
+        condition: service_healthy
       epr-prn-common-backend:
         condition: service_healthy
       epr-common-data-api:
@@ -937,6 +974,9 @@ services:
       AntivirusApi__Timeout: "300"
       PaymentService__BaseUrl: https://epr-payment-facade:8081
       # PaymentService__ClientId skipped to avoid DefaultCredentials failure
+      StorageAccount__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      StorageAccount__PomContainer: epr-antivirus-pom
+      StorageAccount__RegistrationContainer: epr-antivirus-registration
     ports:
       - "5291:8080" # taken from launch settings in epr-pom-api-web
       - "7265:8081" # taken from launch settings in epr-pom-api-web
@@ -1100,6 +1140,8 @@ services:
         condition: service_started
       epr-pom-api-submission-status:
         condition: service_healthy
+      epr-backend-account-validationdata-api:
+        condition: service_healthy
     volumes:
       - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
       - ./compose/certs/https:/https:ro
@@ -1114,7 +1156,7 @@ services:
       StorageAccount__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
       StorageAccount__BlobContainerName: epr-antivirus-registration
       SubmissionApi__BaseUrl: https://epr-pom-api-submission-status:8081
-      CompanyDetailsApi__BaseUrl: http://epr-backend-account-microservice:8080
+      CompanyDetailsApi__BaseUrl: http://epr-backend-account-validationdata-api:80
       CompanyDetailsApi__Timeout: "10"
       FeatureManagement__EnableAdditionalValidationForJoinerLeaverColumns: "false"
       FeatureManagement__EnableBrandPartnerDataRowValidation: "true"
@@ -1137,6 +1179,105 @@ services:
       retries: 20
       start_period: 10s
       start_interval: 1s
+    profiles:
+      - packaging
+
+  epr-pom-func-submission-check-splitter:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/submissionchecksplitterrepository:${EPR_SUBMISSION_CHECK_SPLITTER:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      asb:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      epr-pom-api-submission-status:
+        condition: service_healthy
+      epr-backend-account-validationdata-api:
+        condition: service_healthy
+    volumes:
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "/opt/startup/start_nonappservice.sh" ]
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__UploadQueueName: defra.epr.antivirus.pomupload.local
+      ServiceBus__SplitQueueName: defra.epr.pom.producervalidation.local
+      StorageAccount__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      StorageAccount__PomBlobContainerName: epr-antivirus-pom
+      SubmissionApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      ValidationDataApi__BaseUrl: http://epr-backend-account-validationdata-api:80
+      ValidationDataApi__IsEnabled: "true"
+      ValidationDataApi__Timeout: "10"
+      Redis__ConnectionString: redis:6379
+      Validation__MaxIssuesToProcess: "1000"
+      CsvDataFile__EnableTransitionalPackagingUnitsColumn: "true"
+      CsvDataFile__EnableRecyclabilityRatingColumn: "true"
+    healthcheck:
+      # Same caveat as epr-anti-virus-function-app: confirms the host is up and
+      # responding, not that its Service Bus consumer has finished starting.
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    profiles:
+      - packaging
+
+  epr-pom-func-producer-validation:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/producervalidationrepository:${EPR_PRODUCER_VALIDATION_FUNCTION:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      asb:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      epr-pom-api-submission-status:
+        condition: service_healthy
+      epr-backend-account-validationdata-api:
+        condition: service_healthy
+    volumes:
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "/opt/startup/start_nonappservice.sh" ]
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+      ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+      ServiceBus__SplitQueueName: defra.epr.pom.producervalidation.local
+      Redis__ConnectionString: redis:6379
+      SubmissionApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      CompanyDetailsApi__BaseUrl: http://epr-backend-account-validationdata-api:80
+      CompanyDetailsApi__Timeout: "10"
+      StorageAccount__PomContainer: epr-antivirus-pom
+      HttpEndpoint__Enabled: "true"
+      Validation__Disabled: "false"
+      Validation__MaxIssuesToProcess: "1000"
+      FeatureManagement__EnableSubsidiaryValidationPom: "true"
+      FeatureManagement__EnableLargeProducerRecyclabilityRatingValidation: "true"
+      FeatureManagement__EnableLargeProducerEnhancedRecyclabilityRatingValidation: "true"
+      FeatureManagement__EnableSmallProducerPackagingTypeEnhancedValidation: "true"
+    ports:
+      - "7288:80" # taken from launch settings in EPR.ProducerContentValidation.FunctionApp; also serves the Postman-testable HTTP endpoint (HttpEndpoint__Enabled)
+    healthcheck:
+      # Same caveat as epr-anti-virus-function-app: confirms the host is up and
+      # responding, not that its Service Bus consumer has finished starting.
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     profiles:
       - packaging
 

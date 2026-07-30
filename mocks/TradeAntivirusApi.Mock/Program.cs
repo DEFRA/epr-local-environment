@@ -92,7 +92,10 @@ app.MapPut("/SyncAV/{collection}/{key}", async (string collection, Guid key, Htt
 
     var isVirus = fileName.Contains(virusFilenamePattern, StringComparison.OrdinalIgnoreCase);
 
-    return Results.Text(isVirus ? "Quarantined" : "Success", "text/plain");
+    // WebApiGateway.Api.Constants.ContentScan compares this response verbatim against
+    // "Content-Scan: Clean" (see FileDownloadController/SubmissionService) - it does not
+    // accept the "Success"/"Quarantined" ScanResult names used on the async upload path.
+    return Results.Text(isVirus ? "Content-Scan: Malicious" : "Content-Scan: Clean", "text/plain");
 });
 
 app.Run();
