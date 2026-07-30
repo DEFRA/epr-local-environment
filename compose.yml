@@ -34,6 +34,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
       - packaging
@@ -54,6 +55,7 @@ services:
       interval: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
       test: timeout 1 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/1433'
       timeout: 5s
     profiles:
@@ -79,6 +81,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
       - packaging
@@ -126,6 +129,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+      start_interval: 1s
     profiles:
       - prn
 
@@ -141,6 +145,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -167,6 +172,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -204,6 +210,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
       - packaging
@@ -230,6 +237,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     restart: unless-stopped
     profiles:
       - packaging
@@ -246,6 +254,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     restart: unless-stopped
     profiles:
       - packaging
@@ -307,6 +316,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -342,6 +352,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -414,6 +425,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -438,6 +450,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -461,6 +474,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - prn
       - packaging
@@ -522,6 +536,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - prn
       - obligations
@@ -615,6 +630,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -653,6 +669,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -688,6 +705,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -724,6 +742,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -805,6 +824,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -865,6 +885,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -930,6 +951,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -953,6 +975,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -997,6 +1020,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1059,6 +1083,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1111,6 +1136,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1212,6 +1238,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - unknown
 
@@ -1261,6 +1288,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1295,8 +1323,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
       - regulator
@@ -1341,8 +1370,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1404,8 +1434,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1479,7 +1510,7 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-      start_interval: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1499,7 +1530,7 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-      start_interval: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1530,6 +1561,8 @@ services:
       interval: 2s
       timeout: 5s
       retries: 10
+      start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1545,8 +1578,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1596,6 +1630,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1643,6 +1678,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1669,6 +1705,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1706,7 +1743,7 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-      start_interval: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1726,7 +1763,7 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-      start_interval: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1770,7 +1807,7 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-      start_interval: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1790,7 +1827,7 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-      start_interval: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
