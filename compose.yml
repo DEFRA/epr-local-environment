@@ -635,6 +635,10 @@ services:
       FeatureManagement__ShowSubsidiariesSingleUploadJourney: "true"
       FeatureManagement__ShowSubsidiaryJoinerAndLeaverColumns: "false"
       Csoc__WasteObligationsBaseAddress: https://localhost:8010
+      # To use the report-packaging-proxy-spike, comment the line above
+      # and uncomment the one below. NB. cookie name clashes can exist so clear all
+      # cookies on localhost before make this switch
+      # Csoc__WasteObligationsBaseAddress: https://localhost:8015/manage-recycling-obligations
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
@@ -1706,6 +1710,7 @@ services:
       - "8013:8080"
       - "8015:8081"
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
