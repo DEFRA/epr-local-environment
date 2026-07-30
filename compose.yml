@@ -151,10 +151,10 @@ services:
       - "8005:8001" # use http://localhost:8005/redis-stack/browser to view active keys
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
       start_interval: 1s
     profiles:
       - packaging
@@ -297,9 +297,11 @@ services:
       asb:
         condition: service_healthy
       epr-calculator-api:
-        condition: service_healthy
+        condition: service_started
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ServiceBusConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
@@ -340,6 +342,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       epr-calculator-api-migrations:
         condition: service_completed_successfully
     environment:
@@ -394,9 +398,11 @@ services:
       asb:
         condition: service_healthy
       epr-calculator-api:
-        condition: service_healthy
+        condition: service_started
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -447,6 +453,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;Integrated Security=True;TrustServerCertificate=True"
@@ -584,16 +592,17 @@ services:
       redis:
         condition: service_healthy
       epr-facade-account-microservice:
-        condition: service_healthy
+        condition: service_started
       epr-payment-facade:
-        condition: service_healthy
+        condition: service_started
       epr-pom-api-web:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
       ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
       Logging__LogLevel__Microsoft.AspNetCore: Information
       Redis__InstanceName: epr-producers-
       Redis__ConnectionString: redis:6379
@@ -651,7 +660,7 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-backend-account-microservice:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -674,7 +683,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "FacadeAccountCreation.API.dll" ]
     healthcheck:
-      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/aspnetapp.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -791,9 +800,9 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-payment-service:
-        condition: service_healthy
+        condition: service_started
       managed-identity-mock:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -940,17 +949,17 @@ services:
       azurite-init:
         condition: service_completed_successfully
       epr-prn-common-backend:
-        condition: service_healthy
+        condition: service_started
       epr-common-data-api:
-        condition: service_healthy
+        condition: service_started
       waste-obligations:
-        condition: service_healthy
+        condition: service_started
       wiremock:
-        condition: service_healthy
+        condition: service_started
       trade-antivirus-mock:
-        condition: service_healthy
+        condition: service_started
       epr-payment-facade:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -990,7 +999,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "WebApiGateway.Api.dll" ]
     healthcheck:
-      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/aspnetapp.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -1059,7 +1068,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.SubmissionMicroservice.API.dll" ]
     healthcheck:
-      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/aspnetapp.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -1746,13 +1755,13 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-backend-account-microservice:
-        condition: service_healthy
+        condition: service_started
       epr-pom-api-submission-status:
-        condition: service_healthy
+        condition: service_started
       epr-common-data-api:
-        condition: service_healthy
+        condition: service_started
       epr-prn-common-backend:
-        condition: service_healthy
+        condition: service_started
       wiremock:
         condition: service_started
     environment:
@@ -1780,7 +1789,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.RegulatorService.Facade.API.dll" ]
     healthcheck:
-      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/aspnetapp.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -1797,9 +1806,9 @@ services:
       redis:
         condition: service_healthy
       epr-regulator-facade:
-        condition: service_healthy
+        condition: service_started
       epr-payment-facade:
-        condition: service_healthy
+        condition: service_started
       waste-obligations-seed:
         condition: service_completed_successfully
     environment:
@@ -1828,7 +1837,7 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.RegulatorService.Frontend.Web.dll" ]
     healthcheck:
-      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/aspnetapp.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -1842,7 +1851,7 @@ services:
     pull_policy: always
     depends_on:
       epr-backend-account-microservice:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Development
@@ -1929,7 +1938,7 @@ services:
       redis:
         condition: service_healthy
       epr-regulator-gateway:
-        condition: service_healthy
+        condition: service_started
     env_file:
       - 'compose/cdp/aws.env'
     environment:
