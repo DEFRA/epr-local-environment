@@ -16,8 +16,25 @@ If a new service is added that uses a different host name ie. the service name i
 
 ## Trusting the certificate
 
-Mac:
+### macOS
 
 ```sh
 security add-trusted-cert -d -r trustRoot -k ~/Library/Keychains/login.keychain-db https/aspnetapp.cer
 ```
+
+### Firefox on macOS
+
+`aspnetapp` is a self-signed server certificate, not a certificate authority (CA)
+certificate. Firefox therefore cannot import it from **View Certificates** >
+**Authorities**.
+
+To allow Firefox to use the certificate, add its public certificate to the macOS
+System Keychain (rather than the per-user login keychain):
+
+```sh
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain https/aspnetapp.cer
+```
+
+In Firefox, open `about:config`, set `security.enterprise_roots.enabled` to
+`true`, then fully restart Firefox. This enables Firefox to use trusted roots
+from the macOS System Keychain.
