@@ -1425,6 +1425,8 @@ services:
         condition: service_healthy
       waste-organisations:
         condition: service_healthy
+      waste-obligations-seed:
+        condition: service_completed_successfully
     env_file:
       - 'compose/cdp/aws.env'
     environment:
@@ -1608,6 +1610,8 @@ services:
         condition: service_healthy
       epr-payment-facade:
         condition: service_healthy
+      waste-obligations-seed:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
