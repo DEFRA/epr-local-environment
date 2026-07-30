@@ -318,7 +318,7 @@ services:
       azurite:
         condition: service_healthy
       epr-calculator-api-migrations:
-        condition: service_started
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
