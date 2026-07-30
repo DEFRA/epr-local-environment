@@ -19,6 +19,7 @@ services:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   asb:
     depends_on:
@@ -37,6 +38,7 @@ services:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   sqledge:
     pull_policy: always
@@ -81,6 +83,7 @@ services:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   azurite-init:
     pull_policy: always
@@ -830,6 +833,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-payment-service:
     pull_policy: always
@@ -864,6 +868,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-pom-api-web:
     pull_policy: always
@@ -1411,9 +1416,9 @@ services:
     pull_policy: always
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       wiremock:
-        condition: service_started
+        condition: service_healthy
       epr-backend-account-microservice:
         condition: service_healthy
       waste-obligations:
@@ -1466,6 +1471,13 @@ services:
       SESSION_COOKIE_SECURE: "true"
     ports:
       - "8008:3000"
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 5s
     profiles:
       - obligations
 
@@ -1473,12 +1485,19 @@ services:
     image: nginx:alpine
     depends_on:
       waste-obligations-frontend:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8010:443"
     volumes:
       - ./compose/waste-obligations-frontend-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 5s
     profiles:
       - obligations
 
@@ -1498,7 +1517,7 @@ services:
       ReverseProxy__Clusters__ManageRecyclingObligations__Destinations__Primary__Address: https://waste-obligations-frontend-proxy:443/
     depends_on:
       waste-obligations-frontend-proxy:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./compose/certs/https:/https:ro
       - ./compose/certs/init-container.sh:/init-container.sh:ro
@@ -1654,7 +1673,7 @@ services:
     pull_policy: always
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
     environment:
@@ -1677,6 +1696,13 @@ services:
       ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080
       WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
       WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 5s
     profiles:
       - regulator
 
@@ -1684,12 +1710,19 @@ services:
     image: nginx:alpine
     depends_on:
       waste-packaging-regulators-fe:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "3000:443"
     volumes:
       - ./compose/waste-packaging-regulators-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 5s
     profiles:
       - regulator
 
@@ -1698,7 +1731,7 @@ services:
     pull_policy: always
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       epr-regulator-gateway:
         condition: service_healthy
     env_file:
@@ -1727,6 +1760,13 @@ services:
       FEATURE_CERTIFICATE_OF_COMPLIANCE: "true"
       REGULATOR_AZURE_BASE_URL: https://localhost:7154
       CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:3000
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:7154}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 5s
     profiles:
       - regulator
 
@@ -1734,12 +1774,19 @@ services:
     image: nginx:alpine
     depends_on:
       waste-regulator-dashboard-fe:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8014:443"
     volumes:
       - ./compose/waste-regulator-dashboard-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 5s
     profiles:
       - regulator
 
