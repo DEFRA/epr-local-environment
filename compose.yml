@@ -118,6 +118,7 @@ services:
     profiles:
       - paycal
       - packaging
+      - obligations
 
   token-provider:
     image: mcr.microsoft.com/azure-cli
@@ -764,6 +765,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -935,6 +937,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       epr-prn-common-backend:
         condition: service_healthy
       epr-common-data-api:
@@ -1075,6 +1079,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       wiremock:
         condition: service_started
       epr-pom-api-submission-status:
@@ -1136,6 +1142,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       wiremock:
         condition: service_started
       epr-pom-api-submission-status:
@@ -1191,6 +1199,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       epr-pom-api-submission-status:
@@ -1227,6 +1237,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1239,6 +1250,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       epr-pom-api-submission-status:
@@ -1278,6 +1291,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
