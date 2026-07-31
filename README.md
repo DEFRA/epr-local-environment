@@ -291,6 +291,8 @@ Sign-in uses Azure AD B2C, then calls **epr-backend-account-microservice** (`GET
 | --- | --- |
 | waste-obligations-frontend (Docker HTTP) | http://localhost:8008 |
 | waste-obligations-frontend (HTTPS proxy) | https://localhost:8010 |
+| report-packaging-proxy-spike (HTTP) | http://localhost:8013 |
+| report-packaging-proxy-spike (HTTPS) | https://localhost:8015 |
 | epr-backend-account-microservice | http://localhost:8003/api/ |
 | waste-organisations | http://localhost:8006 |
 | waste-obligations | http://localhost:8007 |

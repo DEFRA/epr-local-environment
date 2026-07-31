@@ -19,6 +19,7 @@ services:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   asb:
     depends_on:
@@ -33,10 +34,12 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   sqledge:
     pull_policy: always
@@ -52,6 +55,7 @@ services:
       interval: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
       test: timeout 1 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/1433'
       timeout: 5s
     profiles:
@@ -77,10 +81,12 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
       - packaging
       - obligations
+      - regulator
 
   azurite-init:
     pull_policy: always
@@ -112,6 +118,7 @@ services:
     profiles:
       - paycal
       - packaging
+      - obligations
 
   token-provider:
     image: mcr.microsoft.com/azure-cli
@@ -132,6 +139,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+      start_interval: 1s
     profiles:
       - prn
 
@@ -143,10 +151,11 @@ services:
       - "8005:8001" # use http://localhost:8005/redis-stack/browser to view active keys
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -173,6 +182,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -210,6 +220,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
       - packaging
@@ -236,6 +247,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     restart: unless-stopped
     profiles:
       - packaging
@@ -252,6 +264,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     restart: unless-stopped
     profiles:
       - packaging
@@ -284,9 +297,11 @@ services:
       asb:
         condition: service_healthy
       epr-calculator-api:
-        condition: service_healthy
+        condition: service_started
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ServiceBusConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
@@ -313,6 +328,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -326,8 +342,10 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       epr-calculator-api-migrations:
-        condition: service_started
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
@@ -348,6 +366,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -379,9 +398,11 @@ services:
       asb:
         condition: service_healthy
       epr-calculator-api:
-        condition: service_healthy
+        condition: service_started
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -420,6 +441,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -431,6 +453,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;Integrated Security=True;TrustServerCertificate=True"
@@ -444,6 +468,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - paycal
 
@@ -467,6 +492,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - prn
       - packaging
@@ -528,6 +554,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - prn
       - obligations
@@ -565,16 +592,17 @@ services:
       redis:
         condition: service_healthy
       epr-facade-account-microservice:
-        condition: service_healthy
+        condition: service_started
       epr-payment-facade:
-        condition: service_healthy
+        condition: service_started
       epr-pom-api-web:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
       ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
       Logging__LogLevel__Microsoft.AspNetCore: Information
       Redis__InstanceName: epr-producers-
       Redis__ConnectionString: redis:6379
@@ -591,7 +619,7 @@ services:
       PaymentFacadeApi__DownstreamScope: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
-      FeatureManagement__CsocEnabled: false
+      FeatureManagement__CsocEnabled: true
       FeatureManagement__EnableCsvDownload: "true"
       FeatureManagement__EnableRecyclabilityRatingColumn: "true"
       FeatureManagement__EnableSubsidiaryJoinerAndLeaverColumns: "true"
@@ -607,6 +635,10 @@ services:
       FeatureManagement__ShowSubsidiariesSingleUploadJourney: "true"
       FeatureManagement__ShowSubsidiaryJoinerAndLeaverColumns: "false"
       Csoc__WasteObligationsBaseAddress: https://localhost:8010
+      # To use the report-packaging-proxy-spike, comment the line above
+      # and uncomment the one below. NB. cookie name clashes can exist so clear all
+      # cookies on localhost before make this switch
+      # Csoc__WasteObligationsBaseAddress: https://localhost:8015/manage-recycling-obligations
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
@@ -621,6 +653,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -631,7 +664,7 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-backend-account-microservice:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -654,11 +687,12 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "FacadeAccountCreation.API.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -694,6 +728,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -743,6 +778,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -756,6 +792,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -767,9 +804,9 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-payment-service:
-        condition: service_healthy
+        condition: service_started
       managed-identity-mock:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -837,6 +874,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -865,6 +903,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-payment-service:
     pull_policy: always
@@ -896,9 +935,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-pom-api-web:
     pull_policy: always
@@ -909,18 +950,20 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       epr-prn-common-backend:
-        condition: service_healthy
+        condition: service_started
       epr-common-data-api:
-        condition: service_healthy
+        condition: service_started
       waste-obligations:
-        condition: service_healthy
+        condition: service_started
       wiremock:
-        condition: service_healthy
+        condition: service_started
       trade-antivirus-mock:
-        condition: service_healthy
+        condition: service_started
       epr-payment-facade:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -960,11 +1003,12 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "WebApiGateway.Api.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -988,6 +1032,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1027,11 +1072,12 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.SubmissionMicroservice.API.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1046,6 +1092,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       wiremock:
         condition: service_started
       epr-pom-api-submission-status:
@@ -1094,6 +1142,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1106,6 +1155,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       wiremock:
         condition: service_started
       epr-pom-api-submission-status:
@@ -1148,6 +1199,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1160,6 +1212,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       epr-pom-api-submission-status:
@@ -1196,6 +1250,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1208,6 +1263,8 @@ services:
         condition: service_healthy
       azurite:
         condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       epr-pom-api-submission-status:
@@ -1247,6 +1304,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+      start_interval: 1s
     profiles:
       - packaging
 
@@ -1348,6 +1406,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - unknown
 
@@ -1397,6 +1456,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1431,8 +1491,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
       - regulator
@@ -1477,8 +1538,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1540,8 +1602,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1552,15 +1615,17 @@ services:
     pull_policy: always
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       wiremock:
-        condition: service_started
+        condition: service_healthy
       epr-backend-account-microservice:
         condition: service_healthy
       waste-obligations:
         condition: service_healthy
       waste-organisations:
         condition: service_healthy
+      waste-obligations-seed:
+        condition: service_completed_successfully
     env_file:
       - 'compose/cdp/aws.env'
     environment:
@@ -1600,7 +1665,6 @@ services:
       AZURE_AD_B2C_DOMAIN: AZDCUSPOC2.onmicrosoft.com
       AZURE_AD_B2C_TENANT_ID: 8a3f509a-c892-4bec-bfe9-d5f5cf251813
       AZURE_AD_B2C_USER_FLOW: B2C_1A_EPR_SignUpSignIn
-      AZURE_AD_B2C_REDIRECT_URI: https://localhost:8010/signin-oidc
       AZURE_AD_B2C_POST_LOGOUT_REDIRECT_PATH: /signed-out
       AUTH_COOKIE_PASSWORD: secret-password-must-be-at-least-32-characters-long
       AUTH_COOKIE_SECURE: "true"
@@ -1608,6 +1672,13 @@ services:
       SESSION_COOKIE_SECURE: "true"
     ports:
       - "8008:3000"
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1615,12 +1686,52 @@ services:
     image: nginx:alpine
     depends_on:
       waste-obligations-frontend:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8010:443"
     volumes:
       - ./compose/waste-obligations-frontend-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
+    profiles:
+      - obligations
+
+  report-packaging-proxy-spike:
+    image: defradigital/report-packaging-proxy-spike:${REPORT_PACKAGING_PROXY_SPIKE:-latest}
+    pull_policy: always
+    user: "0" # needed to elevate root user so cert can be trusted
+    ports:
+      - "8013:8080"
+      - "8015:8081"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      # Clears the image's PORT setting so Kestrel uses the HTTP and HTTPS URLs above.
+      PORT: ""
+      ReverseProxy__Clusters__ManageRecyclingObligations__Destinations__Primary__Address: https://waste-obligations-frontend-proxy:443/
+    depends_on:
+      waste-obligations-frontend-proxy:
+        condition: service_healthy
+    volumes:
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "dotnet", "ReverseProxy.dll" ]
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "--silent", "--insecure", "https://localhost:8081/health" ]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
     profiles:
       - obligations
 
@@ -1636,8 +1747,9 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - packaging
       - obligations
@@ -1648,13 +1760,13 @@ services:
     user: "0" # needed to elevate root user so cert can be trusted
     depends_on:
       epr-backend-account-microservice:
-        condition: service_healthy
+        condition: service_started
       epr-pom-api-submission-status:
-        condition: service_healthy
+        condition: service_started
       epr-common-data-api:
-        condition: service_healthy
+        condition: service_started
       epr-prn-common-backend:
-        condition: service_healthy
+        condition: service_started
       wiremock:
         condition: service_started
     environment:
@@ -1682,11 +1794,12 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.RegulatorService.Facade.API.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1698,9 +1811,11 @@ services:
       redis:
         condition: service_healthy
       epr-regulator-facade:
-        condition: service_healthy
+        condition: service_started
       epr-payment-facade:
-        condition: service_healthy
+        condition: service_started
+      waste-obligations-seed:
+        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -1727,11 +1842,12 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "dotnet", "EPR.RegulatorService.Frontend.Web.dll" ]
     healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "https://localhost:8081/admin/health" ]
+      test: [ "CMD-SHELL", "SSL_CERT_FILE=/usr/local/share/ca-certificates/epr-local-root-ca.crt wget --quiet --tries=1 --spider https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1740,7 +1856,7 @@ services:
     pull_policy: always
     depends_on:
       epr-backend-account-microservice:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Development
@@ -1758,6 +1874,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1766,7 +1883,7 @@ services:
     pull_policy: always
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
     environment:
@@ -1789,6 +1906,13 @@ services:
       ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080
       WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
       WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1796,12 +1920,19 @@ services:
     image: nginx:alpine
     depends_on:
       waste-packaging-regulators-fe:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "3000:443"
     volumes:
       - ./compose/waste-packaging-regulators-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1810,9 +1941,9 @@ services:
     pull_policy: always
     depends_on:
       redis:
-        condition: service_started
-      epr-regulator-gateway:
         condition: service_healthy
+      epr-regulator-gateway:
+        condition: service_started
     env_file:
       - 'compose/cdp/aws.env'
     environment:
@@ -1839,6 +1970,13 @@ services:
       FEATURE_CERTIFICATE_OF_COMPLIANCE: "true"
       REGULATOR_AZURE_BASE_URL: https://localhost:7154
       CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:3000
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:7154}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
     profiles:
       - regulator
 
@@ -1846,12 +1984,19 @@ services:
     image: nginx:alpine
     depends_on:
       waste-regulator-dashboard-fe:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8014:443"
     volumes:
       - ./compose/waste-regulator-dashboard-fe-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
     profiles:
       - regulator
 
