@@ -1495,6 +1495,8 @@ services:
       start_period: 5s
       start_interval: 1s
     profiles:
+      # packaging needs this: epr-pom-api-web CSOC calls waste-obligations, which calls waste-organisations
+      - packaging
       - obligations
       - regulator
 
@@ -1508,6 +1510,7 @@ services:
       - ./compose/waste-organisations-seed/seed.mjs:/seed.mjs:ro
     entrypoint: [ "node", "/seed.mjs" ]
     profiles:
+      - packaging
       - obligations
       - regulator
 
@@ -1523,6 +1526,7 @@ services:
       - ./compose/waste-obligations-seed/seed.mjs:/seed.mjs:ro
     entrypoint: [ "node", "/seed.mjs" ]
     profiles:
+      - packaging
       - obligations
       - regulator
 
@@ -1557,6 +1561,8 @@ services:
       wiremock:
         condition: service_healthy
       epr-prn-common-backend:
+        condition: service_healthy
+      waste-organisations:
         condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
