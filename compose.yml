@@ -635,9 +635,7 @@ services:
       FeatureManagement__ShowSubsidiariesSingleUploadJourney: "true"
       FeatureManagement__ShowSubsidiaryJoinerAndLeaverColumns: "false"
       Csoc__WasteObligationsBaseAddress: https://localhost:8010
-      # To use the report-packaging-proxy-spike, comment the line above
-      # and uncomment the one below. NB. cookie name clashes can exist so clear all
-      # cookies on localhost before make this switch
+      # Use this instead when testing through report-packaging-proxy-spike.
       # Csoc__WasteObligationsBaseAddress: https://localhost:8015/manage-recycling-obligations
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
@@ -1634,50 +1632,47 @@ services:
         condition: service_completed_successfully
     env_file:
       - 'compose/cdp/aws.env'
-    environment:
-      PORT: 3000
-      NODE_ENV: production
-      REDIS_HOST: redis
-      REDIS_TLS: false
-      USE_SINGLE_INSTANCE_CACHE: true
-      WASTE_ORGANISATIONS_API_BASE_URL: ${WasteObligationsFrontend__WASTE_ORGANISATIONS_API_BASE_URL:-http://waste-organisations:8080/}
-      WASTE_ORGANISATIONS_API_AUTH_MODE: basic
-      WASTE_ORGANISATIONS_API_CLIENT_ID: waste-obligations-frontend
-      WASTE_ORGANISATIONS_API_CLIENT_SECRET: waste-obligations-frontend-pwd
-      WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080/
-      WASTE_OBLIGATIONS_API_AUTH_MODE: basic
-      WASTE_OBLIGATIONS_API_CLIENT_ID: waste-obligations-frontend
-      WASTE_OBLIGATIONS_API_CLIENT_SECRET: waste-obligations-frontend-pwd
-      BACKEND_ACCOUNT_API_BASE_URL: ${WasteObligationsFrontend__BACKEND_ACCOUNT_API_BASE_URL:-http://epr-backend-account-microservice:8080/api/}
-      BACKEND_ACCOUNT_API_AUTH_MODE: bearer
-      BACKEND_ACCOUNT_API_OAUTH_CLIENT_ID: waste-obligations-frontend
-      BACKEND_ACCOUNT_API_OAUTH_CLIENT_SECRET: waste-obligations-frontend-pwd
-      BACKEND_ACCOUNT_API_OAUTH_TOKEN_ENDPOINT: http://wiremock/oauth2/v2.0/token
-      BACKEND_ACCOUNT_API_OAUTH_SCOPE: 5300ba70-de1f-4f2e-a612-255fb00592f4/.default
-      EPR_PACKAGING_HOME_URL: https://localhost:7084/report-data
-      EPR_PACKAGING_MANAGE_ACCOUNT_URL: https://localhost:7084/manage-account
-      EPR_PACKAGING_CLEAR_SESSION_URL: https://localhost:7084/report-data/Account/ClearSession
-      EPR_PACKAGING_SIGN_IN_URL: https://localhost:7084/report-data/Account/SignIn
-      EPR_PACKAGING_COOKIES_URL: https://localhost:7084/report-data/cookies
-      MANAGE_YOUR_RECYCLING_OBLIGATIONS_URL: https://localhost:7084/report-data/manage-your-recycling-obligations
-      SERVICE_FEEDBACK_URL: https://defragroup.eu.qualtrics.com/jfe/form/SV_e5HK8ijKACZGi1M
-      EPR_SUPPORT_EMAIL: eprcustomerservice@defra.gov.uk
-      EPR_SUPPORT_TELEPHONE: 0300 060 0002
-      EPR_PRIVACY_URL: https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging-privacy-policy
-      EPR_ACCESSIBILITY_URL: https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging-accessibility-statement
-      AZURE_AD_B2C_CLIENT_ID: ${WasteObligationsFrontend__AzureAdB2C__ClientId:-}
-      AZURE_AD_B2C_CLIENT_SECRET: ${WasteObligationsFrontend__AzureAdB2C__ClientSecret:-}
-      AZURE_AD_B2C_INSTANCE: https://AZDCUSPOC2.b2clogin.com
-      AZURE_AD_B2C_DOMAIN: AZDCUSPOC2.onmicrosoft.com
-      AZURE_AD_B2C_TENANT_ID: 8a3f509a-c892-4bec-bfe9-d5f5cf251813
-      AZURE_AD_B2C_USER_FLOW: B2C_1A_EPR_SignUpSignIn
-      AZURE_AD_B2C_POST_LOGOUT_REDIRECT_PATH: /signed-out
-      AUTH_COOKIE_PASSWORD: secret-password-must-be-at-least-32-characters-long
-      AUTH_COOKIE_SECURE: "true"
-      SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
-      SESSION_COOKIE_SECURE: "true"
+      - 'compose/waste-obligations-frontend/common.env'
     ports:
       - "8008:3000"
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
+    profiles:
+      - obligations
+
+  # This instance is only reached through report-packaging-proxy-spike. Its
+  # browser cookie names must remain distinct because localhost cookies are
+  # shared across ports.
+  waste-obligations-frontend-isolated:
+    image: defradigital/waste-obligations-frontend:${WASTE_OBLIGATIONS_FRONTEND:-latest}
+    pull_policy: always
+    depends_on:
+      redis:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+      epr-backend-account-microservice:
+        condition: service_healthy
+      waste-obligations:
+        condition: service_healthy
+      waste-organisations:
+        condition: service_healthy
+      waste-obligations-seed:
+        condition: service_completed_successfully
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/waste-obligations-frontend/common.env'
+    environment:
+      AUTH_COOKIE_NAME: waste-obligations-isolated-oauth-state
+      CSRF_COOKIE_NAME: waste-obligations-isolated-csrf
+      SESSION_COOKIE_NAME: waste-obligations-isolated-session
+    expose:
+      - "3000"
     healthcheck:
       test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
       interval: 5s
@@ -1708,6 +1703,26 @@ services:
     profiles:
       - obligations
 
+  waste-obligations-frontend-isolated-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-obligations-frontend-isolated:
+        condition: service_healthy
+    expose:
+      - "443"
+    volumes:
+      - ./compose/waste-obligations-frontend-isolated-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
+    profiles:
+      - obligations
+
   report-packaging-proxy-spike:
     image: defradigital/report-packaging-proxy-spike:${REPORT_PACKAGING_PROXY_SPIKE:-latest}
     pull_policy: always
@@ -1722,9 +1737,9 @@ services:
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
       # Clears the image's PORT setting so Kestrel uses the HTTP and HTTPS URLs above.
       PORT: ""
-      ReverseProxy__Clusters__ManageRecyclingObligations__Destinations__Primary__Address: https://waste-obligations-frontend-proxy:443/
+      ReverseProxy__Clusters__ManageRecyclingObligations__Destinations__Primary__Address: https://waste-obligations-frontend-isolated-proxy:443/
     depends_on:
-      waste-obligations-frontend-proxy:
+      waste-obligations-frontend-isolated-proxy:
         condition: service_healthy
     volumes:
       - ./compose/certs/https:/https:ro
