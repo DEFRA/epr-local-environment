@@ -1,5 +1,10 @@
 # Mappings
 
+Stubbing a common-data-api endpoint here instead of seeding real data into the Synapse-replica
+DB? See
+[../../../agents/common-data-api-testing-strategy.md](../../../agents/common-data-api-testing-strategy.md)
+for when that's the right call and how to structure the fixture.
+
 ## oauth2-token.json
 
 Default client-credentials access token response (`access_token`, `expires_in`).
