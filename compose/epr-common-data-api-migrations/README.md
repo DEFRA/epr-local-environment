@@ -45,3 +45,12 @@ Note that only a single scenario is covered here for the obligation calculator A
 Once everything is running, the Azure function can be invoked and it will call the local common data API looking for data. There is nothing seeded currently so nothing else happens but this spike shows, in principle, we should be able to get something running locally away from any Azure or Synapse related resources.
 
 Obviously this is not a real Synapse instance so regression checks would still be needed in an Azure environment at some point, but this local environment setup would help with early feedback when testing work that is in PRs and has not been merged to main.
+
+## Deciding whether to port a proc here or stub it instead
+
+Before copying a new stored procedure into `scripts/procedures/`, check whether it reads from the
+`apps` schema (Synapse dedicated-pool tables — this repo only creates the empty schema, never the
+tables, since their real DDL isn't valid SQL Server syntax). If it does, don't port it — add a
+wiremock stub instead (`../wiremock/mappings/`). See
+[../../agents/common-data-api-testing-strategy.md](../../agents/common-data-api-testing-strategy.md)
+for the full decision rule and worked examples from this repo.

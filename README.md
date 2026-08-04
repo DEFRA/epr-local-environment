@@ -382,6 +382,66 @@ Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
 | `bmmmdmgz@sharklasers.com` | Delegated Person (nominated by `test+directproducer@ee.com`) | `513a78ee-d5bf-4fa4-9d8f-136550ea6072` |
 | `francis.chelladurai+31032026@equalexperts.com` | Basic User | `d062d4fe-34f8-468e-ada8-d950cc9a3c2a` |
 
+#### Subsidiaries (2)
+
+Linked via `OrganisationRelationships` (type `Parent`) + `SubsidiaryOrganisations`, same as the
+Northbridge subsidiaries below. No login accounts of their own.
+
+| Subsidiary | CHN | Parent |
+|---|---|---|
+| POP QUEST (NORTH) LTD | `17121896` | POP QUEST LTD |
+| POP QUEST (SOUTH) LTD | `17121897` | POP QUEST LTD |
+
+Identifiers — the same organisation reference number is used in every store, so the id shown in the UI
+is the id you will find in the data and in the uploaded files:
+
+| Organisation | CHN | Reference number | `ExternalId` |
+|---|---|---|---|
+| POP QUEST LTD | `17121895` | `165282` | `e2316c5e-d434-41da-8274-494dc0762d20` |
+| POP QUEST (NORTH) LTD | `17121896` | `165283` | `3f7c1a94-2d18-4e6b-9c05-7a1e4b8d3c62` |
+| POP QUEST (SOUTH) LTD | `17121897` | `165284` | `b5e90d27-6c3a-4f81-a24e-8d0f5b7c91a3` |
+
+That one number is `Organisations.ReferenceNumber` in the account microservice DB (what the UI shows
+on the organisation and subsidiaries pages, and what `SubsidiaryOrganisations.SubsidiaryId` holds),
+`rpd.Organisations.ReferenceNumber` in the Synapse replica, the `organisation_id`/`subsidiary_id`
+columns in `rpd.Pom`/`rpd.CompanyDetails` and in the CSVs under `compose/seed-data/popquest/`, and
+`OrganisationId`/`SubsidiaryId` in the PayCal registration tables.
+
+These must agree: the real `sp_DP_Pom_Resubmitted_ByDPID` finds a direct producer with
+`rpd.Organisations.ReferenceNumber = @DPOrganisation_ID`, where that parameter is the reference number
+the calling service knows from the account DB. The seed therefore sets `ReferenceNumber` explicitly
+rather than letting the `OrganisationReferenceNumber` sequence assign it — a sequence value depends on
+how many organisations were inserted first, so it drifts whenever the seed is reordered or re-run.
+
+The Northbridge family below follows the same rule — its reference numbers are pinned to
+`110000` (the scheme), `110001`-`110010` (the 10 members) and `110011`-`110014` (the 4
+subsidiaries), matching Synapse, the CSVs and PayCal.
+
+#### Seeded submissions
+
+This organisation is the Direct Producer counterpart to the Northbridge compliance-scheme data
+below — same journeys, but exercising the direct-producer code paths (producer fee endpoint rather
+than compliance-scheme, nation resolved from the account service, no `ComplianceSchemeId` anywhere).
+The producer and both subsidiaries appear in the POM and company-details data.
+
+| Journey | Period | State |
+|---|---|---|
+| Registration | January to December 2025 | Approved |
+| Registration | January to December 2026 | Approved |
+| Packaging data (POM) | January to June 2025 | Approved |
+| Packaging data (POM) | July to December 2025 | Approved, then **a resubmission in progress** — fee ready to view, not paid or finally submitted |
+| Packaging data (POM) | January to June 2026 | Approved, then a corrected file **rejected** by the regulator |
+
+The 2025 H2 resubmission fee is served by a scenario branch in
+`compose/epr-common-data-api-migrations/scripts/procedures/pom-resubmission-paycal-parameters.sql`
+(reference `PQL-2025H2-POM-RESUB-0001`, member count 3 = the producer plus its 2 subsidiaries) —
+see `agents/common-data-api-testing-strategy.md` for why that endpoint is stubbed rather than seeded.
+
+This data spans four places that must be kept in step, all keyed on the same SubmissionId/FileId/
+BlobName GUIDs: the CSVs in `compose/seed-data/popquest/` (uploaded to Azurite by `azurite-init`),
+`compose/epr-common-data-api-migrations/seed.sql`, `mocks/CosmosDbInit/Program.cs`, and
+`compose/epr-payment-service-migrations/seed.sql`.
+
 ### Compliance Scheme — "Northbridge Compliance Solutions Ltd" (CHN `11000000`)
 
 | Email | Role | UserId |
@@ -390,35 +450,39 @@ Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
 | `ahmed.hussein+dev9+1784616197060+61532-DONT_USE@equalexperts.com` | Delegated Person (nominated by the Approved Person above) | `F0CA633F-C62F-4DDB-8009-893C1DF9EBC3` |
 | `ahmed.hussein+dev9+1784616229626+56548-DONT_USE@equalexperts.com` | Basic User | `637B0DEA-83FA-49CE-AFD9-C5527A820CE1` |
 
+The scheme organisation itself has reference number `110000`; its members are `110001`-`110010`
+and their subsidiaries `110011`-`110014` (see the note under POP QUEST LTD above for why these
+are pinned in the seed rather than sequence-assigned).
+
 Viewing the scheme members panel on this account's landing page requires the `FeatureManagement__ShowComplianceSchemeMemberManagement` env var set to `true` on the `epr-packaging-frontend` service in `compose.yml` (defaults to `false` in the shipped image).
 
 #### Members of Northbridge Compliance Solutions Ltd (10)
 
 Each row is its own direct producer organisation, linked to the scheme via `OrganisationsConnections` + `SelectedSchemes`, with a single Approved Person account.
 
-| Organisation | CHN | Email | UserId |
-|---|---|---|---|
-| BRAMBLEWOOD PACKAGING LTD | `11000001` | `ahmed.hussein+dev9+1782714701839+98807-DONT_USE@equalexperts.com` | `A16AE06C-3629-4F04-89A6-B8D1912C99FE` |
-| SILVERDALE FOODS LTD | `11000002` | `ahmed.hussein+dev9+1782714726947+48306-DONT_USE@equalexperts.com` | `972111C5-42D1-4AAA-A076-BD61098A75C7` |
-| TIDELINE BEVERAGES LTD | `11000003` | `ahmed.hussein+dev9+1782714740443+61628-DONT_USE@equalexperts.com` | `8CE8A6C7-16E6-412F-ABBE-036C2DD7E11A` |
-| COPPERGATE HOMEWARES LTD | `11000004` | `ahmed.hussein+dev9+1782714811219+93870-DONT_USE@equalexperts.com` | `410953E4-5D24-4A3C-95F6-E38E8E6802A1` |
-| FERNLEIGH COSMETICS LTD | `11000005` | `ahmed.hussein+dev9+1782714821734+90170-DONT_USE@equalexperts.com` | `575067A3-F25E-4B5A-91BC-5BC763BF7556` |
-| QUARRYSTONE HARDWARE LTD | `11000006` | `ahmed.hussein+dev9+1782714833475+55076-DONT_USE@equalexperts.com` | `9ECC9140-47E7-4E5E-9B71-1FF3129C5EB5` |
-| MAPLECROFT STATIONERY LTD | `11000007` | `ahmed.hussein+dev9+1782714878221+10813-DONT_USE@equalexperts.com` | `103B8411-58F4-4B71-B985-B3A4450B32B3` |
-| HARBOURVIEW TEXTILES LTD | `11000008` | `ahmed.hussein+dev9+1782714888354+70374-DONT_USE@equalexperts.com` | `FFD8A042-7BFB-4CE6-BC3A-3BD2E6CDEFE9` |
-| GREENFIELD DAIRY LTD | `11000009` | `ahmed.hussein+dev9+1782714921449+05316-DONT_USE@equalexperts.com` | `296C40CC-6694-4E42-95C3-DFD1C0F9692C` |
-| STONEBRIDGE ELECTRONICS LTD | `11000010` | `ahmed.hussein+dev9+1782715019923+87659-DONT_USE@equalexperts.com` | `F3F0C069-B981-44CE-946C-484B943B763A` |
+| Organisation | CHN | Reference number | Email | UserId |
+|---|---|---|---|---|
+| BRAMBLEWOOD PACKAGING LTD | `11000001` | `110001` | `ahmed.hussein+dev9+1782714701839+98807-DONT_USE@equalexperts.com` | `A16AE06C-3629-4F04-89A6-B8D1912C99FE` |
+| SILVERDALE FOODS LTD | `11000002` | `110002` | `ahmed.hussein+dev9+1782714726947+48306-DONT_USE@equalexperts.com` | `972111C5-42D1-4AAA-A076-BD61098A75C7` |
+| TIDELINE BEVERAGES LTD | `11000003` | `110003` | `ahmed.hussein+dev9+1782714740443+61628-DONT_USE@equalexperts.com` | `8CE8A6C7-16E6-412F-ABBE-036C2DD7E11A` |
+| COPPERGATE HOMEWARES LTD | `11000004` | `110004` | `ahmed.hussein+dev9+1782714811219+93870-DONT_USE@equalexperts.com` | `410953E4-5D24-4A3C-95F6-E38E8E6802A1` |
+| FERNLEIGH COSMETICS LTD | `11000005` | `110005` | `ahmed.hussein+dev9+1782714821734+90170-DONT_USE@equalexperts.com` | `575067A3-F25E-4B5A-91BC-5BC763BF7556` |
+| QUARRYSTONE HARDWARE LTD | `11000006` | `110006` | `ahmed.hussein+dev9+1782714833475+55076-DONT_USE@equalexperts.com` | `9ECC9140-47E7-4E5E-9B71-1FF3129C5EB5` |
+| MAPLECROFT STATIONERY LTD | `11000007` | `110007` | `ahmed.hussein+dev9+1782714878221+10813-DONT_USE@equalexperts.com` | `103B8411-58F4-4B71-B985-B3A4450B32B3` |
+| HARBOURVIEW TEXTILES LTD | `11000008` | `110008` | `ahmed.hussein+dev9+1782714888354+70374-DONT_USE@equalexperts.com` | `FFD8A042-7BFB-4CE6-BC3A-3BD2E6CDEFE9` |
+| GREENFIELD DAIRY LTD | `11000009` | `110009` | `ahmed.hussein+dev9+1782714921449+05316-DONT_USE@equalexperts.com` | `296C40CC-6694-4E42-95C3-DFD1C0F9692C` |
+| STONEBRIDGE ELECTRONICS LTD | `11000010` | `110010` | `ahmed.hussein+dev9+1782715019923+87659-DONT_USE@equalexperts.com` | `F3F0C069-B981-44CE-946C-484B943B763A` |
 
 #### Subsidiaries (4)
 
 Linked via `OrganisationRelationships` (type `Parent`) + `SubsidiaryOrganisations`. Subsidiaries have no login account of their own — they're managed under their parent member's account.
 
-| Subsidiary | CHN | Parent member |
-|---|---|---|
-| BRAMBLEWOOD PACKAGING (NORTH) LTD | `11000011` | BRAMBLEWOOD PACKAGING LTD |
-| BRAMBLEWOOD PACKAGING (SOUTH) LTD | `11000012` | BRAMBLEWOOD PACKAGING LTD |
-| SILVERDALE FOODS DISTRIBUTION LTD | `11000013` | SILVERDALE FOODS LTD |
-| SILVERDALE FOODS RETAIL LTD | `11000014` | SILVERDALE FOODS LTD |
+| Subsidiary | CHN | Reference number | Parent member |
+|---|---|---|---|
+| BRAMBLEWOOD PACKAGING (NORTH) LTD | `11000011` | `110011` | BRAMBLEWOOD PACKAGING LTD |
+| BRAMBLEWOOD PACKAGING (SOUTH) LTD | `11000012` | `110012` | BRAMBLEWOOD PACKAGING LTD |
+| SILVERDALE FOODS DISTRIBUTION LTD | `11000013` | `110013` | SILVERDALE FOODS LTD |
+| SILVERDALE FOODS RETAIL LTD | `11000014` | `110014` | SILVERDALE FOODS LTD |
 
 All emails above end `-DONT_USE@equalexperts.com` and their `UserId` values are the real Azure B2C Object IDs (`oid`) for those accounts in the shared tenant — see the note earlier in this README that the B2C user's `oid`/`sub` must match a seeded account `UserId` for why this matters.
 

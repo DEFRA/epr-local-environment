@@ -52,10 +52,17 @@ if not exists (select 1 from Persons where Email = @dpEmail)
 declare @dpOrgExternalId uniqueidentifier
 set @dpOrgExternalId = 'e2316c5e-d434-41da-8274-494dc0762d20'
 
+-- ReferenceNumber is set explicitly rather than left to the OrganisationReferenceNumber sequence.
+-- It is the organisation id shown in the UI, and it has to match rpd.Organisations.ReferenceNumber
+-- in the Synapse replica plus the organisation_id column in this org's POM/company-details files -
+-- the real sp_DP_Pom_Resubmitted_ByDPID looks a direct producer up by
+-- "rpd.Organisations.ReferenceNumber = @DPOrganisation_ID". Left to the sequence the value depends
+-- on how many organisations were inserted before this one, so it drifts whenever the seed is
+-- reordered or re-run, silently breaking that correspondence.
 if not exists (select 1 from Organisations where ExternalId = @dpOrgExternalId)
     insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName,
-        ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '17121895', 'POP QUEST LTD', '', 1, 0, 1, @dpOrgExternalId)
+        ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121895', 'POP QUEST LTD', '', '165282', 1, 0, 1, @dpOrgExternalId)
 
 declare @dpOrgId int
 set @dpOrgId = (select Id from Organisations where ExternalId = @dpOrgExternalId)
@@ -134,6 +141,55 @@ set @dpBasicConnectionId = (select top 1 Id from PersonOrganisationConnections w
 if not exists (select 1 from Enrolments where ConnectionId = @dpBasicConnectionId)
     insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
     values (@dpBasicConnectionId, 3, 3)
+
+-- ============================================================
+-- 2 subsidiary companies attached to POP QUEST LTD (the Direct Producer above).
+-- Same three-table shape the real journey produces (see BulkUploadController ->
+-- OrganisationService.AddOrganisationAndOrganisationRelationshipsAsync): the subsidiary's own
+-- Organisations row, an OrganisationRelationships row (type 1 = Parent) pointing parent -> child,
+-- and a SubsidiaryOrganisations marker keyed on the subsidiary's own generated ReferenceNumber.
+-- Subsidiaries get no Users/Persons/Enrolments - they have no login of their own and are managed
+-- under POP QUEST LTD's account. Mirrored into epr-common-data-api-migrations/seed.sql as
+-- rpd.Organisations 165283/165284 using these same ExternalIds.
+-- ============================================================
+
+-- DP Subsidiary 1: POP QUEST (NORTH) LTD
+declare @dpSub1ExternalId uniqueidentifier
+set @dpSub1ExternalId = '3F7C1A94-2D18-4E6B-9C05-7A1E4B8D3C62'
+
+if not exists (select 1 from Organisations where ExternalId = @dpSub1ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121896', 'POP QUEST (NORTH) LTD', '', '165283', 1, 0, 1, @dpSub1ExternalId)
+
+declare @dpSub1OrgId int
+set @dpSub1OrgId = (select Id from Organisations where ExternalId = @dpSub1ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @dpOrgId and SecondOrganisationId = @dpSub1OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@dpOrgId, @dpSub1OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpSub1OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@dpSub1OrgId, (select ReferenceNumber from Organisations where Id = @dpSub1OrgId))
+
+-- DP Subsidiary 2: POP QUEST (SOUTH) LTD
+declare @dpSub2ExternalId uniqueidentifier
+set @dpSub2ExternalId = 'B5E90D27-6C3A-4F81-A24E-8D0F5B7C91A3'
+
+if not exists (select 1 from Organisations where ExternalId = @dpSub2ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121897', 'POP QUEST (SOUTH) LTD', '', '165284', 1, 0, 1, @dpSub2ExternalId)
+
+declare @dpSub2OrgId int
+set @dpSub2OrgId = (select Id from Organisations where ExternalId = @dpSub2ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @dpOrgId and SecondOrganisationId = @dpSub2OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@dpOrgId, @dpSub2OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpSub2OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@dpSub2OrgId, (select ReferenceNumber from Organisations where Id = @dpSub2OrgId))
 
 -- Delegated user for Compliance Scheme org
 declare @csDelegatedUserId uniqueidentifier
@@ -221,6 +277,12 @@ when not matched then
     values (1, src.Name, 1, src.IsComplianceScheme, 1, src.ExternalId);
 
 -- ============================================================
+-- ReferenceNumber is pinned explicitly for the whole Northbridge family (scheme, 10 members,
+-- 4 subsidiaries) rather than left to the OrganisationReferenceNumber sequence. It is the
+-- organisation id shown in the UI and it must equal rpd.Organisations.ReferenceNumber in the
+-- Synapse replica and the organisation_id/subsidiary_id columns in the seeded CSVs, otherwise the
+-- same organisation carries a different id in each store. Sequence-assigned values depend on how
+-- many organisations were inserted first, so they drift whenever this file is reordered or re-run.
 -- New Compliance Scheme: Northbridge Compliance Solutions Ltd
 -- with an Approved/Delegated/Basic user, 10 member organisations,
 -- and 4 subsidiary companies attached to two of those members
@@ -231,8 +293,8 @@ declare @csNewOrgExternalId uniqueidentifier
 set @csNewOrgExternalId = '0BB650B9-125E-4D64-B1D0-06B9E167B2D4'
 
 if not exists (select 1 from Organisations where ExternalId = @csNewOrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000000', 'Northbridge Compliance Solutions Ltd', '', 1, 1, 1, @csNewOrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000000', 'Northbridge Compliance Solutions Ltd', '', '110000', 1, 1, 1, @csNewOrgExternalId)
 
 declare @csNewOrgId int
 set @csNewOrgId = (select Id from Organisations where ExternalId = @csNewOrgExternalId)
@@ -343,8 +405,8 @@ declare @m1OrgExternalId uniqueidentifier
 set @m1OrgExternalId = '3151DBE5-A8AD-4D82-9471-1C469FA13918'
 
 if not exists (select 1 from Organisations where ExternalId = @m1OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000001', 'BRAMBLEWOOD PACKAGING LTD', '', 1, 0, 1, @m1OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000001', 'BRAMBLEWOOD PACKAGING LTD', '', '110001', 1, 0, 1, @m1OrgExternalId)
 
 declare @m1OrgId int
 set @m1OrgId = (select Id from Organisations where ExternalId = @m1OrgExternalId)
@@ -392,8 +454,8 @@ declare @m2OrgExternalId uniqueidentifier
 set @m2OrgExternalId = '4BDF517C-6270-4660-8B5E-97ADD9379A2A'
 
 if not exists (select 1 from Organisations where ExternalId = @m2OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000002', 'SILVERDALE FOODS LTD', '', 1, 0, 1, @m2OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000002', 'SILVERDALE FOODS LTD', '', '110002', 1, 0, 1, @m2OrgExternalId)
 
 declare @m2OrgId int
 set @m2OrgId = (select Id from Organisations where ExternalId = @m2OrgExternalId)
@@ -441,8 +503,8 @@ declare @m3OrgExternalId uniqueidentifier
 set @m3OrgExternalId = '1E7967C2-56DB-4686-8E3E-0815B86A6530'
 
 if not exists (select 1 from Organisations where ExternalId = @m3OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000003', 'TIDELINE BEVERAGES LTD', '', 1, 0, 1, @m3OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000003', 'TIDELINE BEVERAGES LTD', '', '110003', 1, 0, 1, @m3OrgExternalId)
 
 declare @m3OrgId int
 set @m3OrgId = (select Id from Organisations where ExternalId = @m3OrgExternalId)
@@ -490,8 +552,8 @@ declare @m4OrgExternalId uniqueidentifier
 set @m4OrgExternalId = '6F9EDECE-A5A4-4446-8A59-709BA6A251BF'
 
 if not exists (select 1 from Organisations where ExternalId = @m4OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000004', 'COPPERGATE HOMEWARES LTD', '', 1, 0, 1, @m4OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000004', 'COPPERGATE HOMEWARES LTD', '', '110004', 1, 0, 1, @m4OrgExternalId)
 
 declare @m4OrgId int
 set @m4OrgId = (select Id from Organisations where ExternalId = @m4OrgExternalId)
@@ -539,8 +601,8 @@ declare @m5OrgExternalId uniqueidentifier
 set @m5OrgExternalId = '7E3FB4D2-6F42-4B29-A9EB-4E742E6188F7'
 
 if not exists (select 1 from Organisations where ExternalId = @m5OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000005', 'FERNLEIGH COSMETICS LTD', '', 1, 0, 1, @m5OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000005', 'FERNLEIGH COSMETICS LTD', '', '110005', 1, 0, 1, @m5OrgExternalId)
 
 declare @m5OrgId int
 set @m5OrgId = (select Id from Organisations where ExternalId = @m5OrgExternalId)
@@ -588,8 +650,8 @@ declare @m6OrgExternalId uniqueidentifier
 set @m6OrgExternalId = '21476EDE-69EC-4DEE-A9BC-1EB1E17770FD'
 
 if not exists (select 1 from Organisations where ExternalId = @m6OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000006', 'QUARRYSTONE HARDWARE LTD', '', 1, 0, 1, @m6OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000006', 'QUARRYSTONE HARDWARE LTD', '', '110006', 1, 0, 1, @m6OrgExternalId)
 
 declare @m6OrgId int
 set @m6OrgId = (select Id from Organisations where ExternalId = @m6OrgExternalId)
@@ -637,8 +699,8 @@ declare @m7OrgExternalId uniqueidentifier
 set @m7OrgExternalId = 'FF2991E2-442E-4582-8357-1F99149A05EC'
 
 if not exists (select 1 from Organisations where ExternalId = @m7OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000007', 'MAPLECROFT STATIONERY LTD', '', 1, 0, 1, @m7OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000007', 'MAPLECROFT STATIONERY LTD', '', '110007', 1, 0, 1, @m7OrgExternalId)
 
 declare @m7OrgId int
 set @m7OrgId = (select Id from Organisations where ExternalId = @m7OrgExternalId)
@@ -686,8 +748,8 @@ declare @m8OrgExternalId uniqueidentifier
 set @m8OrgExternalId = '7C24CCF3-3B59-475C-9292-2102ADD4E40A'
 
 if not exists (select 1 from Organisations where ExternalId = @m8OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000008', 'HARBOURVIEW TEXTILES LTD', '', 1, 0, 1, @m8OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000008', 'HARBOURVIEW TEXTILES LTD', '', '110008', 1, 0, 1, @m8OrgExternalId)
 
 declare @m8OrgId int
 set @m8OrgId = (select Id from Organisations where ExternalId = @m8OrgExternalId)
@@ -735,8 +797,8 @@ declare @m9OrgExternalId uniqueidentifier
 set @m9OrgExternalId = '3AD56639-56C4-47B3-AECF-8290D022478E'
 
 if not exists (select 1 from Organisations where ExternalId = @m9OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000009', 'GREENFIELD DAIRY LTD', '', 1, 0, 1, @m9OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000009', 'GREENFIELD DAIRY LTD', '', '110009', 1, 0, 1, @m9OrgExternalId)
 
 declare @m9OrgId int
 set @m9OrgId = (select Id from Organisations where ExternalId = @m9OrgExternalId)
@@ -784,8 +846,8 @@ declare @m10OrgExternalId uniqueidentifier
 set @m10OrgExternalId = '6C65994D-2144-49E7-8992-D87EA65C918E'
 
 if not exists (select 1 from Organisations where ExternalId = @m10OrgExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000010', 'STONEBRIDGE ELECTRONICS LTD', '', 1, 0, 1, @m10OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000010', 'STONEBRIDGE ELECTRONICS LTD', '', '110010', 1, 0, 1, @m10OrgExternalId)
 
 declare @m10OrgId int
 set @m10OrgId = (select Id from Organisations where ExternalId = @m10OrgExternalId)
@@ -836,8 +898,8 @@ declare @sub1ExternalId uniqueidentifier
 set @sub1ExternalId = 'AE4E52DB-074F-4BBF-8A00-36C8EF9F226F'
 
 if not exists (select 1 from Organisations where ExternalId = @sub1ExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000011', 'BRAMBLEWOOD PACKAGING (NORTH) LTD', '', 1, 0, 1, @sub1ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000011', 'BRAMBLEWOOD PACKAGING (NORTH) LTD', '', '110011', 1, 0, 1, @sub1ExternalId)
 
 declare @sub1OrgId int
 set @sub1OrgId = (select Id from Organisations where ExternalId = @sub1ExternalId)
@@ -855,8 +917,8 @@ declare @sub2ExternalId uniqueidentifier
 set @sub2ExternalId = '8CF2EDC6-496A-4A2B-B54D-4676AADC86AE'
 
 if not exists (select 1 from Organisations where ExternalId = @sub2ExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000012', 'BRAMBLEWOOD PACKAGING (SOUTH) LTD', '', 1, 0, 1, @sub2ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000012', 'BRAMBLEWOOD PACKAGING (SOUTH) LTD', '', '110012', 1, 0, 1, @sub2ExternalId)
 
 declare @sub2OrgId int
 set @sub2OrgId = (select Id from Organisations where ExternalId = @sub2ExternalId)
@@ -874,8 +936,8 @@ declare @sub3ExternalId uniqueidentifier
 set @sub3ExternalId = '60B825FA-939A-418C-ADE3-21451DFD2431'
 
 if not exists (select 1 from Organisations where ExternalId = @sub3ExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000013', 'SILVERDALE FOODS DISTRIBUTION LTD', '', 1, 0, 1, @sub3ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000013', 'SILVERDALE FOODS DISTRIBUTION LTD', '', '110013', 1, 0, 1, @sub3ExternalId)
 
 declare @sub3OrgId int
 set @sub3OrgId = (select Id from Organisations where ExternalId = @sub3ExternalId)
@@ -893,8 +955,8 @@ declare @sub4ExternalId uniqueidentifier
 set @sub4ExternalId = 'F28905E3-6419-45BD-9256-EED4B49E8B9D'
 
 if not exists (select 1 from Organisations where ExternalId = @sub4ExternalId)
-    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
-    values (1, '11000014', 'SILVERDALE FOODS RETAIL LTD', '', 1, 0, 1, @sub4ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000014', 'SILVERDALE FOODS RETAIL LTD', '', '110014', 1, 0, 1, @sub4ExternalId)
 
 declare @sub4OrgId int
 set @sub4OrgId = (select Id from Organisations where ExternalId = @sub4ExternalId)

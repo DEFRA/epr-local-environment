@@ -36,6 +36,9 @@ Flows often cross the Azure/CDP boundary during the transition - follow the call
 - [exploration-guide.md](exploration-guide.md) - How to trace data flows, debug issues
 - [data-flows.md](data-flows.md) - Flow index, documentation template, and quality checklist
 
+### Local Testing Strategy
+- [common-data-api-testing-strategy.md](common-data-api-testing-strategy.md) - Stub vs. seed decision rule for common-data-api/Synapse data in this environment, with case studies
+
 ### Traced Data Flows
 Pre-traced multi-service flows. Use these to avoid re-discovering complex cross-service paths, and as examples of how to document new flow investigations.
 - [flows/manage-packaging-data-submissions-architecture.md](flows/manage-packaging-data-submissions-architecture.md) - Dual-source merge: CosmosDB + Synapse for regulator submissions view

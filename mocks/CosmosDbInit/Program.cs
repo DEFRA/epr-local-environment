@@ -43,6 +43,8 @@ foreach (var (name, partitionKeyPath) in containers)
 
 await SeedNorthbridgeRegistrationsAsync(database.Database);
 await SeedNorthbridgePackagingDataAsync(database.Database);
+await SeedPopQuestRegistrationsAsync(database.Database);
+await SeedPopQuestPackagingDataAsync(database.Database);
 
 Console.WriteLine("Cosmos DB emulator initialisation complete.");
 
@@ -622,6 +624,398 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
     });
     Console.WriteLine($"Seeded packaging data submission {h1_2026SubmissionId} (2026 H1, Accepted then Rejected on resubmission)");
 }
+
+// POP QUEST LTD (CHN 17121895): the Direct Producer equivalent of the Northbridge seeds above.
+// The shapes are deliberately the same - the differences that matter for a direct producer are
+// that no ComplianceSchemeId is set anywhere, RegistrationJourney stays null, and the
+// "members" behind the data are the producer itself plus its 2 subsidiaries rather than scheme
+// members. Mirrors the same GUIDs seeded into the Synapse replica in
+// epr-common-data-api-migrations/seed.sql and uploaded to Azurite by compose.yml's azurite-init.
+static async Task SeedPopQuestRegistrationsAsync(Database database)
+{
+    const string approvedPersonUserId = "79D0DEAB-C22D-4C30-8082-508FF8DC1BD7";
+    const string popQuestOrgId = "E2316C5E-D434-41DA-8274-494DC0762D20";
+    const string regulatorUserId = "a586e22f-0df0-4a24-8048-ae7d0aabbbbc";
+    const string uploadContainerName = "registration-upload-container";
+
+    var submissionsContainer = database.GetContainer("Submissions");
+    var eventsContainer = database.GetContainer("SubmissionEvents");
+
+    var submissions = new[]
+    {
+        new PopQuestRegistrationSeed(
+            SubmissionId: "F2A3B4C5-D6E7-4F8A-8B9C-0D1E2F3A4B56",
+            FileId: "A3B4C5D6-E7F8-4A9B-8C0D-1E2F3A4B5C67",
+            BlobName: "B4C5D6E7-F8A9-4B0C-8D1E-2F3A4B5C6D78",
+            FileName: "PopQuest_CompanyDetails_2025.csv",
+            SubmissionPeriod: "January to December 2025",
+            AppReferenceNumber: "PQL-2025-APP-0001",
+            RegistrationReferenceNumber: "PQL-2025-REG-0001",
+            PaidAmount: "2600.00",
+            EventIdPrefix: "D3D3D3D3-DDDD-4DDD-8DDD",
+            Day: "2025-04-01",
+            DecisionDay: "2025-04-19"),
+        new PopQuestRegistrationSeed(
+            SubmissionId: "C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89",
+            FileId: "D6E7F8A9-B0C1-4D2E-8F3A-4B5C6D7E8F90",
+            BlobName: "E7F8A9B0-C1D2-4E3F-8A4B-5C6D7E8F9A01",
+            FileName: "PopQuest_CompanyDetails_2026.csv",
+            SubmissionPeriod: "January to December 2026",
+            AppReferenceNumber: "PQL-2026-APP-0001",
+            RegistrationReferenceNumber: "PQL-2026-REG-0001",
+            PaidAmount: "2750.00",
+            EventIdPrefix: "D4D4D4D4-DDDD-4DDD-8DDD",
+            Day: "2026-04-01",
+            DecisionDay: "2026-04-18"),
+    };
+
+    foreach (var s in submissions)
+    {
+        // Every Guid-shaped value is lowercased for the same reason as the Northbridge seeds -
+        // EF Core's Cosmos provider binds LINQ query parameters as lowercase strings and the
+        // comparison is case-sensitive.
+        await submissionsContainer.UpsertItemAsync(new Dictionary<string, object?>
+        {
+            ["id"] = s.SubmissionId.ToLowerInvariant(),
+            ["SubmissionId"] = s.SubmissionId.ToLowerInvariant(),
+            ["SubmissionType"] = "Registration",
+            ["SubmissionPeriod"] = s.SubmissionPeriod,
+            ["DataSourceType"] = "File",
+            ["OrganisationId"] = popQuestOrgId.ToLowerInvariant(),
+            ["UserId"] = approvedPersonUserId.ToLowerInvariant(),
+            ["IsSubmitted"] = true,
+            ["IsResubmission"] = false,
+            // No ComplianceSchemeId - this is a direct producer, not a scheme member.
+            ["AppReferenceNumber"] = s.AppReferenceNumber,
+            ["Created"] = $"{s.Day}T09:15:00.0000000Z",
+            ["RegistrationJourney"] = null,
+        }, new PartitionKey(s.SubmissionId.ToLowerInvariant()));
+
+        Task UpsertEvent(int seq, string type, string created, Dictionary<string, object?> extra)
+        {
+            var eventId = $"{s.EventIdPrefix}-{seq:D12}".ToLowerInvariant();
+            var doc = new Dictionary<string, object?>
+            {
+                ["id"] = $"{type}|{eventId}",
+                ["SubmissionEventId"] = eventId,
+                ["SubmissionId"] = s.SubmissionId.ToLowerInvariant(),
+                ["Type"] = type,
+                ["UserId"] = approvedPersonUserId.ToLowerInvariant(),
+                ["Created"] = created,
+                ["Errors"] = Array.Empty<string>(),
+                ["BlobContainerName"] = uploadContainerName,
+            };
+            foreach (var (key, value) in extra)
+            {
+                doc[key] = value;
+            }
+
+            return eventsContainer.UpsertItemAsync(doc, new PartitionKey(eventId));
+        }
+
+        await UpsertEvent(1, "AntivirusCheck", $"{s.Day}T09:15:00.0000000Z", new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["FileType"] = "CompanyDetails",
+            ["FileName"] = s.FileName,
+            ["RegistrationSetId"] = null,
+        });
+
+        await UpsertEvent(2, "AntivirusResult", $"{s.Day}T09:17:32.0000000Z", new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["BlobName"] = s.BlobName.ToLowerInvariant(),
+            ["AntivirusScanResult"] = "Success",
+            ["AntivirusScanTrigger"] = "Upload",
+            ["RequiresRowValidation"] = false,
+        });
+
+        // BlobName must match the AntivirusResult event above - see the note on the Northbridge
+        // equivalent: GetRegistrationValidationEventByBlobName is dereferenced unguarded.
+        await UpsertEvent(3, "Registration", $"{s.Day}T09:18:10.0000000Z", new()
+        {
+            ["IsValid"] = true,
+            ["ErrorCount"] = 0,
+            ["WarningCount"] = 0,
+            ["RequiresBrandsFile"] = false,
+            ["RequiresPartnershipsFile"] = false,
+            ["HasMaxRowErrors"] = false,
+            ["RowErrorCount"] = 0,
+            // The producer itself plus its 2 subsidiaries.
+            ["OrganisationMemberCount"] = 3,
+            ["BlobName"] = s.BlobName.ToLowerInvariant(),
+        });
+
+        await UpsertEvent(4, "Submitted", $"{s.Day}T09:20:00.0000000Z", new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["SubmittedBy"] = "Olivia Reed",
+            ["IsResubmission"] = false,
+            ["RegistrationJourney"] = null,
+        });
+
+        await UpsertEvent(5, "RegistrationFeePayment", $"{s.Day}T09:25:44.0000000Z", new()
+        {
+            ["ApplicationReferenceNumber"] = s.AppReferenceNumber,
+            ["PaymentMethod"] = "PayOnline",
+            ["PaymentStatus"] = "Paid",
+            ["PaidAmount"] = s.PaidAmount,
+            ["IsResubmission"] = false,
+            ["RegistrationJourney"] = null,
+        });
+
+        await UpsertEvent(6, "RegistrationApplicationSubmitted", $"{s.Day}T09:26:05.0000000Z", new()
+        {
+            ["ApplicationReferenceNumber"] = s.AppReferenceNumber,
+            ["SubmissionDate"] = $"{s.Day}T09:26:05.0000000Z",
+            ["IsResubmission"] = false,
+            ["RegistrationJourney"] = null,
+        });
+
+        await UpsertEvent(7, "RegulatorRegistrationDecision", $"{s.DecisionDay}T11:00:00.0000000Z", new()
+        {
+            ["FileId"] = s.FileId.ToLowerInvariant(),
+            ["Decision"] = "Accepted",
+            ["RegistrationReferenceNumber"] = s.RegistrationReferenceNumber,
+            ["DecisionDate"] = $"{s.DecisionDay}T11:00:00.0000000Z",
+            ["Comments"] = "Registration approved",
+            ["UserId"] = regulatorUserId.ToLowerInvariant(),
+        });
+
+        Console.WriteLine($"Seeded POP QUEST registration submission {s.SubmissionId} ({s.FileName})");
+    }
+}
+
+// POP QUEST LTD Packaging Data (POM) submissions: 2025 H1 (Accepted), 2025 H2 (Accepted then a
+// resubmission already in progress - new file uploaded and fee viewed, but not paid or finally
+// submitted), 2026 H1 (Accepted then a corrected file Rejected). The 2025 H1/H2 Synapse rows
+// already existed in seed.sql before this was added; these documents give them their missing
+// Cosmos counterpart so they actually surface in the frontend.
+static async Task SeedPopQuestPackagingDataAsync(Database database)
+{
+    const string approvedPersonUserId = "79D0DEAB-C22D-4C30-8082-508FF8DC1BD7";
+    const string popQuestOrgId = "E2316C5E-D434-41DA-8274-494DC0762D20";
+    const string regulatorUserId = "a586e22f-0df0-4a24-8048-ae7d0aabbbbc";
+    const string uploadContainerName = "pom-upload-container-recyclers";
+
+    var submissionsContainer = database.GetContainer("Submissions");
+    var eventsContainer = database.GetContainer("SubmissionEvents");
+
+    Task UpsertSubmission(string submissionId, string submissionPeriod, bool isResubmission, string created) =>
+        submissionsContainer.UpsertItemAsync(new Dictionary<string, object?>
+        {
+            ["id"] = submissionId.ToLowerInvariant(),
+            ["SubmissionId"] = submissionId.ToLowerInvariant(),
+            ["SubmissionType"] = "Producer",
+            ["SubmissionPeriod"] = submissionPeriod,
+            ["DataSourceType"] = "File",
+            ["OrganisationId"] = popQuestOrgId.ToLowerInvariant(),
+            ["UserId"] = approvedPersonUserId.ToLowerInvariant(),
+            ["IsSubmitted"] = true,
+            ["IsResubmission"] = isResubmission,
+            // No ComplianceSchemeId - direct producer.
+            ["Created"] = created,
+        }, new PartitionKey(submissionId.ToLowerInvariant()));
+
+    Task UpsertEvent(string submissionId, string eventId, string type, string created, Dictionary<string, object?> extra)
+    {
+        var lowerEventId = eventId.ToLowerInvariant();
+        var doc = new Dictionary<string, object?>
+        {
+            ["id"] = $"{type}|{lowerEventId}",
+            ["SubmissionEventId"] = lowerEventId,
+            ["SubmissionId"] = submissionId.ToLowerInvariant(),
+            ["Type"] = type,
+            ["UserId"] = approvedPersonUserId.ToLowerInvariant(),
+            ["Created"] = created,
+            ["Errors"] = Array.Empty<string>(),
+        };
+        foreach (var (key, value) in extra)
+        {
+            doc[key] = value;
+        }
+
+        return eventsContainer.UpsertItemAsync(doc, new PartitionKey(lowerEventId));
+    }
+
+    // Emits the standard accepted POM chain for one uploaded file:
+    // AntivirusCheck -> AntivirusResult -> CheckSplitter -> ProducerValidation -> Submitted.
+    // The regulator decision is left to the caller since it differs per submission.
+    // eventIds must supply exactly those 5 ids, in that order - they are passed in rather than
+    // generated so the pre-existing 2025 H1/H2 events can reuse the GUIDs already committed to
+    // epr-common-data-api-migrations/seed.sql instead of inventing a second set.
+    async Task UpsertFileCycle(string submissionId, string[] eventIds, string fileId,
+        string blobName, string fileName, string period, string day, bool isResubmission)
+    {
+        string Id(int index) => eventIds[index];
+
+        await UpsertEvent(submissionId, Id(0), "AntivirusCheck", $"{day}T09:00:00.0000000Z", new()
+        {
+            ["FileId"] = fileId.ToLowerInvariant(),
+            ["FileType"] = "Pom",
+            ["FileName"] = fileName,
+            ["BlobContainerName"] = uploadContainerName,
+        });
+        await UpsertEvent(submissionId, Id(1), "AntivirusResult", $"{day}T09:02:10.0000000Z", new()
+        {
+            ["FileId"] = fileId.ToLowerInvariant(),
+            ["BlobName"] = blobName.ToLowerInvariant(),
+            ["AntivirusScanResult"] = "Success",
+            ["AntivirusScanTrigger"] = "Upload",
+            ["RequiresRowValidation"] = false,
+        });
+        await UpsertEvent(submissionId, Id(2), "CheckSplitter", $"{day}T09:03:00.0000000Z", new()
+        {
+            ["IsValid"] = true,
+            ["ErrorCount"] = 0,
+            ["WarningCount"] = 0,
+            ["DataCount"] = 1,
+            ["BlobName"] = blobName.ToLowerInvariant(),
+        });
+        await UpsertEvent(submissionId, Id(3), "ProducerValidation", $"{day}T09:03:40.0000000Z", new()
+        {
+            ["IsValid"] = true,
+            ["ErrorCount"] = 0,
+            ["WarningCount"] = 0,
+            ["BlobName"] = blobName.ToLowerInvariant(),
+        });
+        await UpsertEvent(submissionId, Id(4), "Submitted", $"{day}T09:05:00.0000000Z", new()
+        {
+            ["FileId"] = fileId.ToLowerInvariant(),
+            ["SubmittedBy"] = "Olivia Reed",
+            ["IsResubmission"] = isResubmission,
+            ["SubmissionPeriod"] = period,
+        });
+    }
+
+    // ---- 2025 H1: Accepted ----
+    const string h1SubmissionId = "C3D4E5F6-A7B8-4C9D-0E1F-2A3B4C5D6E7F";
+    const string h1FileId = "D4E5F6A7-B8C9-4D0E-1F2A-3B4C5D6E7F80";
+    const string h1BlobName = "A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D";
+    // a1/a2/a3/a4 already exist in seed.sql's DP block; a5/a6 are the CheckSplitter and
+    // ProducerValidation events that block was missing and which seed.sql now also adds.
+    string[] h1EventIds =
+    [
+        "a1a1a1a1-1111-4111-8111-111111111111", "a2a2a2a2-2222-4222-8222-222222222222",
+        "a5a5a5a5-5555-4555-8555-555555555555", "a6a6a6a6-6666-4666-8666-666666666666",
+        "a3a3a3a3-3333-4333-8333-333333333333",
+    ];
+
+    await UpsertSubmission(h1SubmissionId, "January to June 2025", isResubmission: false, created: "2025-07-08T09:00:00.0000000Z");
+    await UpsertFileCycle(h1SubmissionId, h1EventIds, h1FileId, h1BlobName,
+        "PopQuest_Pom_2025H1.csv", "January to June 2025", "2025-07-08", isResubmission: false);
+    await UpsertEvent(h1SubmissionId, "a4a4a4a4-4444-4444-8444-444444444444", "RegulatorPoMDecision", "2025-07-22T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = h1FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "PQL-2025H1-POM-DEC-0001",
+        ["DecisionDate"] = "2025-07-22T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {h1SubmissionId} (2025 H1, Accepted)");
+
+    // ---- 2025 H2: Accepted, then a resubmission already in progress ----
+    const string h2SubmissionId = "E5F6A7B8-C9D0-4E1F-2A3B-4C5D6E7F8091";
+    const string h2FileId = "F6A7B8C9-D0E1-4F2A-3B4C-5D6E7F809112";
+    const string h2BlobName = "B2C3D4E5-F6A7-4B8C-9D0E-1F2A3B4C5D6E";
+    const string h2ResubFileId = "B8C9D0E1-F2A3-4B4C-8D5E-6F7A8B9C0D12";
+    const string h2ResubBlobName = "A7B8C9D0-E1F2-4A3B-8C4D-5E6F7A8B9C01";
+    const string h2Prefix = "D1D1D1D1-DDDD-4DDD-8DDD";
+    // b1..b4 already exist in seed.sql's DP block; b5/b6 fill the same two gaps as a5/a6 above.
+    string[] h2EventIds =
+    [
+        "b1b1b1b1-1111-4111-8111-111111111111", "b2b2b2b2-2222-4222-8222-222222222222",
+        "b5b5b5b5-5555-4555-8555-555555555555", "b6b6b6b6-6666-4666-8666-666666666666",
+        "b3b3b3b3-3333-4333-8333-333333333333",
+    ];
+
+    await UpsertSubmission(h2SubmissionId, "July to December 2025", isResubmission: true, created: "2025-10-06T09:00:00.0000000Z");
+    await UpsertFileCycle(h2SubmissionId, h2EventIds, h2FileId, h2BlobName,
+        "PopQuest_Pom_2025H2.csv", "July to December 2025", "2025-10-06", isResubmission: false);
+    await UpsertEvent(h2SubmissionId, "b4b4b4b4-4444-4444-8444-444444444444", "RegulatorPoMDecision", "2025-10-20T11:00:00.0000000Z", new()
+    {
+        ["FileId"] = h2FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "PQL-2025H2-POM-DEC-0001",
+        ["DecisionDate"] = "2025-10-20T11:00:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+
+    // The resubmission tail. Deliberately no PackagingDataResubmissionFeePayment or
+    // PackagingResubmissionApplicationSubmitted event - the fee is ready to view but not yet paid
+    // or finally submitted, which is the state under test. The reference number here must match
+    // the one the sp_PomResubmissionPaycalParameters stub returns for this SubmissionId.
+    await UpsertEvent(h2SubmissionId, $"{h2Prefix}-{1:D12}", "PackagingResubmissionReferenceNumberCreated", "2026-01-20T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "PQL-2025H2-POM-RESUB-0001",
+    });
+    await UpsertFileCycle(h2SubmissionId,
+        [$"{h2Prefix}-{2:D12}", $"{h2Prefix}-{3:D12}", $"{h2Prefix}-{4:D12}", $"{h2Prefix}-{5:D12}", $"{h2Prefix}-{6:D12}"],
+        h2ResubFileId, h2ResubBlobName,
+        "PopQuest_Pom_2025H2_Resubmission.csv", "July to December 2025", "2026-01-20", isResubmission: true);
+    await UpsertEvent(h2SubmissionId, $"{h2Prefix}-{7:D12}", "PackagingResubmissionFeeViewed", "2026-01-20T10:10:00.0000000Z", new()
+    {
+        ["FileId"] = h2ResubFileId.ToLowerInvariant(),
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {h2SubmissionId} (2025 H2, Accepted + resubmission in progress)");
+
+    // ---- 2026 H1: Accepted, then a corrected file Rejected ----
+    const string y26SubmissionId = "C9D0E1F2-A3B4-4C5D-8E6F-7A8B9C0D1E23";
+    const string y26FileIdA = "D0E1F2A3-B4C5-4D6E-8F7A-8B9C0D1E2F34";
+    const string y26BlobNameA = "E1F2A3B4-C5D6-4E7F-8A8B-9C0D1E2F3A45";
+    const string y26FileIdB = "1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5E";
+    const string y26BlobNameB = "2B3C4D5E-6F7A-4B8C-9D0E-1F2A3B4C5D6F";
+    const string y26Prefix = "D2D2D2D2-DDDD-4DDD-8DDD";
+
+    await UpsertSubmission(y26SubmissionId, "January to June 2026", isResubmission: false, created: "2026-01-08T09:00:00.0000000Z");
+    await UpsertFileCycle(y26SubmissionId,
+        [$"{y26Prefix}-{1:D12}", $"{y26Prefix}-{2:D12}", $"{y26Prefix}-{3:D12}", $"{y26Prefix}-{4:D12}", $"{y26Prefix}-{5:D12}"],
+        y26FileIdA, y26BlobNameA,
+        "PopQuest_Pom_2026H1.csv", "January to June 2026", "2026-01-08", isResubmission: false);
+    await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{6:D12}", "RegulatorPoMDecision", "2026-01-22T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = y26FileIdA.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "PQL-2026H1-POM-DEC-0001",
+        ["DecisionDate"] = "2026-01-22T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    await UpsertFileCycle(y26SubmissionId,
+        [$"{y26Prefix}-{7:D12}", $"{y26Prefix}-{8:D12}", $"{y26Prefix}-{9:D12}", $"{y26Prefix}-{10:D12}", $"{y26Prefix}-{11:D12}"],
+        y26FileIdB, y26BlobNameB,
+        "PopQuest_Pom_2026H1_Corrected.csv", "January to June 2026", "2026-07-07", isResubmission: false);
+    await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{12:D12}", "RegulatorPoMDecision", "2026-07-21T10:15:00.0000000Z", new()
+    {
+        ["FileId"] = y26FileIdB.ToLowerInvariant(),
+        ["Decision"] = "Rejected",
+        ["RegistrationReferenceNumber"] = "PQL-2026H1-POM-DEC-0002",
+        ["DecisionDate"] = "2026-07-21T10:15:00.0000000Z",
+        ["Comments"] = "Packaging data rejected: the corrected material weight figures do not reconcile with the originally accepted submission for this period",
+        ["IsResubmissionRequired"] = true,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {y26SubmissionId} (2026 H1, Accepted then Rejected on resubmission)");
+}
+
+record PopQuestRegistrationSeed(
+    string SubmissionId,
+    string FileId,
+    string BlobName,
+    string FileName,
+    string SubmissionPeriod,
+    string AppReferenceNumber,
+    string RegistrationReferenceNumber,
+    string PaidAmount,
+    string EventIdPrefix,
+    string Day,
+    string DecisionDay);
 
 record RegistrationSubmissionSeed(
     string SubmissionId,

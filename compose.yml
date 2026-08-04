@@ -96,6 +96,7 @@ services:
         condition: service_healthy
     volumes:
       - ./compose/seed-data/northbridge:/seed-data/northbridge:ro
+      - ./compose/seed-data/popquest:/seed-data/popquest:ro
     entrypoint: >
       sh -c "
       az storage container create --name 'paycal' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
@@ -113,7 +114,15 @@ services:
       az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name '5ee9c2ca-0100-488a-be21-7a7f6546c913' --file '/seed-data/northbridge/Northbridge_Pom_2025H1.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name '0db4f56a-e98c-4b34-b020-9c67e2adbd5c' --file '/seed-data/northbridge/Northbridge_Pom_2025H2_Resubmission.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'b52aaee6-5c64-4c55-b194-6140488f6063' --file '/seed-data/northbridge/Northbridge_Pom_2026H1_Corrected.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
-      echo 'Northbridge seed blobs uploaded successfully'
+      echo 'Northbridge seed blobs uploaded successfully' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name 'b4c5d6e7-f8a9-4b0c-8d1e-2f3a4b5c6d78' --file '/seed-data/popquest/PopQuest_CompanyDetails_2025.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name 'e7f8a9b0-c1d2-4e3f-8a4b-5c6d7e8f9a01' --file '/seed-data/popquest/PopQuest_CompanyDetails_2026.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' --file '/seed-data/popquest/PopQuest_Pom_2025H1.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e' --file '/seed-data/popquest/PopQuest_Pom_2025H2.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c01' --file '/seed-data/popquest/PopQuest_Pom_2025H2_Resubmission.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'e1f2a3b4-c5d6-4e7f-8a8b-9c0d1e2f3a45' --file '/seed-data/popquest/PopQuest_Pom_2026H1.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6f' --file '/seed-data/popquest/PopQuest_Pom_2026H1_Corrected.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      echo 'POP QUEST seed blobs uploaded successfully'
       "
     profiles:
       - paycal
@@ -827,9 +836,15 @@ services:
       Services__ProducerFeesService__Url: http://epr-payment-service:8080/api
       Services__ProducerFeesService__EndPointName: v1
       Services__ProducerFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__ProducerFeesV2Service__Url: http://epr-payment-service:8080/api
+      Services__ProducerFeesV2Service__EndPointName: v2
+      Services__ProducerFeesV2Service__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__ComplianceSchemeFeesService__Url: http://epr-payment-service:8080/api
       Services__ComplianceSchemeFeesService__EndPointName: v1
       Services__ComplianceSchemeFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__ComplianceSchemeFeesServiceV2__Url: http://epr-payment-service:8080/api
+      Services__ComplianceSchemeFeesServiceV2__EndPointName: v2
+      Services__ComplianceSchemeFeesServiceV2__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__ProducerResubmissionFeesService__Url: http://epr-payment-service:8080/api
       Services__ProducerResubmissionFeesService__EndPointName: v1
       Services__ProducerResubmissionFeesService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
@@ -842,9 +857,15 @@ services:
       Services__PaymentService__Url: http://epr-payment-service:8080/api
       Services__PaymentService__EndPointName: v1
       Services__PaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__OnlineV2PaymentService__Url: http://epr-payment-service:8080/api
+      Services__OnlineV2PaymentService__EndPointName: v2
+      Services__OnlineV2PaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__OfflinePaymentService__Url: http://epr-payment-service:8080/api
       Services__OfflinePaymentService__EndPointName: v1
       Services__OfflinePaymentService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      Services__OfflinePaymentServiceV2__Url: http://epr-payment-service:8080/api
+      Services__OfflinePaymentServiceV2__EndPointName: v2
+      Services__OfflinePaymentServiceV2__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
       Services__RegistrationSubmissionDataService__Url: http://epr-payment-service:8080/api
       Services__RegistrationSubmissionDataService__EndPointName: v1
       Services__RegistrationSubmissionDataService__ServiceClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
