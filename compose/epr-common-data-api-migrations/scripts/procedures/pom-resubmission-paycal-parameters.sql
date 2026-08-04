@@ -27,6 +27,9 @@
 -- the faithful answer here too, not a shortcut. (0 would surface as HTTP 412, which
 -- CommondataClient does NOT catch and crashes the whole resubmission task-list page on.)
 --
+-- Two scenarios are wired up: Northbridge Compliance Solutions Ltd's 2025 H2 (compliance scheme)
+-- and POP QUEST LTD's 2025 H2 (direct producer, @ComplianceSchemeId NULL).
+--
 -- To add another real scenario: add an `IF @SubmissionId = N'...'` branch above the ELSE, sourced
 -- from the actual seed.sql rows for that SubmissionId (Reference from the
 -- PackagingResubmissionReferenceNumberCreated event's PackagingResubmissionReferenceNumber,
@@ -49,6 +52,26 @@ begin
             6 AS MemberCount,
             N'NBCS-2025H2-POM-RESUB-0001' AS Reference,
             CAST(N'2026-01-15T09:00:00' AS DATETIME2) AS ResubmissionDate,
+            CAST(1 AS BIT) AS IsResubmission,
+            CAST(1 AS BIT) AS ReferenceFieldAvailable,
+            N'GB-ENG' AS NationCode;
+    END
+    ELSE IF @SubmissionId = N'E5F6A7B8-C9D0-4E1F-2A3B-4C5D6E7F8091'
+    BEGIN
+        -- 2025 H2, POP QUEST LTD (Direct Producer): resubmission in progress, fee viewed but not
+        -- yet paid (see seed.sql's rpd.SubmissionEvents rows for this SubmissionId -
+        -- PackagingResubmissionReferenceNumberCreated then PackagingResubmissionFeeViewed, and
+        -- deliberately no payment/final-submit event).
+        --
+        -- For a direct producer @ComplianceSchemeId is NULL and the real proc would source
+        -- MemberCount from sp_DP_Pom_Resubmitted_ByDPID rather than the compliance-scheme table -
+        -- but the parent proc still reads apps.SubmissionsSummaries for IsResubmission, which this
+        -- environment never populates, so this stays a literal like the branch above. 3 = the
+        -- producer itself plus its 2 subsidiaries, matching the rpd.Pom rows for this file.
+        SELECT
+            3 AS MemberCount,
+            N'PQL-2025H2-POM-RESUB-0001' AS Reference,
+            CAST(N'2026-01-20T09:00:00' AS DATETIME2) AS ResubmissionDate,
             CAST(1 AS BIT) AS IsResubmission,
             CAST(1 AS BIT) AS ReferenceFieldAvailable,
             N'GB-ENG' AS NationCode;
