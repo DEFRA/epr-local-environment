@@ -629,6 +629,7 @@ services:
       FeatureManagement__ShowComplianceSchemeMemberManagement: "true"
       FeatureManagement__ShowLanguageSwitcher: "true"
       FeatureManagement__ShowPrn: "true"
+      FeatureManagement__ShowDecemberWaste: "true"
       FeatureManagement__ShowRegistrationResubmission: "true"
       FeatureManagement__ShowSubsidiaries: "true"
       FeatureManagement__ShowSubsidiariesRemoveLink: "true"
