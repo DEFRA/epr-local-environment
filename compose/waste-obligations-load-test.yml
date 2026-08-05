@@ -1,0 +1,36 @@
+# Opt-in routing for the locally run waste-obligations browser load test.
+#
+# Use with:
+# docker compose -f compose.yml -f compose/waste-obligations-load-test.yml \
+#   --profile obligations up -d --build
+#
+# This builds the sibling obligations, frontend and Azure stub checkouts so the
+# local stack exercises the load-test header contract rather than published images.
+services:
+  epr-azure-stub:
+    build:
+      context: ../epr-azure-stub
+    pull_policy: build
+
+  waste-obligations:
+    build:
+      context: ../waste-obligations
+    pull_policy: build
+    depends_on:
+      epr-azure-stub:
+        condition: service_healthy
+    environment:
+      PrnCommonBackend__BaseAddress: http://epr-azure-stub:8080/epr-prn-common-backend/
+      WasteOrganisations__BaseAddress: http://epr-azure-stub:8080/waste-organisations/
+
+  waste-obligations-frontend:
+    build:
+      context: ../waste-obligations-frontend
+    pull_policy: build
+    depends_on:
+      epr-azure-stub:
+        condition: service_healthy
+    environment:
+      BACKEND_ACCOUNT_API_BASE_URL: http://epr-azure-stub:8080/epr-backend-account-microservice/api/
+      WASTE_ORGANISATIONS_API_BASE_URL: http://epr-azure-stub:8080/waste-organisations
+      LOAD_TEST_HEADER_FORWARDING_ENABLED: "true"
