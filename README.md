@@ -329,6 +329,25 @@ To start:
 docker compose --profile obligations up -d
 ```
 
+#### Browser load testing
+
+To run the browser load tests against locally built versions of the frontend
+and Azure stub, use the opt-in override instead of changing the default
+obligations profile configuration:
+
+```sh
+docker compose -f compose.yml -f compose/waste-obligations-load-test.yml \
+  --profile obligations up -d --build
+```
+
+The override routes the frontend Account and Waste Organisations calls, and
+the Waste Obligations PRN and Waste Organisations calls, to `epr-azure-stub`.
+It also enables forwarding of `X-EPR-Load-Test-Session` in the frontend. The
+runner itself should be run from the host with `EPR_BASE_URL=https://localhost:8010`,
+`EPR_BACKEND_BASE_URL=http://localhost:8007`, and
+`EPR_AZURE_STUB_BASE_URL=http://localhost:8011`; this preserves the registered
+local Azure AD B2C callback URL.
+
 The packaging front end will be started alongside all necessary services that allow the obligation calculation process to function.
 
 The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
