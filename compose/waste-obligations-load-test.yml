@@ -34,3 +34,18 @@ services:
       BACKEND_ACCOUNT_API_BASE_URL: http://epr-azure-stub:8080/epr-backend-account-microservice/api/
       WASTE_ORGANISATIONS_API_BASE_URL: http://epr-azure-stub:8080/waste-organisations
       LOAD_TEST_HEADER_FORWARDING_ENABLED: "true"
+
+  # The report-packaging proxy routes to this isolated frontend instance.
+  # Keep its downstream load-test routing identical to the direct instance so
+  # allocated organisations resolve through the same Azure stub state.
+  waste-obligations-frontend-isolated:
+    build:
+      context: ../waste-obligations-frontend
+    pull_policy: build
+    depends_on:
+      epr-azure-stub:
+        condition: service_healthy
+    environment:
+      BACKEND_ACCOUNT_API_BASE_URL: http://epr-azure-stub:8080/epr-backend-account-microservice/api/
+      WASTE_ORGANISATIONS_API_BASE_URL: http://epr-azure-stub:8080/waste-organisations
+      LOAD_TEST_HEADER_FORWARDING_ENABLED: "true"
