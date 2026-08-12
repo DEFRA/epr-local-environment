@@ -763,6 +763,14 @@ name = "origin"
 url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-data-synapse"
 
 [[repos]]
+path = "epr-deployment-dashboard"
+tags = ["azure-devops", "epr", "tooling"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-deployment-dashboard"
+
+[[repos]]
 path = "epr-devops-tools"
 tags = ["azure-devops", "epr", "epr-producer", "primary-is-devops", "tooling"]
 
