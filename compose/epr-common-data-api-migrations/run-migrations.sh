@@ -1,4 +1,7 @@
 #!/bin/bash
+# Keep the existing error-filtering pipelines working, while still failing if
+# the initial database creation command cannot connect to SQL Server.
+set -Eeu
 
 apply_sed_transform() {
     local file_path=$1
@@ -44,7 +47,7 @@ exec_sql_file() {
 
         # Execute the SQL file
         if [[ "$filter_errors" == true ]]; then
-            /opt/mssql-tools/bin/sqlcmd -S $SERVER,$PORT -U $USER -P $PASSWORD -d $DATABASE -i "$converted_file" -I 2>&1 | grep -v -E "(Msg 208|Msg 2714|Msg 2759|There is already an object)"
+            /opt/mssql-tools/bin/sqlcmd -S $SERVER,$PORT -U $USER -P $PASSWORD -d $DATABASE -i "$converted_file" -I 2>&1 | grep -v -E "(Msg 208|Msg 2714|Msg 2759|There is already an object)" || true
         else
             /opt/mssql-tools/bin/sqlcmd -S $SERVER,$PORT -U $USER -P $PASSWORD -d $DATABASE -i "$converted_file" -I
         fi
@@ -101,7 +104,7 @@ echo "-------------"
 echo "- Ensure DB -"
 echo "-------------"
 
-/opt/mssql-tools/bin/sqlcmd -S $SERVER,$PORT -U $USER -P $PASSWORD -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'$DATABASE') CREATE DATABASE [$DATABASE]" -I
+/opt/mssql-tools/bin/sqlcmd -S "$SERVER,$PORT" -U "$USER" -P "$PASSWORD" -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'$DATABASE') CREATE DATABASE [$DATABASE]" -I -b
 
 echo ""
 echo "Schemas"
@@ -139,7 +142,7 @@ echo "Procedures (only specific ones added for specific functionality)"
 process_sql_file "./scripts/procedures/get-approved-submissions_myc.sql"
 process_sql_files "./scripts/compose/procedures" false
 
-if [[ -n "$1" ]]; then
+if [[ $# -ge 1 && -n "$1" ]]; then
     echo ""
     echo "-------------"
     echo "- Seeding -"
