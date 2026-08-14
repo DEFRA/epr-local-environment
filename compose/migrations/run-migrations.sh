@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 
 # Different image builds bundle different sqlcmd versions at different paths (older builds:
 # /opt/mssql-tools/bin/sqlcmd - ODBC 13, has a known "Invalid cursor state" bug against SQL
@@ -38,7 +39,7 @@ process_sql_file() {
         $SQLCMD -S $SERVER,$PORT -U $USER -P $PASSWORD -d $DATABASE -i "$converted_file" -I $TRUST_CERT_FLAG
 
         # Clean up temporary file
-        rm "$converted_file"
+        rm -f "$converted_file"
     else
         echo "The file \"$file_path\" is empty or does not exist. No update has been triggered."
     fi
@@ -48,6 +49,6 @@ $SQLCMD -S $SERVER,$PORT -U $USER -P $PASSWORD -Q "IF NOT EXISTS (SELECT * FROM 
 
 process_sql_file "$1"
 
-if [[ -n "$2" ]]; then
+if [[ $# -ge 2 && -n "$2" ]]; then
     process_sql_file "$2"
 fi

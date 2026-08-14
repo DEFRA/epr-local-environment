@@ -56,7 +56,7 @@ services:
       retries: 10
       start_period: 5s
       start_interval: 1s
-      test: timeout 1 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/1433'
+      test: /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null
       timeout: 5s
     profiles:
       - paycal
@@ -647,6 +647,7 @@ services:
       Csoc__WasteObligationsBaseAddress: https://localhost:8010
       # Use this instead when testing through report-packaging-proxy-spike.
       # Csoc__WasteObligationsBaseAddress: https://localhost:8015/manage-recycling-obligations
+      Health__All__Token: THISISTHETOKEN
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
       - "7084:8081" # taken from launch settings in epr-packaging-frontend
@@ -656,11 +657,6 @@ services:
     entrypoint: [ "/init-container.sh" ]
     command: [ "sh", "-c", "dotnet ${EprPackagingFrontend__Dll}" ]
     healthcheck:
-      # curl is not present in this image (Alpine, wget only) - unlike epr-payment-facade below,
-      # which uses the same curl-based check on the same URL shape but does have curl in its
-      # image. Using curl here left the container permanently "unhealthy" (curl: executable
-      # file not found in $PATH), even though the app was serving fine - see
-      # wait-for-packaging-ready.sh, which was hanging in stage 1 waiting on this.
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:8081/admin/health" ]
       interval: 5s
       timeout: 5s
