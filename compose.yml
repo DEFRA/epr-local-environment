@@ -778,11 +778,20 @@ services:
       FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
       AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
       AccountsDatabase__ConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprBackendAccountMicroservice;TrustServerCertificate=True;Encrypt=False"
+    ports:
+      # The value the validation function apps' own settings.json files use for this service, so a
+      # locally-run function app can point at this container unchanged. Also lets you call the
+      # endpoints directly while debugging a submission, e.g.
+      #   curl http://localhost:7076/api/company-details/165282
+      # Note two endpoints key off the organisation's GUID (organisation/{id},
+      # company-details-by-producer/{id}) while the other company-details routes key off its
+      # 6-digit reference number - passing the wrong one returns a 404 that reads like missing data.
+      - "7076:80"
     healthcheck:
-      # Confirms the Functions host is up and responding - not that any particular
-      # trigger has finished initialising. This app only serves HTTP triggers so
-      # there's no queue/subscription readiness to wait on.
-      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      # Hits the app's own health function, which exercises the worker rather than just the
+      # Functions host - /admin/host/status returns 200 as soon as the host is listening, even if
+      # the app itself failed to start.
+      test: [ "CMD", "curl", "-f", "-s", "-o", "/dev/null", "http://localhost:80/api/health" ]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -901,17 +910,58 @@ services:
       - obligations
       - regulator
 
-  epr-payment-service-migrations:
-    pull_policy: always
-    image: devrwdinfac1401.azurecr.io/eprpaymentbackendrepository:${EPR_PAYMENT_SERVICE_MIGRATIONS:-main-latest-database-migrations}
-    # Second arg is run after the image's baked-in EF migrations.sql (see run-migrations.sh) -
-    # seeds Northbridge Compliance Solutions Ltd's PayCal registration fee data so it survives a
-    # stack restart, matching the same SubmissionIds seeded into Cosmos/Synapse (see
-    # compose/epr-payment-service-migrations/seed.sql for why this must stay in sync with those).
-    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql" ]
+  epr-payment-service-db-init:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    entrypoint: [ "/opt/mssql-tools18/bin/sqlcmd" ]
+    command: [ "-S", "sqledge,1433", "-U", "sa", "-P", "s4usag3s!", "-C",
+               "-Q", "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'EprPaymentService') CREATE DATABASE [EprPaymentService]" ]
     depends_on:
       sqledge:
         condition: service_healthy
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
+  epr-payment-service-migrations:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprpaymentbackendrepository:${EPR_PAYMENT_SERVICE_MIGRATIONS:-main-latest-database-migrations}
+    # No command/entrypoint/volume overrides, deliberately - this mirrors the real deploy
+    # pipeline's "Docker run for migrations" step exactly (see azure-pipelines), which is just
+    # `docker run --rm -e SERVER=... -e PORT=... -e USER=... -e PASSWORD=... -e DATABASE=... <image>`
+    # with no extra args. That runs the image's own baked-in entrypoint/cmd - its own internal
+    # migrations.sql via its own internal run-migrations.sh, completely unmodified, so this
+    # container behaves exactly like a real environment's migration step. Local-only test data
+    # is a separate step below (epr-payment-service-seed), because the real pipeline has no
+    # equivalent of it.
+    depends_on:
+      sqledge:
+        condition: service_healthy
+      epr-payment-service-db-init:
+        condition: service_completed_successfully
+    environment:
+      SERVER: sqledge
+      PORT: 1433
+      USER: sa
+      PASSWORD: "s4usag3s!"
+      DATABASE: EprPaymentService
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
+  epr-payment-service-seed:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/eprpaymentbackendrepository:${EPR_PAYMENT_SERVICE_MIGRATIONS:-main-latest-database-migrations}
+    # Local-dev-only: seeds Northbridge Compliance Solutions Ltd's PayCal registration fee data
+    # so it survives a stack restart, matching the same SubmissionIds seeded into Cosmos/Synapse
+    # (see compose/epr-payment-service-migrations/seed.sql for why this must stay in sync with
+    # those). Runs after the real migrations step above completes, using our own run-migrations.sh
+    # purely to execute this one local file - the real pipeline has no equivalent of this step.
+    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/seed.sql" ]
+    depends_on:
+      epr-payment-service-migrations:
+        condition: service_completed_successfully
     volumes:
       - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
       - ./compose/epr-payment-service-migrations/seed.sql:/home/nonroot/sql/seed.sql
@@ -932,7 +982,7 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
-      epr-payment-service-migrations:
+      epr-payment-service-seed:
         condition: service_completed_successfully
       asb:
         condition: service_healthy
@@ -945,9 +995,13 @@ services:
       StorageAccount__RegistrationContainer: epr-antivirus-registration
       ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
       ServiceBus__AdminConnectionString: "Endpoint=sb://asb-backend:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
-      ServiceBus__TopicName: defra.epr.pom.registrationsubmittedforfeescalculation.local
-      ServiceBus__SubscriptionName: registration-submitted-payment-service
-      RunMigration: "false"
+      ServiceBus__RegistrationSubmittedForFeesCalculationTopicName: defra.epr.pom.registrationsubmittedforfeescalculation.local
+      ServiceBus__RegistrationSubmittedForFeesCalculationSubscriptionName: registration-submitted-payment-service
+      ServiceBus__RegistrationSubmittedForRegulatorApprovalTopicName: defra.epr.pom.registrationsubmittedforregulatorapproval.local
+      ServiceBus__RegistrationSubmittedForRegulatorApprovalSubscriptionName: reg-submitted-for-approval-payment-service
+      ServiceBus__RegulatorRegistrationDecisionTopicName: defra.epr.pom.regulatorregistrationdecision.local
+      ServiceBus__RegulatorRegistrationDecisionSubscriptionName: reg-regulator-decision-payment-service
+      FeatureManagement__EnableComplianceSchemeFees: "true"
     ports:
       - "5108:8080"
     healthcheck:
@@ -985,6 +1039,8 @@ services:
         condition: service_started
       epr-payment-facade:
         condition: service_started
+      managed-identity-mock:
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
@@ -1011,7 +1067,15 @@ services:
       AntivirusApi__EnableDirectAccess: "true"
       AntivirusApi__Timeout: "300"
       PaymentService__BaseUrl: https://epr-payment-facade:8081
-      # PaymentService__ClientId skipped to avoid DefaultCredentials failure
+      # Was previously skipped ("to avoid DefaultCredentials failure") because setting ClientId
+      # without IDENTITY_ENDPOINT makes DefaultAzureCredential try real credential sources (IMDS
+      # etc.) and time out locally. epr-payment-facade's fee-calculation-details endpoint now
+      # requires an authenticated caller (previously unexercised via this code path), so both are
+      # set together here, mirroring the same IDENTITY_ENDPOINT/IDENTITY_HEADER pattern
+      # epr-payment-facade itself uses for its own outbound calls to epr-payment-service.
+      PaymentService__ClientId: 2d65c8a2-66f0-4a7e-9edc-f31004a74b47
+      IDENTITY_ENDPOINT: http://managed-identity-mock:8080/token
+      IDENTITY_HEADER: local-dev-not-validated
       StorageAccount__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
       StorageAccount__PomContainer: epr-antivirus-pom
       StorageAccount__RegistrationContainer: epr-antivirus-registration
@@ -1084,6 +1148,8 @@ services:
       ServiceBus__ConnectionString: "Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
       ServiceBus__AdminConnectionString: "Endpoint=sb://asb-backend:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
       ServiceBus__RegistrationSubmittedForFeesCalculationTopicName: defra.epr.pom.registrationsubmittedforfeescalculation.local
+      ServiceBus__RegistrationSubmittedForRegulatorApprovalTopicName: defra.epr.pom.registrationsubmittedforregulatorapproval.local
+      ServiceBus__RegulatorRegistrationDecisionTopicName: defra.epr.pom.regulatorregistrationdecision.local
     ports:
       - "5167:8080" # taken from launch settings in epr-pom-api-web
       - "7206:8081" # taken from launch settings in epr-pom-api-web
@@ -1204,7 +1270,19 @@ services:
       FeatureManagement__EnableBrandPartnerDataRowValidation: "true"
       FeatureManagement__EnableBrandPartnerCrossFileValidation: "true"
       FeatureManagement__EnableClosedLoopRegistrationColumn: "true"
-      FeatureManagement__EnableCompanyDetailsValidation: "false"
+      # Switches on the company-details cross-check against
+      # epr-backend-account-validationdata-api: every uploaded row's organisation_id must match an
+      # Organisations.ReferenceNumber, and its companies_house_number must match that organisation's
+      # CompaniesHouseNumber. Rows that fail get error 882 (unknown organisation id) or 861 (Companies
+      # House number mismatch). This is what makes the four company-details endpoints fire - with it
+      # off, the client exists but is never called. AND-gated in
+      # RegistrationService.IsCompanyDetailsDataValidationEnabledAsync with EnableRowValidation and
+      # EnableOrganisationDataRowValidation, so both of those must stay true below.
+      #
+      # Deliberately no CompanyDetailsApi__ClientId: its authorisation handler only reaches for
+      # DefaultAzureCredential when that value is non-empty, and the local API is anonymous-auth, so
+      # setting one would break every call.
+      FeatureManagement__EnableCompanyDetailsValidation: "true"
       FeatureManagement__EnableLeaverCodeValidation: "true"
       FeatureManagement__EnableOrganisationDataRowValidation: "true"
       FeatureManagement__EnableOrganisationSizeFieldValidation: "true"
@@ -1312,9 +1390,6 @@ services:
       Validation__Disabled: "false"
       Validation__MaxIssuesToProcess: "1000"
       FeatureManagement__EnableSubsidiaryValidationPom: "true"
-      FeatureManagement__EnableLargeProducerRecyclabilityRatingValidation: "true"
-      FeatureManagement__EnableLargeProducerEnhancedRecyclabilityRatingValidation: "true"
-      FeatureManagement__EnableSmallProducerPackagingTypeEnhancedValidation: "true"
     ports:
       - "7288:80" # taken from launch settings in EPR.ProducerContentValidation.FunctionApp; also serves the Postman-testable HTTP endpoint (HttpEndpoint__Enabled)
     healthcheck:

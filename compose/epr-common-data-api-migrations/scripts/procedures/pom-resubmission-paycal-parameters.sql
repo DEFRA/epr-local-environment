@@ -49,7 +49,7 @@ begin
         -- real source for it is apps-schema data that doesn't exist locally - change it if a
         -- specific count matters for what you're testing.
         SELECT
-            6 AS MemberCount,
+            5 AS MemberCount,
             N'NBCS-2025H2-POM-RESUB-0001' AS Reference,
             CAST(N'2026-01-15T09:00:00' AS DATETIME2) AS ResubmissionDate,
             CAST(1 AS BIT) AS IsResubmission,

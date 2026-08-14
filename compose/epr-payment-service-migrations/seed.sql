@@ -7,7 +7,8 @@
 -- 2026 Large (SubmissionId 601A176C-B17B-4B6B-B672-D0C61A44E733)
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'601A176C-B17B-4B6B-B672-D0C61A44E733')
 begin
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId) values (N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'601A176C-B17B-4B6B-B672-D0C61A44E733', N'Northbridge_CompanyDetails_2026_Large.csv', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-08T09:05:00', SYSDATETIMEOFFSET(), 3);
+    -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'601A176C-B17B-4B6B-B672-D0C61A44E733', N'7113CC97-A799-48E4-8A5E-F214532C32E4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-08T09:05:00', SYSDATETIMEOFFSET(), 3, N'GB-ENG', N'NBCS-2026-L-APP-0001');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'77715EDE-B8E2-41CE-A1E6-CA866CA5D62D', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'110001', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'4F90C091-F140-435C-9765-B590ACD3A809', N'77715EDE-B8E2-41CE-A1E6-CA866CA5D62D', N'110011', 0, 0, 0, SYSDATETIMEOFFSET());
@@ -23,7 +24,8 @@ end
 -- 2026 Small (SubmissionId ECE0880A-B713-42D4-A018-92FD3D8053C6)
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'ECE0880A-B713-42D4-A018-92FD3D8053C6')
 begin
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId) values (N'18AD383A-558B-4135-B628-37B67E890BB2', N'ECE0880A-B713-42D4-A018-92FD3D8053C6', N'Northbridge_CompanyDetails_2026_Small.csv', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-09T09:35:00', SYSDATETIMEOFFSET(), 4);
+    -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'18AD383A-558B-4135-B628-37B67E890BB2', N'ECE0880A-B713-42D4-A018-92FD3D8053C6', N'NB1DF2A8B-5435-47D8-946A-07B5155B3CA4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-09T09:35:00', SYSDATETIMEOFFSET(), 4, N'GB-ENG', N'NBCS-2026-S-APP-0001');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'43905980-340B-4710-942A-7ACF0009FB82', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110006', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'75493BE3-A34F-4E7F-AD02-0587BAD62D6E', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110007', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
@@ -42,22 +44,62 @@ end
 -- ones. OrganisationId/SubsidiaryId use the organisation reference numbers (165282/165283/165284),
 -- matching organisation_id/subsidiary_id in this org's rpd.CompanyDetails and rpd.Pom rows.
 
--- Registration 2025 (SubmissionId F2A3B4C5-D6E7-4F8A-8B9C-0D1E2F3A4B56)
-if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'F2A3B4C5-D6E7-4F8A-8B9C-0D1E2F3A4B56')
-begin
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId) values (N'0A1B7C3D-5E2F-4A96-9B71-C4D80E2F1A63', N'F2A3B4C5-D6E7-4F8A-8B9C-0D1E2F3A4B56', N'PopQuest_CompanyDetails_2025.csv', null, N'2025-04-01T09:20:00', SYSDATETIMEOFFSET(), 2);
-
-    insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'1B2C8D4E-6F3A-4B07-8C82-D5E91F3A2B74', N'0A1B7C3D-5E2F-4A96-9B71-C4D80E2F1A63', N'165282', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
-    insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'2C3D9E5F-7A4B-4C18-9D93-E6F02A4B3C85', N'1B2C8D4E-6F3A-4B07-8C82-D5E91F3A2B74', N'165283', 0, 0, 0, SYSDATETIMEOFFSET());
-    insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'3D4E0F6A-8B5C-4D29-8EA4-F7013B5C4D96', N'1B2C8D4E-6F3A-4B07-8C82-D5E91F3A2B74', N'165284', 0, 0, 0, SYSDATETIMEOFFSET());
-end
-
 -- Registration 2026 (SubmissionId C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89)
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89')
 begin
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId) values (N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89', N'PopQuest_CompanyDetails_2026.csv', null, N'2026-04-01T09:20:00', SYSDATETIMEOFFSET(), 5);
+    -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89', N'E7F8A9B0-C1D2-4E3F-8A4B-5C6D7E8F9A01', null, N'2026-04-01T09:20:00', SYSDATETIMEOFFSET(), 5, N'GB-ENG', N'PQL-2026-APP-0001');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'165282', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'6A7B3C9D-1E8F-4A5C-9BD7-2A346E8F70C9', N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'165283', 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'7B8C4D0E-2F9A-4B6D-8CE8-3B457F9A81DA', N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'165284', 0, 0, 0, SYSDATETIMEOFFSET());
+end
+
+-- PayCal Payment records: one per accepted registration above, both Compliance Scheme
+-- (Northbridge) and Direct Producer (PopQuest). Reference matches that registration's own
+-- ApplicationReferenceNumber; UserId matches the UserId seeded for that registration in Cosmos
+-- (mocks/CosmosDbInit/Program.cs) - csApprovedPersonUserId for the Northbridge/Compliance Scheme
+-- registrations, approvedPersonUserId for the PopQuest/Direct Producer one.
+-- InternalStatusId 2 = Lookup.PaymentStatus 'Success'. CreatedDate/UpdatedDate reuse each
+-- registration's own SubmissionDate so the payment date lines up with the registration date;
+-- UpdatedByUserId matches UserId since these are seeded as already-settled, with no subsequent
+-- update by anyone else. ExternalPaymentId is left to its own DEFAULT (newid()) - any GUID does.
+-- Guarded on Reference since dbo.Payment.Id is an identity int with no other natural business key.
+
+-- Northbridge 2025 Large (matches SubmissionId D05A39BD-EC9B-4D4E-AC19-AC4A7A981DE2 in Cosmos -
+-- no registration.RegistrationSubmissionData row for this one in this file, same as PopQuest
+-- 2025 below; Payment doesn't require one)
+if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2025-L-APP-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2025-L-APP-0001', 100000.0000, N'Registration Fee', N'2025-04-01T09:20:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2025-04-01T09:20:00');
+end
+
+-- PopQuest 2025 (Direct Producer, matches SubmissionId F2A3B4C5-D6E7-4F8A-8B9C-0D1E2F3A4B56 in
+-- Cosmos - no registration.RegistrationSubmissionData row for this one in this file, deliberately)
+if not exists (select 1 from dbo.Payment where Reference = N'PQL-2025-APP-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PQL-2025-APP-0001', 100000.0000, N'Registration Fee', N'2025-04-01T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2025-04-01T09:20:00');
+end
+
+-- Northbridge 2026 Large (matches SubmissionId 601A176C-B17B-4B6B-B672-D0C61A44E733)
+if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2026-L-APP-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2026-L-APP-0001', 100000.0000, N'Registration Fee', N'2026-04-08T09:05:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-04-08T09:05:00');
+end
+
+-- Northbridge 2026 Small (matches SubmissionId ECE0880A-B713-42D4-A018-92FD3D8053C6)
+if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2026-S-APP-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2026-S-APP-0001', 100000.0000, N'Registration Fee', N'2026-04-09T09:35:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-04-09T09:35:00');
+end
+
+-- PopQuest 2026 (Direct Producer, matches SubmissionId C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89)
+if not exists (select 1 from dbo.Payment where Reference = N'PQL-2026-APP-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PQL-2026-APP-0001', 100000.0000, N'Registration Fee', N'2026-04-01T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2026-04-01T09:20:00');
 end
