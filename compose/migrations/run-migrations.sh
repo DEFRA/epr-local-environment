@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 
 convert_line_endings() {
     local file_path=$1
@@ -20,19 +21,19 @@ process_sql_file() {
         echo "Using converted file: $converted_file"
 
         # Execute the SQL file
-        /opt/mssql-tools/bin/sqlcmd -S $SERVER,$PORT -U $USER -P $PASSWORD -d $DATABASE -i "$converted_file" -I
+        /opt/mssql-tools/bin/sqlcmd -S "$SERVER,$PORT" -U "$USER" -P "$PASSWORD" -d "$DATABASE" -i "$converted_file" -I -b
 
         # Clean up temporary file
-        rm "$converted_file"
+        rm -f "$converted_file"
     else
         echo "The file \"$file_path\" is empty or does not exist. No update has been triggered."
     fi
 }
 
-/opt/mssql-tools/bin/sqlcmd -S $SERVER,$PORT -U $USER -P $PASSWORD -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'$DATABASE') CREATE DATABASE [$DATABASE]" -I
+/opt/mssql-tools/bin/sqlcmd -S "$SERVER,$PORT" -U "$USER" -P "$PASSWORD" -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'$DATABASE') CREATE DATABASE [$DATABASE]" -I -b
 
 process_sql_file "$1"
 
-if [[ -n "$2" ]]; then
+if [[ $# -ge 2 && -n "$2" ]]; then
     process_sql_file "$2"
 fi
