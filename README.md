@@ -279,6 +279,57 @@ The frontend/facade read that snapshot via `epr-payment-facade`, which proxies t
 - All four containers defined in the app's EF Core model (`SubmissionContext.cs`) are created: `Submissions`, `SubmissionEvents`, `ProducerValidationErrors`, `ProducerValidationWarnings` — including the Producer/POM validation error/warning containers, which the registration flow this stack is set up to test doesn't exercise, but are ready if needed.
 - If you ever see `Connection refused (127.0.0.1:8081)` from a client after its first successful call, check `GATEWAY_PUBLIC_ENDPOINT` on `cosmosdb-emulator` — it must match the hostname other containers use to reach it, or the emulator's Gateway-mode responses point clients back at its own loopback address.
 
+#### Validation data API (organisation checks during submission)
+
+`epr-backend-account-validationdata-api` is the Function App the submit-data flows call to check
+uploaded rows against real organisation data in `EprBackendAccountMicroservice`. It is published on
+`http://localhost:7076` so you can call it directly while debugging:
+
+```
+curl http://localhost:7076/api/health
+curl http://localhost:7076/api/company-details/165282
+```
+
+All endpoints are anonymous — no function key. Which service calls what, and what switches it on:
+
+| Endpoint | Called by | Enabled by |
+|---|---|---|
+| `GET organisation/{guid}` | check-splitter | `ValidationDataApi__IsEnabled` |
+| `GET organisation/{guid}/members/{schemeGuid}` | check-splitter | `ValidationDataApi__IsEnabled` |
+| `POST organisations` | check-splitter | `ValidationDataApi__IsEnabled` |
+| `POST subsidiary-details` | producer-validation, registration-validation | `EnableSubsidiaryValidationPom` / `EnableSubsidiaryValidation` |
+| `GET company-details/{referenceNumber}` | registration-validation | `EnableCompanyDetailsValidation` |
+| `GET company-details/{referenceNumber}/compliance-scheme/{guid}` | registration-validation | `EnableCompanyDetailsValidation` |
+| `GET company-details-by-producer/{guid}` | registration-validation | `EnableCompanyDetailsValidation` |
+| `POST company-details` | registration-validation | `EnableCompanyDetailsValidation` |
+
+Two of those key off the organisation's **GUID** (`organisation/{id}`, `company-details-by-producer/{id}`)
+while the `company-details` routes key off its **6-digit reference number**. Passing the wrong kind
+returns a 404 that reads like missing data rather than a bad request. The two POST endpoints need a
+wrapper object — `{"ReferenceNumbers":[…]}` and `{"SubsidiaryOrganisationDetails":[…]}` — a bare
+array returns a 500.
+
+None of the consuming services set `CompanyDetailsApi__ClientId` / `ValidationDataApi__ClientId`, and
+they shouldn't: their authorisation handlers only reach for `DefaultAzureCredential` when that value
+is non-empty, which would fail against this anonymous-auth container.
+
+**What seed data has to look like for a file to validate.** With `EnableCompanyDetailsValidation` on,
+every row of an uploaded company-details file is checked against the accounts DB:
+
+- `organisation_id` must equal an `Organisations.ReferenceNumber` — reachable from the submitting
+  organisation, i.e. its own row for a direct producer, or a member linked through
+  `OrganisationsConnections` + `SelectedSchemes` for a compliance scheme. A row that doesn't resolve
+  fails with error **882**.
+- `companies_house_number` must equal that organisation's `CompaniesHouseNumber`, or the row fails
+  with error **861**. Rows carrying a `subsidiary_id` are exempt from this check, as are
+  unincorporated `organisation_type_code` values (sole trader, partnership, co-operative, etc.).
+- With `EnableSubsidiaryValidation` on, each `subsidiary_id` must exist as an organisation and have
+  an active `OrganisationRelationships` row pointing at the parent named in the same CSV row —
+  otherwise errors **883**/**884**/**885** (**70**/**71**/**72** in the POM flow).
+
+This is why the seeded organisation reference numbers have to match the ids in the seeded CSVs; see
+the note under the POP QUEST LTD section below.
+
 ### obligations
 
 Obtain the necessary secrets (including from Key Vault or a teammate).

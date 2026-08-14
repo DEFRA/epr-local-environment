@@ -1,0 +1,33 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2/notifications/email"
+        }
+      ]
+    },
+    "Methods": [
+      "POST"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "BodyAsJson": {
+      "id": "740e5834-3a29-46b4-9a6f-16142fde533a",
+      "reference": null,
+      "content": {
+        "subject": "Stub GOV.UK Notify response",
+        "body": "Stub GOV.UK Notify response",
+        "from_email": "notify@example.gov.uk"
+      },
+      "uri": "http://wiremock/v2/notifications/740e5834-3a29-46b4-9a6f-16142fde533a",
+      "template": {
+        "id": "b103685d-de8a-4ea9-abc8-d244ca26841b",
+        "version": 1,
+        "uri": "http://wiremock/v2/template/b103685d-de8a-4ea9-abc8-d244ca26841b"
+      }
+    }
+  }
+}

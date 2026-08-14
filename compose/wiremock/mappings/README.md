@@ -34,6 +34,19 @@ Note 100 year expiry.
 
 The `client_id` claim is the important one that CDP services look at for what Cognito has allowed through.
 
+## govuk-notify-send-email.json
+
+Stub for `POST /v2/notifications/email`, the GOV.UK Notify .NET client's `SendEmailAsync`
+(`NOTIFY-API-NET-CLIENT` user agent). `waste-obligations` points `GovukNotify__BaseAddress` at
+`http://wiremock/` (comment it out in compose.yml to hit the real service instead) and calls this
+when a compliance declaration is submitted, to send the submitter a confirmation email. Without
+this mapping, wiremock 404s ("No matching mapping found") and `Notify.Exceptions.NotifyClientException`
+is thrown - logged as "Submitted email could not be sent" but otherwise swallowed, so the
+declaration itself still succeeds; this just stops that error and matches what a real send would
+return. Response body matches the real API's `SendEmailAsync` response shape (`id`, `content`,
+`template`) since the Notify client deserializes the response into a typed model - an empty body
+would trade one exception for another.
+
 ## log-events.json
 
 Stub for `POST /api/v1/log-events`, EPR.Common.Logging's protective-monitoring event sink

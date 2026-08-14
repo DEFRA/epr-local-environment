@@ -915,24 +915,6 @@ services:
       - regulator
 
   epr-payment-service-db-init:
-    # Uses the sqledge image itself (mcr.microsoft.com/mssql/server) rather than the payment
-    # service's own migrations image, deliberately - that image's sqlcmd tooling/path varies by
-    # branch/tag (older builds: /opt/mssql-tools/bin/sqlcmd (ODBC 13); newer builds:
-    # /opt/mssql-tools18/bin/sqlcmd (ODBC 18) - confirmed by hitting "exec:
-    # /opt/mssql-tools/bin/sqlcmd: stat ...: no such file or directory" when
-    # EPR_PAYMENT_SERVICE_MIGRATIONS pointed at a tag that only has the newer path). This step's
-    # only job is bootstrapping the database, so it doesn't need anything from that image at all -
-    # pinning to sqledge's own image keeps the sqlcmd path stable regardless of which migrations
-    # tag is configured.
-    #
-    # Local-only bootstrap. Real environments provision the EprPaymentService database via IaC
-    # before the deploy pipeline's migrations step ever runs, so that step (mirrored exactly by
-    # epr-payment-service-migrations below, with no command override) can assume the database
-    # already exists - it connects straight to -d $DATABASE with no "CREATE DATABASE IF NOT
-    # EXISTS" of its own. Confirmed by running it against a bare sqledge instance: it fails fast
-    # with "Cannot open database 'EprPaymentService' ... Login failed for user 'sa'." Nothing
-    # else provisions this database locally, so this step exists purely to give local sqledge the
-    # same starting condition a real environment already has.
     image: mcr.microsoft.com/mssql/server:2025-latest
     entrypoint: [ "/opt/mssql-tools18/bin/sqlcmd" ]
     command: [ "-S", "sqledge,1433", "-U", "sa", "-P", "s4usag3s!", "-C",
