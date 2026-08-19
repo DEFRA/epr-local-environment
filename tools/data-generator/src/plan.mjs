@@ -155,6 +155,7 @@ function prnCountsForSubmitters(submitters, total, random) {
 
 function createPrns(submitters, profile, runId, random) {
   const prns = [];
+  const prnRunKey = crypto.createHash('sha1').update(runId).digest('hex').slice(0, 8);
   const materialNames = {
     AL: 'Aluminium', FC: 'Fibre', GL: 'Glass Other', GR: 'Glass Re-melt',
     PC: 'Paper/board', PL: 'Plastic', ST: 'Steel', WD: 'Wood'
@@ -186,7 +187,7 @@ function createPrns(submitters, profile, runId, random) {
       rowKeys.forEach((row, index) => {
         const code = chooseMaterial();
         prns.push({
-          prnNumber: `DG-${runId}-${type === 'ComplianceScheme' ? 'CS' : 'DR'}-${status === 'ACCEPTED' ? 'A' : 'W'}-${String(index + 1).padStart(5, '0')}`,
+          prnNumber: `DG${prnRunKey}${type === 'ComplianceScheme' ? 'C' : 'D'}${status === 'ACCEPTED' ? 'A' : 'W'}${String(index + 1).padStart(5, '0')}`,
           externalId: deterministicUuid(`${runId}:prn:${type}:${status}:${index}`),
           submitterId: row.submitter.submitterId,
           submitterName: row.submitter.name,

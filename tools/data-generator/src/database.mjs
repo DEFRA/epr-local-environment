@@ -1,4 +1,5 @@
 import sql from 'mssql';
+import { deterministicUuid } from './plan.mjs';
 
 function connectionConfig(prefix, environment) {
   return {
@@ -84,8 +85,7 @@ export async function assertLinkedAccountAnchors(environment, synapsePool, pomYe
 }
 
 function table(schema, name, columns) {
-  const result = new sql.Table(name);
-  result.schema = schema;
+  const result = new sql.Table(schema ? `[${schema}].[${name}]` : name);
   result.create = false;
   for (const [columnName, type, nullable = true] of columns) result.columns.add(columnName, type, { nullable });
   return result;
@@ -93,7 +93,18 @@ function table(schema, name, columns) {
 
 async function bulk(pool, transaction, sqlTable) {
   const request = new sql.Request(transaction ?? pool);
-  await request.bulk(sqlTable);
+  try {
+    await request.bulk(sqlTable);
+  } catch (error) {
+    const nestedMessages = [
+      error?.message,
+      error?.originalError?.message,
+      error?.cause?.message,
+      ...(error?.precedingErrors ?? []).map((item) => item?.message)
+    ].filter(Boolean);
+    const detail = nestedMessages.length > 0 ? `: ${nestedMessages.join('; ')}` : '';
+    throw new Error(`Bulk insert into ${sqlTable.schema}.${sqlTable.name} failed${detail}`, { cause: error });
+  }
 }
 
 function uniqueBy(values, key) {
@@ -185,7 +196,7 @@ export async function insertSynapseData(pool, plan) {
     await bulk(pool, transaction, pomTable);
     await transaction.commit();
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction._aborted) await transaction.rollback();
     throw error;
   }
 }
@@ -202,15 +213,19 @@ export async function insertPrns(pool, plan) {
   await transaction.begin();
   try {
     const now = new Date();
-    const prnTable = table('dbo', 'Prn', [
-      ['PrnNumber', sql.NVarChar(100)], ['OrganisationId', sql.UniqueIdentifier], ['OrganisationName', sql.NVarChar(500)],
-      ['ProducerAgency', sql.NVarChar(500)], ['ReprocessorExporterAgency', sql.NVarChar(500)], ['PrnStatusId', sql.Int],
-      ['TonnageValue', sql.Int], ['MaterialName', sql.NVarChar(200)], ['IssuerReference', sql.NVarChar(200)],
-      ['IssueDate', sql.DateTime2], ['DecemberWaste', sql.Bit], ['IssuedByOrg', sql.NVarChar(500)],
-      ['AccreditationNumber', sql.NVarChar(200)], ['AccreditationYear', sql.NVarChar(10)], ['ObligationYear', sql.NVarChar(10)],
-      ['PackagingProducer', sql.NVarChar(500)], ['CreatedOn', sql.DateTime2], ['LastUpdatedBy', sql.UniqueIdentifier],
-      ['ExternalId', sql.UniqueIdentifier], ['IsExport', sql.Bit], ['LastUpdatedDate', sql.DateTime2], ['SourceSystemId', sql.NVarChar(100)]
+    // `INSERT BULK` cannot safely omit the target table's leading identity
+    // column in this SQL Server image. Bulk-load into a transaction-local
+    // staging table, then use an explicit INSERT to let dbo.Prn allocate Id.
+    const prnTable = table(null, '#GeneratedPrns', [
+      ['PrnNumber', sql.NVarChar(20)], ['OrganisationId', sql.UniqueIdentifier], ['OrganisationName', sql.NVarChar(160)],
+      ['ProducerAgency', sql.NVarChar(50)], ['ReprocessorExporterAgency', sql.NVarChar(50)], ['PrnStatusId', sql.Int],
+      ['TonnageValue', sql.Int], ['MaterialName', sql.NVarChar(20)], ['IssuerReference', sql.NVarChar(200)],
+      ['IssueDate', sql.DateTime2], ['DecemberWaste', sql.Bit], ['IssuedByOrg', sql.NVarChar(50)],
+      ['AccreditationNumber', sql.NVarChar(20)], ['AccreditationYear', sql.NVarChar(10)], ['ObligationYear', sql.NVarChar(10)],
+      ['PackagingProducer', sql.NVarChar(100)], ['CreatedOn', sql.DateTime2], ['LastUpdatedBy', sql.UniqueIdentifier],
+      ['ExternalId', sql.UniqueIdentifier], ['IsExport', sql.Bit], ['LastUpdatedDate', sql.DateTime2], ['SourceSystemId', sql.NVarChar(40)]
     ]);
+    prnTable.create = true;
     plan.prns.forEach((prn, index) => prnTable.rows.add(
       prn.prnNumber, prn.submitterId, prn.submitterName, 'Synthetic producer agency', 'Synthetic reprocessor', statusIds.get(prn.status),
       prn.tonnes, prn.materialName, `DG-${plan.runId}`, new Date(Date.UTC(plan.obligationYear, index % 12, 1 + (index % 27))), false,
@@ -218,9 +233,27 @@ export async function insertPrns(pool, plan) {
       prn.submitterName, now, '00000000-0000-0000-0000-000000000000', prn.externalId, false, now, 'data-generator'
     ));
     await bulk(pool, transaction, prnTable);
+    await new sql.Request(transaction).query(`
+      INSERT INTO dbo.Prn (
+        PrnNumber, OrganisationId, OrganisationName, ProducerAgency,
+        ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName,
+        IssuerReference, IssueDate, DecemberWaste, IssuedByOrg,
+        AccreditationNumber, AccreditationYear, ObligationYear,
+        PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport,
+        LastUpdatedDate, SourceSystemId
+      )
+      SELECT
+        PrnNumber, OrganisationId, OrganisationName, ProducerAgency,
+        ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName,
+        IssuerReference, IssueDate, DecemberWaste, IssuedByOrg,
+        AccreditationNumber, AccreditationYear, ObligationYear,
+        PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport,
+        LastUpdatedDate, SourceSystemId
+      FROM #GeneratedPrns;
+    `);
     await transaction.commit();
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction._aborted) await transaction.rollback();
     throw error;
   }
 }
@@ -329,8 +362,10 @@ export async function validateDatabaseShape(synapse, prn, manifest) {
         (SELECT COUNT(*) FROM rpd.cosmos_file_metadata WHERE FileName LIKE @prefix) AS MetadataRows,
         (SELECT COUNT(*) FROM rpd.SubmissionEvents eventRow INNER JOIN rpd.cosmos_file_metadata metadata ON metadata.FileId = eventRow.FileId WHERE metadata.FileName LIKE @prefix AND eventRow.Type = 'RegulatorPoMDecision' AND eventRow.Decision = 'Accepted') AS AcceptedDecisionRows;
     `),
-    prn.request().input('prefix', sql.NVarChar(100), `DG-${manifest.runId}-%`).query(`
-      SELECT COUNT(*) AS PrnRows, ISNULL(SUM(TonnageValue), 0) AS PrnTonnes FROM Prn WHERE PrnNumber LIKE @prefix;
+    prn.request().input('issuerReference', sql.NVarChar(200), `DG-${manifest.runId}`).query(`
+      SELECT COUNT(*) AS PrnRows, ISNULL(SUM(TonnageValue), 0) AS PrnTonnes
+      FROM Prn
+      WHERE IssuerReference = @issuerReference;
     `),
     prn.request().input('year', sql.Int, manifest.obligationYear).query(`
       SELECT LOWER(CONVERT(varchar(36), SubmitterId)) AS SubmitterId, COUNT(*) AS CalculationRows

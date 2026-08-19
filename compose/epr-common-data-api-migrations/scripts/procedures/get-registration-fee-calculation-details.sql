@@ -3,7 +3,7 @@
 -- Not a Synapse-incompatibility rewrite (unlike sp_PomResubmissionPaycalParameters) - the real
 -- proc only ever queries rpd.cosmos_file_metadata and rpd.CompanyDetails, both of which already
 -- exist and are seeded locally. It was simply never baked into this environment's migrations
--- image (only get-approved-submissions_myc.sql is), so RegistrationApplicationController.
+-- image, so RegistrationApplicationController.
 -- RegistrationFeeCalculations's session.RegistrationFeeCalculationDetails hydration
 -- (RegistrationFeeCalculationDetailsService.GetRegistrationFeeCalculationDetails) silently caught
 -- "Could not find stored procedure" and returned null for every submission, relying entirely on

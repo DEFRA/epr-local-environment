@@ -83,5 +83,5 @@ tools/data-generator/
 - Resolve lookup IDs by name in the target database. Do not copy local seed IDs into generated PRN data.
 - Maintain the identifier relationships described in the decision record exactly, especially across both POM half-year submissions.
 - A generated run must record its baseline version, seed, scale, POM year, resulting obligation year and generated identifiers in a manifest.
-- Re-running the same run ID is rejected before database writes. Generated POM rows carry `data-generator/<run-id>/` and PRNs carry `DG-<run-id>-` markers for safe inspection.
+- Re-running the same run ID is rejected before database writes. Generated POM rows carry `data-generator/<run-id>/`; generated PRNs carry `DG-<run-id>` in `IssuerReference` for safe inspection.
 - Do not modify unrelated payment, waste-obligations or legacy calculator fixtures as part of the initial data path.

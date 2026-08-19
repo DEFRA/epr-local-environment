@@ -13,6 +13,7 @@ test('normal-volume 2025 plan reproduces the captured aggregate shape', () => {
   assert.equal(plan.expected.files, 622);
   assert.equal(plan.expected.prns, 4046);
   assert.equal(plan.expected.prnTonnes, 6392804);
+  assert.ok(plan.prns.every((prn) => prn.prnNumber.length <= 20));
   assert.equal(plan.associations.filter((association) => association.materials.has('GL')).length, 1068);
   for (const type of ['ComplianceScheme', 'DirectRegistrant']) {
     for (const [material, targetTonnes] of Object.entries(profile.pom.annualTonnes[type])) {

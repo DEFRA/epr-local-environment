@@ -172,7 +172,7 @@ async function validateYear(synapse, prn, manifest) {
     compare(actual, manifest.expected, 'PrnTonnes'),
     { field: 'ApprovedSubmissionRows', expected: manifest.expected.approvedSubmissionRows, actual: generatedSourceRows, matches: generatedSourceRows === manifest.expected.approvedSubmissionRows }
   ];
-  if (manifest.status === 'calculated' || manifest.status === 'validated') {
+  if (manifest.calculation) {
     checks.push(compare(actual, manifest.expected, 'CalculationRows'));
   }
   return { checks, successful: checks.every((check) => check.matches) };
@@ -217,12 +217,13 @@ async function generateYear(year, flags) {
       linkLocalAccounts: flags['link-local-accounts']
     });
     const manifest = toManifest(plan);
-    await assertRunDoesNotExist(databases.synapse, plan.runId);
-    if (plan.linkedAccounts) await assertLinkedAccountAnchors(process.env, databases.synapse, plan.pomYear);
     if (flags['replace-existing']) {
       manifest.replaceExisting = true;
       manifest.removedExisting = await removeExistingYear(databases.synapse, databases.prn, plan.pomYear);
+    } else {
+      await assertRunDoesNotExist(databases.synapse, plan.runId);
     }
+    if (plan.linkedAccounts) await assertLinkedAccountAnchors(process.env, databases.synapse, plan.pomYear);
     await writeManifest(manifest);
     await insertSynapseData(databases.synapse, plan);
     await insertPrns(databases.prn, plan);
@@ -290,6 +291,21 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`data-generator: ${error.message}`);
+  const message = error?.message || error?.originalError?.message || error?.cause?.message || String(error);
+  console.error(`data-generator: ${message}`);
+  const cause = error?.cause;
+  if (cause) {
+    console.error(JSON.stringify({
+      name: cause.name,
+      code: cause.code,
+      number: cause.number,
+      state: cause.state,
+      class: cause.class,
+      lineNumber: cause.lineNumber,
+      originalError: cause.originalError?.message,
+      precedingErrors: cause.precedingErrors?.map((item) => item.message)
+    }));
+  }
+  if (error?.stack) console.error(error.stack);
   process.exitCode = 1;
 });
