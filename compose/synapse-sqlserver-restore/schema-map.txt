@@ -1,0 +1,65 @@
+# Schema sets for the local SQL Server representation of epr-data-sqldb.
+#
+# Entries are paths relative to the checked-out epr-data-sqldb repository. The
+# restore script processes them by type (schemas, tables, functions, views and
+# stored procedures), not in the order written here.
+#
+# `full` preserves the historic behaviour: apply every supported source SQL
+# file. `common-data-api` is the explicit static dependency closure for the
+# Common Data API source used by this local environment.
+
+[full]
+@all
+@seed=baseline
+@unavailable=dbo.sp_IsPOMResubmissionSynchronised
+
+# Complete static schema dependency closure for every currently exposed
+# Common Data API database operation used by the local stack. It contains 43
+# upstream source scripts: rpd/apps schemas, 24 tables, one function, one
+# view and 15 procedures (including two private helper procedures).
+[common-data-api]
+@seed=baseline
+@unavailable=dbo.sp_IsPOMResubmissionSynchronised
+Security/rpd.sql
+Security/apps.sql
+apps/Tables/OrgRegistrationsSummaries.sql
+apps/Tables/RegistrationsSummaries.sql
+apps/Tables/Submissions.sql
+apps/Tables/SubmissionsSummaries.sql
+dbo/Tables/batch_log.sql
+dbo/Tables/t_CSO_Pom_Resubmitted_ByCSID.sql
+dbo/Tables/t_FetchOrganisationRegistrationSubmissionDetails_resub.sql
+dbo/Tables/t_PomResubmissionPaycalEvents.sql
+dbo/Tables/t_producer_obligation_determination.sql
+rpd/Tables/CompanyDetails.sql
+rpd/Tables/ComplianceSchemes.sql
+rpd/Tables/cosmos_file_metadata.sql
+rpd/Tables/Enrolments.sql
+rpd/Tables/Nations.sql
+rpd/Tables/Organisations.sql
+rpd/Tables/OrganisationsConnections.sql
+rpd/Tables/PersonOrganisationConnections.sql
+rpd/Tables/Persons.sql
+rpd/Tables/Pom.sql
+rpd/Tables/SelectedSchemes.sql
+rpd/Tables/ServiceRoles.sql
+rpd/Tables/SubmissionEvents.sql
+rpd/Tables/Submissions.sql
+rpd/Tables/Users.sql
+dbo/Functions/udf_DQ_SubmissionPeriod.sql
+dbo/Views/v_submitted_pom_org_file_status.sql
+apps/Stored Procedures/sp_FilterAndPaginateRegistrationsSummaries.sql
+apps/Stored Procedures/sp_FilterAndPaginateSubmissionsSummaries_resub.sql
+apps/Stored Procedures/sp_GetActualSubmissionPeriod.sql
+dbo/Stored Procedures/sp_CheckForCosmosData.sql
+dbo/Stored Procedures/sp_DP_Pom_Resubmitted_ByDPID.sql
+dbo/Stored Procedures/sp_FetchOrganisationRegistrationSubmissionDetails_resub.sql
+dbo/Stored Procedures/sp_FilterAndPaginateOrganisationRegistrationSummaries_resub.sql
+dbo/Stored Procedures/sp_GetApprovedSubmissions.sql
+dbo/Stored Procedures/sp_GetApprovedSubmissionsMyc.sql
+dbo/Stored Procedures/sp_GetPaycalOrgData.sql
+dbo/Stored Procedures/sp_GetPaycalPomData.sql
+dbo/Stored Procedures/sp_GetRegistrationFeeCalculationDetails.sql
+dbo/Stored Procedures/sp_Organisations_Delta_Extract.sql
+dbo/Stored Procedures/sp_PomResubmissionPaycalParameters.sql
+dbo/Stored Procedures/sp_PRN_Delta_Extract.sql

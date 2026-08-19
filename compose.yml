@@ -608,6 +608,7 @@ services:
       SOURCE_DIRECTORY: /cache/epr-data-sqldb
       SOURCE_COMMIT_FILE: /cache/resolved-commit
       SEED_FILE: /scripts/seed/baseline.sql
+      SCHEMA_SET: ${EPR_LOCAL_SYNAPSE_SCHEMA_SET:-common-data-api}
       RESTORE_SYNAPSE_DATABASE: ${EPR_LOCAL_RESTORE_SYNAPSE_DATABASE:-true}
       REBUILD_DATABASE: ${EPR_LOCAL_REBUILD_SYNAPSE_DATABASE:-false}
     profiles:
