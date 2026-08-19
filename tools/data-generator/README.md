@@ -2,7 +2,7 @@
 
 This directory is the home for a local synthetic-data generator for the EPR obligations journey. Its first target is a connected, realistic year of POM, PRN and obligation-calculation data.
 
-> Status: first runnable iteration. It creates SP-relevant Synapse rows and source PRNs, then invokes the existing PRN calculation backend. It does not create upload files/Cosmos documents, account users, payment data, or a replacement Common Data API endpoint.
+> Status: first runnable iteration. It creates stored-procedure-relevant Synapse rows and source PRNs, then invokes the existing PRN calculation backend. It does not create upload files/Cosmos documents, account users, payment data, determination records, or a replacement Common Data API endpoint.
 
 ## Intended command contract
 
@@ -13,7 +13,12 @@ data-generator generate-year 2025 --link-local-accounts
 data-generator generate-year 2025 --replace-existing
 ```
 
-`2025` is the POM reporting year. The resulting determination, PRN and obligation-calculation year is therefore `2026`. The default command will reproduce the selected baseline's normal volume and shape; `--increase` scales connected entities and their data proportionally rather than merely increasing weights.
+`2025` is the POM reporting year. The resulting PRN and obligation-calculation year is therefore
+`2026`; determination records are intentionally omitted, so `NumberOfDaysObligated` follows the
+stored procedure's natural null/no-data behaviour. The default command reproduces the checked-in
+2025/2026 baseline shape; another reporting year uses the same synthetic shape and is not a claim
+about that year's production volume. `--increase` scales connected entities and their data
+proportionally rather than merely increasing weights.
 
 The generator runs against an already running local stack from the CLI-only [`compose.cli.yml`](../../compose.cli.yml). It connects through the existing Compose network and database service names; it does not need a separate Docker project name or bespoke network.
 
@@ -29,12 +34,19 @@ The detailed decision record, source-repository trace, snapshot figures, identit
 
 ## Run it
 
-Start the normal obligations stack first. Then build and run the CLI container:
+Start the normal obligations stack first and wait for the Common Data restore and PRN migrations to
+complete. The default `common-data-api` schema set contains the generator's required objects; `full`
+also works. Then build and run the CLI container:
 
 ```sh
 docker compose -f compose.yml -f compose.cli.yml build data-generator
 docker compose -f compose.yml -f compose.cli.yml run --rm data-generator generate-year 2025
 ```
+
+The first iteration always imports the checked-in
+`preprod-pom-2025-prn-2026` profile. Adding a newly collected profile is a versioned data change,
+but selecting a different profile at the command line is not implemented yet; update the default
+profile import only after completing the profile-refresh validation process.
 
 The command writes a manifest to `tools/data-generator/manifests/<run-id>.json`. It executes the stored procedure directly for the requested POM year, filters to the generated identity set, groups rows as the obligation function does, and posts them to the existing PRN backend calculation endpoint.
 
@@ -68,7 +80,7 @@ tools/data-generator/
 ├── manifests/            Generated-run manifests (kept out of source control when populated)
 ├── profiles/
 │   ├── baselines/        Versioned anonymous aggregate profiles
-│   └── schemas/          Profile file schemas and validation rules
+│   └── schemas/          Reserved for future profile JSON schemas
 ├── sql/
 │   ├── baseline/         Queries used to collect a pre-production baseline
 │   ├── validation/       Comparable local/pre-production shape checks

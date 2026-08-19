@@ -143,7 +143,7 @@ eprlocalenv() {
     down)
       if (( $# == 0 )); then
         docker compose -f "$env_root/compose.yml" \
-          --profile "$profile" down -v --remove-orphans
+          --profile "$profile" down
       else
         docker compose -f "$env_root/compose.yml" \
           --profile "$profile" down "$@"
@@ -170,11 +170,18 @@ eprlocalenv obligations up waste-obligations-frontend
 # Build multiple selected services from their sibling source folders.
 eprlocalenv obligations up waste-obligations-frontend waste-obligations
 
-# Stop and remove the full profile, including its volumes.
+# Stop the profile while retaining database and emulator data.
 eprlocalenv obligations down
+
+# Remove the profile and all of its Compose volumes (a destructive full reset).
+eprlocalenv obligations down --volumes --remove-orphans
 ```
 
 The services supplied to `up` choose which images are built locally; they do not limit which services in the profile are started. `pull_policy: build` prevents Docker Compose from pulling those service images, although Docker may still pull base images named in a source Dockerfile's `FROM` instruction.
+
+The no-argument `down` form intentionally retains volumes. This keeps the local SQL Server and
+emulator state, and avoids the expensive reinitialisation caused by `down --volumes`. Use the second
+form only when a clean local state is required.
 
 The `eprlocalenv_targets` map is only needed for Dockerfiles whose normal runtime image is not their final build stage. `waste-obligations-frontend` uses its `production` stage so that the local image matches the runtime image rather than its final `integration` stage.
 
@@ -406,8 +413,12 @@ The profile also starts MongoDB as a single-node replica set and Floci with the 
 A local SQL Server-compatible representation of Synapse is created in `sqledge` before Common
 Data API starts. The restore service shallow-fetches the current `main` branch of
 `epr-data-sqldb`, converts Synapse physical-storage declarations for SQL Server, restores the
-upstream SQL objects, and then applies the local baseline seed. The resolved upstream commit is
-recorded in the database and repeat starts skip an unchanged source. See the [restore README](./compose/synapse-sqlserver-restore/README.md).
+upstream objects required by the Common Data API, and then applies the local baseline seed. The
+resolved upstream commit, schema set and map fingerprint are recorded in the database; repeat starts
+skip an unchanged source and map. The default `common-data-api` schema set is a static dependency
+closure of the current local API surface; set `EPR_LOCAL_SYNAPSE_SCHEMA_SET=full` only when the full
+upstream schema is required. See the [restore README](./compose/synapse-sqlserver-restore/README.md)
+and [Common Data API testing strategy](./agents/common-data-api-testing-strategy.md).
 
 The restore defaults to enabled. Set `EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false` in `.env` to use an
 already-created local database without fetching or restoring it. The shallow source checkout is
@@ -415,6 +426,15 @@ retained under `.cache/synapse-source` in this repository and ignored by Git; se
 for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
+
+### Synthetic obligations data
+
+The optional `data-generator` CLI creates a connected synthetic POM year, matching PRNs and
+recalculated obligation records against an already-running obligations stack. It is separate from
+the profile Compose file and supports deterministic, manifest-backed runs, scaling, account linking
+and explicit local-year replacement. Start with the [data generator README](./tools/data-generator/README.md);
+the [decision record](./tools/data-generator/docs/first-iteration.md) explains its scope and
+known limits.
 
 See [packaging](#packaging) profile for local running.
 

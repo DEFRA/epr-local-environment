@@ -31,22 +31,24 @@ upstream source. The restore removes Synapse physical-storage clauses (`DISTRIBU
 and replicated-table declarations) before applying SQL to the local SQL Server instance. The source
 commit, selected schema set and map fingerprint are recorded in `dbo.LocalSynapseRestoreHistory`.
 
-The initial restore is intentionally more expensive than normal profile startup: it compiles the
-complete upstream object set and resolves view dependencies over several passes. The shallow clone
-and the resulting database are retained in Docker volumes, so an unchanged later start exits after
-checking the recorded source commit.
+The initial restore is intentionally more expensive than normal profile startup. The `full` set
+compiles the complete upstream object set and resolves view dependencies over several passes; the
+default `common-data-api` set restores only its declared dependency closure. The shallow clone is
+retained in the ignored host directory above, while the resulting database is retained in the
+`sqledge-data` Docker volume. An unchanged later start exits after checking the recorded source
+commit, schema set and map fingerprint.
 
-The first profile run creates and seeds a fresh database. Later starts with the same source commit and
-schema set finish immediately. A database restored with a different schema set is not treated as
-compatible. If `main` has moved, or an older local database has no restore history, the restore fails
-safely rather than deleting generated local data.
+The first profile run creates and seeds a fresh database. A database restored with a different source
+commit, schema set or map fingerprint is not treated as compatible. The restore fails safely rather
+than deleting generated local data; rebuild explicitly when replacement is intended.
 
 ## Controls
 
 The default is to synchronise and restore (`EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=true`). To start a
 profile without network access or restore work, set this variable to `false` in `.env`. This assumes
 that a compatible `EprCommonData` database already exists in the `sqledge-data` volume; it does not
-create or validate one.
+create or validate one. With the default setting, the first restore requires network access to fetch
+the current `main` revision of `epr-data-sqldb`.
 
 ```dotenv
 EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false
@@ -71,6 +73,23 @@ EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=true \
 EPR_LOCAL_REBUILD_SYNAPSE_DATABASE=true \
 docker compose --profile obligations up -d
 ```
+
+To use the complete upstream schema instead, select `full` and rebuild in the same way:
+
+```sh
+EPR_LOCAL_SYNAPSE_SCHEMA_SET=full \
+EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=true \
+EPR_LOCAL_REBUILD_SYNAPSE_DATABASE=true \
+docker compose --profile obligations up -d
+```
+
+## Maintaining the Common Data API map
+
+`schema-map.txt` is deliberately an allow-list, not an automatic dependency scanner. When a Common
+Data API operation gains a database dependency, add every required source-relative SQL file to the
+`common-data-api` section and verify the API route against a disposable database before rebuilding
+the normal local database. The complete process, including handling an upstream object that has no
+source script, is in the [Common Data API testing strategy](../../agents/common-data-api-testing-strategy.md).
 
 The map explicitly records one upstream compatibility gap:
 `dbo.sp_IsPOMResubmissionSynchronised` is called by the current Common Data API source but is absent

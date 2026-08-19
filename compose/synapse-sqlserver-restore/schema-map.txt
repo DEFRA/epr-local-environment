@@ -3,6 +3,9 @@
 # Entries are paths relative to the checked-out epr-data-sqldb repository. The
 # restore script processes them by type (schemas, tables, functions, views and
 # stored procedures), not in the order written here.
+# `@all` selects every supported source SQL file, `@seed=baseline` applies the
+# local baseline data, and `@unavailable=schema.object` records an API object
+# that is exposed by Common Data API but absent from the upstream source.
 #
 # `full` preserves the historic behaviour: apply every supported source SQL
 # file. `common-data-api` is the explicit static dependency closure for the

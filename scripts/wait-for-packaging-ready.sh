@@ -49,7 +49,7 @@ done
 
 cd "$(dirname "$0")/.." || exit 2
 # Honours the standard COMPOSE_FILE environment variable, so an override can be layered in, e.g.
-#   COMPOSE_FILE=compose.yml:compose.local.yml ./scripts/wait-for-packaging-ready.sh --start
+#   COMPOSE_FILE=compose.yml:compose.override.yml ./scripts/wait-for-packaging-ready.sh --start
 COMPOSE="docker compose --profile packaging"
 FRONTEND=epr-local-environment-epr-packaging-frontend-1
 START=$(date +%s)
