@@ -1,0 +1,108 @@
+# Data generator — first iteration decision record
+
+- Status
+	- This records the discovery undertaken before implementation and the agreed first iteration.
+	- It is intentionally a design and repeatability record. It does not claim that the generator, future compose environment, database scripts or explicit-year runner have been implemented.
+	- The first profile is an anonymous pre-production snapshot collected on 19 August 2026. It represents POM reporting year 2025 and obligation/PRN calculation year 2026, as visible at that snapshot date.
+
+- User-facing contract
+	- The initial operation is `data-generator generate-year <pom-year>`.
+		- `generate-year 2025` creates a connected 2025 POM reporting population and 2026 determinations, PRNs and recalculated obligations.
+		- `--increase 25%` later adds 25% realistic connected volume above the normal baseline, maintaining distributions rather than just multiplying tonnes.
+		- `--link-local-accounts` later anchors a representative scheme and direct registrant population to existing local account fixtures, so the normal login flow can see the data.
+	- The generator is a CLI-only tool in a future `compose.cli.yml`. It runs against an already running local stack and uses its existing database endpoints; it needs neither a separate compose project nor a custom network.
+	- The surrounding future environment is named `future`, initially with the `obligations` profile. The data generator remains separately runnable so it can also target the current stack.
+
+- End-to-end data path to exercise
+	- The Common Data API endpoint is [`GET api/submissions/v1/pom/approved/{approvedAfterDateString}`](https://github.com/DEFRA/epr-common-data-api/blob/04107e1c2e30881f1ce6c964985c01c7/src/EPR.CommonDataService.Api/Controllers/SubmissionsController.cs#L53-L88).
+		- The currently always-enabled MYC feature path derives the reporting period from the current date; it does not honour the supplied latest-update date for selecting data.
+		- For a first deterministic full-year run, provide a future explicit-year equivalent/API runner instead of relying on that clock-driven endpoint.
+	- The Common Data service calls [`dbo.sp_GetApprovedSubmissionsMyc`](https://github.com/DEFRA/epr-common-data-api/blob/04107e1c2e30881f1ce6c964985c01c7/src/EPR.CommonDataService.Core/Services/SubmissionsService.cs#L89-L107). The stored procedure source is [`sp_GetApprovedSubmissionsMyc.sql`](https://github.com/DEFRA/epr-data-sqldb/blob/76cf2cf5feb7c02734956c05f0357ac64ac9fcc6/dbo/Stored%20Procedures/sp_GetApprovedSubmissionsMyc.sql#L89-L247).
+		- It chooses the latest accepted POM submission per producer/period/submitter, aggregates filtered POM materials and types, and optionally joins `dbo.t_producer_obligation_determination` using the following obligation year.
+		- For years after 2024, it needs matching H1 and H2 submissions for the same producer and submitter. For POM year 2025, the generator must always create both 2025-H1 and 2025-H2 with stable identities.
+		- The default first iteration omits determination rows. As a result `NumberOfDaysObligated` follows the stored procedure's natural null/no-data behaviour. A future `null-records` option may create matching determination records with `num_days_obligated = NULL`.
+	- The calculation function retrieves the API response in [`SubmissionsDataService`](https://github.com/DEFRA/epr-prn-obligationcalculations-function/blob/ec3a8bf8cee6f7dbd1035bfe98af8105e631722a/src/EPR.PRN.ObligationCalculation.Application/Services/SubmissionsDataService.cs#L11-L25), groups rows by submitter in [`ServiceBusProvider`](https://github.com/DEFRA/epr-prn-obligationcalculations-function/blob/ec3a8bf8cee6f7dbd1035bfe98af8105e631722a/src/EPR.PRN.ObligationCalculation.Application/Services/ServiceBusProvider.cs#L14-L36), and posts each group to the PRN backend in [`PrnService`](https://github.com/DEFRA/epr-prn-obligationcalculations-function/blob/ec3a8bf8cee6f7dbd1035bfe98af8105e631722a/src/EPR.PRN.ObligationCalculation.Application/Services/PrnService.cs#L12-L42).
+		- The existing timer uses today's date in [`StoreApprovedSubmissionsFunction`](https://github.com/DEFRA/epr-prn-obligationcalculations-function/blob/ec3a8bf8cee6f7dbd1035bfe98af8105e631722a/src/EPR.PRN.ObligationCalculation.Function/StoreApprovedSubmissionsFunction.cs#L9-L35). A future on-demand year runner, or an equivalent CLI queue publisher, is therefore required for a repeatable historic reporting year.
+	- The PRN backend calculation endpoint is [`POST api/v1/prn/organisation/{organisationId}/calculate`](https://github.com/DEFRA/epr-prn-common-backend/blob/f61bfe29767fa063bd200d5acee33802da20eafe/src/EPR.PRN.Backend.API/Controllers/PrnController.cs#L301-L386).
+		- The calculation service derives `submissionYear + 1`, resolves obligation type/material lookups, and upserts the calculation. See [`ObligationCalculatorService`](https://github.com/DEFRA/epr-prn-common-backend/blob/f61bfe29767fa063bd200d5acee33802da20eafe/src/EPR.PRN.Backend.Obligation/Services/ObligationCalculatorService.cs#L35-L67) and [its upsert flow](https://github.com/DEFRA/epr-prn-common-backend/blob/f61bfe29767fa063bd200d5acee33802da20eafe/src/EPR.PRN.Backend.Obligation/Services/ObligationCalculatorService.cs#L150-L158).
+		- Generated PRNs must have `Prn.OrganisationId = SubmitterId` and obligation year `POM year + 1`. The generator must not insert final obligation calculations as its primary success path.
+		- Glass input creates both Glass and GlassRemelt calculations. Validation must treat the extra GlassRemelt calculation as an expected expansion, not duplicate source POM data.
+
+- Cross-database identity contract
+	- `rpd.Pom.organisation_id` and `rpd.Pom.subsidiary_id` are `rpd.Organisations.ReferenceNumber` values.
+	- The stored-procedure output `OrganisationId` is the producer organisation's `rpd.Organisations.ExternalId` GUID.
+	- Compliance-scheme output `SubmitterId` is `rpd.cosmos_file_metadata.ComplianceSchemeId`, aligned to `rpd.ComplianceSchemes.ExternalId`.
+	- Direct-registrant output `SubmitterId` is the declaring POM organisation's `rpd.Organisations.ExternalId`; its metadata has no compliance-scheme ID.
+	- A determination record, when enabled, uses the raw producer reference number and the same submitter GUID, with `submission_period_year = POM year + 1`.
+	- A submitter GUID must represent exactly one submitter type. The function groups solely by `SubmitterId`.
+	- PRN rows use that same submitter GUID. This is the bridge between Synapse/CDA output and the PRN backend.
+
+- Anonymous baseline collected from pre-production
+	- Snapshot: POM reporting year 2025, corresponding obligation year 2026, queried 19 August 2026.
+	- Relevant active calculation volume
+		- 24,615 active obligation-calculation rows: 23,365 compliance-scheme rows and 1,250 direct-registrant rows.
+		- The stored-procedure/API equivalent is 23,547 rows: 22,365 compliance-scheme rows and 1,182 direct-registrant rows. The difference is the 1,068 additional GlassRemelt calculation rows generated from Glass POM data.
+		- Total calculated tonnage was 10,990,203; removing the expected GlassRemelt expansion gives 9,176,171 tonnes represented by API POM rows.
+	- Submitter/producer shape
+		- Compliance schemes: 14 submitters and 6,334 scheme-producer associations: five schemes with 21–100 producers, four with 101–500, four with 501–2,000, and one with 2,001+.
+		- Direct registrants: approximately 297 submitters and 337 producer associations: 278 one-producer submitters, 17 with 2–5 producers, and two with 6–20 producers.
+		- Across both types, the supplied profile showed 6,670 unique producers: 6,332 scheme-only, 337 direct-only, and one linked to multiple schemes.
+	- Material shape — active calculation rows
+		- Compliance scheme: AL 1,582; FC 704; GL 1,000; GR 1,000; PC 6,059; PL 6,154; ST 2,531; WD 4,335.
+		- Direct registrant: AL 104; FC 38; GL 68; GR 68; PC 320; PL 328; ST 120; WD 204.
+		- The source POM profile should contain GL but not a separately generated GR input. GR is calculated downstream.
+	- PRN profile evidence
+		- The snapshot separates `ACCEPTED`, `AWAITINGACCEPTANCE`, `CANCELLED` and `REJECTED` PRNs. The calculation-relevant first baseline will generate only accepted and awaiting-acceptance data; cancelled/rejected records do not provide material value for the initial end-to-end calculation test.
+		- The profile records distributions for PRNs per submitter and PRN tonnes by submitter type. These must be stored as anonymous profile values before the generator is implemented, rather than deriving any real organisation records.
+	- Scope interpretation
+		- This is a realistic snapshot of the data present on the date collected, not a claim about the eventual final 2026 PRN year. Profile metadata must preserve the observation date and target year.
+		- Historical/deleted raw Synapse data, registration events, antivirus/check events, file metadata noise and unrelated lifecycle states are deliberately outside the first material path.
+
+- Local seed audit and account-link option
+	- The local account seed creates both login-capable anchor populations:
+		- Northbridge compliance scheme: account organisation external ID `0BB650B9-125E-4D64-B1D0-06B9E167B2D4`, reference number `110000`, and compliance-scheme/calculation submitter ID `CAC58048-62A1-4419-9BEE-4B386454D776`.
+		- Pop Quest direct registrant: shared account/Synapse external ID `e2316c5e-d434-41da-8274-494dc0762d20`, reference number `165282`.
+	- The account seed documents the Pop Quest cross-store reference-number contract [at lines 52–65](https://github.com/DEFRA/epr-local-environment/blob/a0dfeb1a0663b73700281f1cebe67f4daa0faa5e/compose/epr-backend-account-microservice-migrations/seed.sql#L52-L65) and the Northbridge equivalent [at lines 280–305](https://github.com/DEFRA/epr-local-environment/blob/a0dfeb1a0663b73700281f1cebe67f4daa0faa5e/compose/epr-backend-account-microservice-migrations/seed.sql#L280-L305).
+	- The Common Data seed mirrors these account identifiers into rpd organisations, compliance-scheme metadata, POM/submission data and submission records.
+	- Cosmos initialisation creates matching Northbridge and Pop Quest POM/registration documents, and the local compose configuration uploads their referenced input files to Azurite. They are only needed if the generated journey must include POM document/file user interfaces, not for `sp_GetApprovedSubmissionsMyc` itself.
+	- `--link-local-accounts` must validate that the local anchors exist before writing. It should:
+		- Attach a representative generated scheme population to Northbridge's account organisation and use its separate compliance-scheme submitter GUID.
+		- Attach a representative direct population to Pop Quest.
+		- Create only the account organisation/membership relationships needed for portal visibility; it must not create thousands of user credentials.
+		- Preserve shared external IDs and reference numbers across Account and rpd. It should not alter payment, waste-obligations or legacy-calculator fixtures by default.
+	- Existing PRN seed data is illustrative static data. It is not a model for generated data: it includes hard-coded lookup IDs and static obligation calculations. The generator must resolve target lookup IDs by name and allow the backend to recreate calculations.
+
+- First implementation design
+	- `data-generator` CLI
+		- Reads a versioned aggregate profile, resolves target-database lookups and local seed anchors, produces deterministic synthetic IDs/data from a recorded seed, and writes Synapse and PRN source rows in dependency order.
+		- Writes a run manifest containing profile version, seed, arguments, target year mapping, row counts, generated identifier ranges and validation results.
+	- Future Common Data shell/version
+		- Exposes an explicit POM-year retrieval path over the same Synapse database, retaining production-compatible `sp_GetApprovedSubmissionsMyc` semantics.
+	- Future obligation runner
+		- Requests that explicit year, groups by submitter in the existing format, publishes to the existing obligation queue, and waits/reports on calculated results.
+	- Existing PRN backend
+		- Receives the normal calculation request and owns deletion/recalculation/upsert of obligation calculations.
+	- Baseline and validator
+		- Profile SQL is run against pre-production and local databases with equivalent POM/obligation year parameters. It compares count, relationship and distribution shape without exposing identifiers or personal data.
+
+- Repeatable profile-refresh process
+	- Select the POM reporting year `Y`, the expected observation date and the corresponding obligation year `Y + 1`.
+	- Run version-controlled anonymous baseline SQL against pre-production.
+		- Capture SP-relevant accepted POM source rows by submitter type, period, material, packaging type, producer/submitter cardinality, POM row count and weight bands.
+		- Capture matching PRNs and active calculation results by type, material, status, PRNs-per-submitter bands and tonnage bands.
+		- Capture only aggregates and ranges. Do not export real identifiers, users, organisation names, addresses, submission payloads, PRN numbers or files.
+	- Save the resulting aggregates as a new profile version with query revision, source environment, query timestamp, POM year and calculated year.
+	- Check reconciliations before accepting the profile.
+		- API source rows plus expected GlassRemelt expansion must reconcile to obligation-calculation rows.
+		- Producer/submitter cardinality buckets must reconcile to their totals.
+		- POM output kilograms/tonnes must reconcile to source aggregate conventions.
+	- Generate locally with a fixed seed, run the explicit-year obligation journey, then execute the same validation SQL locally.
+	- Record the comparison and manifest. Only then promote the new profile as the default baseline.
+
+- Delivery sequence
+	- Add the profile schema and the pre-production/local validation SQL.
+	- Encode the current 2025 POM / 2026 obligation aggregate profile.
+	- Implement deterministic source-row generation and an isolated run manifest.
+	- Implement the explicit-year Common Data/obligation runner in the future obligations profile.
+	- Add PRN generation and complete end-to-end calculation tests.
+	- Add `--increase` and `--link-local-accounts` after the normal-volume path validates cleanly.
