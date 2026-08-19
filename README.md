@@ -455,7 +455,9 @@ docker compose -f compose.yml -f compose.future.yml \
 
 - `recycling-data` — `http://localhost:8012`, approved POM recycling data for a submitter/year.
 - `reex` — `http://localhost:8013`, PRNs for an organisation.
-- `obligations` — `http://localhost:8014`, transient in-process obligation calculations.
+- `obligations` — `http://localhost:8014`, transient in-process obligation calculations and a
+  PRN-assessed calculation endpoint. Its [service README](./future/waste-obligations/README.md)
+  includes the equivalence and latency benchmark against the current PRN backend.
 
 After generating a year of synthetic data, each service exposes local discovery endpoints so callers
 can find the newly generated IDs rather than relying on fixed examples. The complete workflow—from

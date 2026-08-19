@@ -13,8 +13,10 @@ GET /organisations/{organisationId}/prns?page={page}&pageSize={pageSize}
 deliberately no configured maximum page size. The response contains `items`, `page`, `pageSize` and
 `totalItems`. PRNs are ordered by issue date descending, then PRN number and ID.
 
-Each item includes its ID and number, organisation, status, material, tonnage, issue date,
-accreditation/obligation years, December-waste flag and export flag.
+Each item includes its ID and number, organisation, **status**, material, tonnage, issue date,
+accreditation/obligation years, December-waste flag and export flag. In particular, the
+`ACCEPTED` and `AWAITINGACCEPTANCE` statuses required by the obligations assessment are already
+present in this response; no separate PRN-status endpoint is needed.
 
 ## Local data discovery
 

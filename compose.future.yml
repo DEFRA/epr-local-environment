@@ -92,8 +92,11 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       RecyclingData__BaseUrl: http://recycling-data:8080
+      Reex__BaseUrl: http://reex:8080
     depends_on:
       recycling-data:
+        condition: service_healthy
+      reex:
         condition: service_healthy
     ports:
       - "8014:8080"
