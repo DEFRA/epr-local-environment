@@ -1,6 +1,6 @@
 -- Northbridge Compliance Solutions Ltd: PayCal (epr-payment-service) registration fee
 -- calculation data for the 2 accepted registration submissions seeded into Cosmos/Synapse
--- (compose/epr-common-data-api-migrations/seed.sql, mocks/CosmosDbInit/Program.cs).
+-- (compose/synapse-sqlserver-restore/seed/baseline.sql, mocks/CosmosDbInit/Program.cs).
 -- SubmissionId values here MUST match those seed files exactly - this is what backs the
 -- 'View registration fee' screen (fee-calculation-details lookup by SubmissionId).
 
@@ -36,7 +36,7 @@ end
 
 -- POP QUEST LTD (Direct Producer, CHN 17121895): PayCal registration fee calculation data for its
 -- 2 accepted registration submissions. SubmissionId values MUST match
--- compose/epr-common-data-api-migrations/seed.sql and mocks/CosmosDbInit/Program.cs exactly.
+-- compose/synapse-sqlserver-restore/seed/baseline.sql and mocks/CosmosDbInit/Program.cs exactly.
 --
 -- Two things differ from the Northbridge blocks above because this is a direct producer, not a
 -- compliance scheme: ComplianceSchemeId is NULL, and SubmissionPeriodId points at the Direct rows

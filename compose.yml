@@ -536,7 +536,7 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
-      epr-common-data-api-migrations:
+      synapse-sqlserver-restore:
         condition: service_completed_successfully
       # -----
       # - if connection to a Synapse instance running in Azure is needed then reenable the depends on below
@@ -570,23 +570,46 @@ services:
       - packaging
       - regulator
 
-  epr-common-data-api-migrations:
+  synapse-source-sync:
     pull_policy: always
-    image: devrwdinfac1401.azurecr.io/eprcommondataregistry:${EPR_COMMON_DATA_API_MIGRATIONS:-main-latest-database-migrations}
-    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/seed.sql" ]
+    image: alpine/git:2.47.2
+    entrypoint: [ "/bin/sh", "/scripts/sync-source.sh" ]
+    volumes:
+      - ./.cache/synapse-source:/cache
+      - ./compose/synapse-sqlserver-restore/sync-source.sh:/scripts/sync-source.sh:ro
+    environment:
+      SOURCE_URL: https://github.com/DEFRA/epr-data-sqldb.git
+      SOURCE_REF: main
+      RESTORE_SYNAPSE_DATABASE: ${EPR_LOCAL_RESTORE_SYNAPSE_DATABASE:-true}
+    profiles:
+      - prn
+      - obligations
+      - packaging
+      - regulator
+
+  synapse-sqlserver-restore:
+    pull_policy: always
+    image: mcr.microsoft.com/mssql-tools:latest
+    entrypoint: [ "/bin/bash", "/scripts/run-restore.sh" ]
     depends_on:
       sqledge:
         condition: service_healthy
+      synapse-source-sync:
+        condition: service_completed_successfully
     volumes:
-      - ./compose/epr-common-data-api-migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
-      - ./compose/epr-common-data-api-migrations/scripts:/home/nonroot/sql/scripts/compose
-      - ./compose/epr-common-data-api-migrations/seed.sql:/home/nonroot/sql/seed.sql
+      - ./.cache/synapse-source:/cache:ro
+      - ./compose/synapse-sqlserver-restore:/scripts:ro
     environment:
       SERVER: sqledge
       PORT: 1433
       USER: sa
       PASSWORD: "s4usag3s!"
       DATABASE: EprCommonData
+      SOURCE_DIRECTORY: /cache/epr-data-sqldb
+      SOURCE_COMMIT_FILE: /cache/resolved-commit
+      SEED_FILE: /scripts/seed/baseline.sql
+      RESTORE_SYNAPSE_DATABASE: ${EPR_LOCAL_RESTORE_SYNAPSE_DATABASE:-true}
+      REBUILD_DATABASE: ${EPR_LOCAL_REBUILD_SYNAPSE_DATABASE:-false}
     profiles:
       - prn
       - obligations

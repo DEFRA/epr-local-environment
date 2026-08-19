@@ -1,4 +1,0 @@
-services:
-  epr-common-data-api-migrations:
-    pull_policy: never
-    image: epr-common-data-api-migrations:latest

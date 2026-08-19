@@ -403,9 +403,16 @@ The packaging front end will be started alongside all necessary services that al
 
 The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
 
-A local emulated version of Synapse will be started in sqledge. Currently only the obligation calculation process is supported in the SQL definitions applied within Synapse.
+A local SQL Server-compatible representation of Synapse is created in `sqledge` before Common
+Data API starts. The restore service shallow-fetches the current `main` branch of
+`epr-data-sqldb`, converts Synapse physical-storage declarations for SQL Server, restores the
+upstream SQL objects, and then applies the local baseline seed. The resolved upstream commit is
+recorded in the database and repeat starts skip an unchanged source. See the [restore README](./compose/synapse-sqlserver-restore/README.md).
 
-Also note that this is a very brittle approach to standing up a DB that emulates Synapse. There are SQL definitions from the epr-common-data-api layer on top of definitions from epr-data-sqldb and not all are applied. See [further README](./compose/epr-common-data-api-migrations/README.md) for more details at time of writing.
+The restore defaults to enabled. Set `EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false` in `.env` to use an
+already-created local database without fetching or restoring it. The shallow source checkout is
+retained under `.cache/synapse-source` in this repository and ignored by Git; see the restore README
+for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
 
@@ -502,14 +509,13 @@ The producer and both subsidiaries appear in the POM and company-details data.
 | Packaging data (POM) | July to December 2025 | Approved, then **a resubmission in progress** — fee ready to view, not paid or finally submitted |
 | Packaging data (POM) | January to June 2026 | Approved, then a corrected file **rejected** by the regulator |
 
-The 2025 H2 resubmission fee is served by a scenario branch in
-`compose/epr-common-data-api-migrations/scripts/procedures/pom-resubmission-paycal-parameters.sql`
-(reference `PQL-2025H2-POM-RESUB-0001`, member count 3 = the producer plus its 2 subsidiaries) —
-see `agents/common-data-api-testing-strategy.md` for why that endpoint is stubbed rather than seeded.
+The 2025 H2 resubmission fee uses the upstream
+`sp_PomResubmissionPaycalParameters` procedure restored from `epr-data-sqldb` (reference
+`PQL-2025H2-POM-RESUB-0001`, member count 3 = the producer plus its 2 subsidiaries).
 
 This data spans four places that must be kept in step, all keyed on the same SubmissionId/FileId/
 BlobName GUIDs: the CSVs in `compose/seed-data/popquest/` (uploaded to Azurite by `azurite-init`),
-`compose/epr-common-data-api-migrations/seed.sql`, `mocks/CosmosDbInit/Program.cs`, and
+`compose/synapse-sqlserver-restore/seed/baseline.sql`, `mocks/CosmosDbInit/Program.cs`, and
 `compose/epr-payment-service-migrations/seed.sql`.
 
 ### Compliance Scheme — "Northbridge Compliance Solutions Ltd" (CHN `11000000`)
