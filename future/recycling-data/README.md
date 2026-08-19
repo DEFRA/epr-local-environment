@@ -84,14 +84,14 @@ Run the normal paged request first:
   --page-size 100
 ```
 
-Then request one large page. `pageSize=10000` exceeds the current 7,377-row result and therefore
-drives the full result set through a single page, which tests JSON serialisation and transfer as well
-as the database query:
+Then request one large page. `pageSize=50000` covers the current generated high-volume dataset and
+therefore drives the full result set through a single page, which tests JSON serialisation and
+transfer as well as the database query:
 
 ```sh
 ./future/recycling-data/benchmark-recycling-data.sh \
   --year 2025 \
-  --page-size 10000
+  --page-size 50000
 ```
 
 Use a page size greater than the displayed `totalItems` for a one-page test after generating a

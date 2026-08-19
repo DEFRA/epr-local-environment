@@ -118,6 +118,7 @@ run: generated identifiers are not stable and should never be copied into script
    curl "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
    curl "http://localhost:8013/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
    curl -X POST "http://localhost:8014/organisations/${submitter_id}/calculate-obligations?year=2025"
+   curl -X POST "http://localhost:8014/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025"
    ```
 
    To capture an end-to-end HTTP duration without printing the response body, use the same IDs with
@@ -133,6 +134,9 @@ run: generated identifiers are not stable and should never be copied into script
    curl --fail --silent --output /dev/null -X POST \
      --write-out 'obligations: %{http_code} %{time_total}s\n' \
      "http://localhost:8014/organisations/${submitter_id}/calculate-obligations?year=2025"
+   curl --fail --silent --output /dev/null -X POST \
+     --write-out 'obligations with PRNs: %{http_code} %{time_total}s\n' \
+     "http://localhost:8014/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025&pageSize=50000"
    ```
 
 5. Benchmark Recycling Data using the same generated largest compliance scheme. The first command
@@ -142,7 +146,7 @@ run: generated identifiers are not stable and should never be copied into script
 
    ```sh
    ./future/recycling-data/benchmark-recycling-data.sh --year 2025 --page-size 100
-   ./future/recycling-data/benchmark-recycling-data.sh --year 2025 --page-size 10000
+   ./future/recycling-data/benchmark-recycling-data.sh --year 2025 --page-size 50000
    ```
 
    Each command warms both SQL paths, verifies that their payloads are equivalent and reports
@@ -152,8 +156,23 @@ run: generated identifiers are not stable and should never be copied into script
    recorded local result and the important distinction between one small-page call and retrieving
    all small pages are in the [Recycling Data benchmark results](../../future/recycling-data/README.md#recorded-local-result).
 
+6. Benchmark the complete future-state calculation with PRNs. This measures only the `obligations`
+   endpoint and its calls to the future Recycling Data and ReEx services; it does not call or time
+   the existing PRN backend.
+
+   ```sh
+   ./future/waste-obligations/benchmark-obligations-with-prns.sh \
+     --year 2025 \
+     --page-size 50000
+   ```
+
+   The script discovers the largest generated compliance scheme unless `--organisation-id` is
+   supplied. See the [Obligations benchmark results](../../future/waste-obligations/README.md#recorded-local-result)
+   for the recorded result and the rationale for using a page size that covers the full dataset.
+
 The endpoint-specific fields and response shapes are documented in
-[Recycling Data](../../future/recycling-data/README.md) and [ReEx](../../future/reex/README.md).
+[Recycling Data](../../future/recycling-data/README.md), [ReEx](../../future/reex/README.md) and
+[Obligations](../../future/waste-obligations/README.md).
 
 ## Directory layout
 

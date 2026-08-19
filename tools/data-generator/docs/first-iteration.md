@@ -3,7 +3,7 @@
 - Status
 	- This records the discovery undertaken before implementation and the agreed first iteration.
 	- The first runnable generator is implemented in `tools/data-generator/` with a CLI-only Compose service. It writes only the material Synapse/PRN path, invokes the stored procedure for the requested year, then posts grouped rows to the existing PRN backend calculation endpoint.
-	- The future-state `recycling-data` service now provides an explicit POM-year retrieval API, and the future `obligations` service calculates transient obligations in-process. A Service-Bus-backed explicit-year runner remains later work. The CLI continues to call the stored procedure directly because its purpose is to exercise the existing persisted PRN-backend calculation path.
+	- The future-state `recycling-data` service now provides an explicit POM-year retrieval API. The future `obligations` service calculates transient obligations in-process, and can also assess those calculations against the future `reex` PRN API without persistence. A Service-Bus-backed explicit-year runner remains later work. The CLI continues to call the stored procedure directly because its purpose is to exercise the existing persisted PRN-backend calculation path.
 	- The first profile is an anonymous pre-production snapshot collected on 19 August 2026. It represents POM reporting year 2025 and obligation/PRN calculation year 2026, as visible at that snapshot date.
 
 	- User-facing contract
@@ -83,7 +83,7 @@
 	- Future Common Data shell/version — implemented
 		- `future/recycling-data` exposes an explicit POM-year retrieval path over the same local Synapse representation. It embeds the approved-submissions query rather than calling the stored procedure and supports submitter-specific paging.
 	- Future obligation runner — partially implemented
-		- `future/obligations` retrieves that explicit year, traverses every recycling-data page and applies the calculation in-process. It returns transient results and intentionally does not publish to the obligation queue or persist them.
+		- `future/obligations` retrieves that explicit year, traverses every recycling-data page and applies the calculation in-process. Its `calculate-obligations-with-prns` path also traverses `future/reex` PRN pages and returns transient Met/NotMet assessments. Neither path publishes to the obligation queue or persists data.
 		- A queue-backed runner that uses the existing timer/function path remains later work.
 	- Existing PRN backend
 		- Receives the normal calculation request and owns deletion/recalculation/upsert of obligation calculations.
@@ -105,5 +105,5 @@
 	- Record the comparison and manifest. Only then promote the new profile as the default baseline.
 
 	- Delivery status
-	- Completed: the anonymous 2025 POM / 2026 obligation profile, baseline and local validation SQL, deterministic source-row generation, run manifests, PRN generation, direct PRN-backend recalculation, `--increase`, `--link-local-accounts`, the explicit-year `recycling-data` API and transient `obligations` calculation API.
+	- Completed: the anonymous 2025 POM / 2026 obligation profile, baseline and local validation SQL, deterministic source-row generation, run manifests, PRN generation, direct PRN-backend recalculation, `--increase`, `--link-local-accounts`, the explicit-year `recycling-data` API, and transient `obligations` calculation and PRN-assessment APIs.
 	- Future: profile selection and JSON-schema validation, optional determination records, and a queue-backed obligation runner that exercises the timer/function path.
