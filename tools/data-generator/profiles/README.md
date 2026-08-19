@@ -28,4 +28,6 @@ Never store organisation IDs, company names, people, user details, addresses, em
 - `baselines/<profile>.metadata.json` — provenance and reconciliation values.
 - `schemas/` — JSON schema and validation constraints for profiles.
 
+The checked-in [2025/2026 profile](baselines/preprod-pom-2025-prn-2026.json) and [its provenance](baselines/preprod-pom-2025-prn-2026.metadata.json) are the current default.
+
 Do not overwrite an existing profile after a re-run. Add a new version or observation-date suffix, retain the aggregate evidence and document the difference in the profile metadata.

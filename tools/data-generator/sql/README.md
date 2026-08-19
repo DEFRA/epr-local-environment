@@ -1,23 +1,17 @@
 # Baseline and validation SQL
 
-This area will hold the SQL used to make data generation reflective rather than a one-off seed. The same aggregate checks should be runnable against pre-production and a local generated database, parameterised by POM reporting year `Y` and calculated/PRN year `Y + 1`.
+This area holds the SQL used to make data generation reflective rather than a one-off seed. The same aggregate checks should be runnable against pre-production and a local generated database, parameterised by POM reporting year `Y` and calculated/PRN year `Y + 1`.
 
-> No SQL is added in this scaffold. The scripts are deliberately deferred until their inputs and generator run marker are implemented, so that they test the actual generated contract rather than an assumed schema variant.
+The first scripts produce aggregate result sets only and do not export organisation or user data.
 
 ## Planned scripts
 
-- `baseline/common-data-period-profile.sql`
+- `baseline/common-data-approved-submissions.sql`
   - SP-relevant accepted POM population, material/type mix, H1/H2 completeness, POM row/weight bands, submitter type and producer/submitter cardinality.
 - `baseline/prn-obligation-year-profile.sql`
   - PRNs and active obligation calculations by submitter type, status, material, number of PRNs, quantities and expected GlassRemelt expansion.
-- `validation/common-data-year-shape.sql`
-  - Local-versus-baseline SP input/output counts and distributions for one generated POM year.
-- `validation/prn-year-shape.sql`
-  - Local-versus-baseline PRN and recalculated obligation shape for `Y + 1`.
-- `validation/relationship-integrity.sql`
-  - Identity bridge, H1/H2 continuity, submitter type uniqueness and PRN-to-submitter checks.
-- `local/run-scoped-checks.sql`
-  - Optional diagnostics using a generated-run manifest/marker. This is local-only; baseline queries must not rely on it.
+- `validation/generated-run-counts.sql`
+  - Local run-scoped POM, accepted-decision and PRN counts, plus the stored-procedure material matrix.
 
 ## Use when refreshing a profile
 

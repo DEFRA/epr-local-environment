@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "preprod-pom-2025-prn-2026",
+  "description": "Anonymous 19 August 2026 pre-production snapshot for the 2025 POM / 2026 obligation journey.",
+  "pomYear": 2025,
+  "obligationYear": 2026,
+  "producerAssociations": {
+    "ComplianceScheme": [
+      { "submitterCount": 5, "totalProducers": 260 },
+      { "submitterCount": 4, "totalProducers": 1307 },
+      { "submitterCount": 4, "totalProducers": 2674 },
+      { "submitterCount": 1, "totalProducers": 2093 }
+    ],
+    "DirectRegistrant": [
+      { "submitterCount": 278, "totalProducers": 278 },
+      { "submitterCount": 17, "totalProducers": 45 },
+      { "submitterCount": 2, "totalProducers": 14 }
+    ]
+  },
+  "pom": {
+    "materials": ["AL", "FC", "GL", "PC", "PL", "ST", "WD"],
+    "packagingTypes": ["HH", "NH", "PB", "HDC", "NDC"],
+    "materialRows": {
+      "ComplianceScheme": { "AL": 1582, "FC": 704, "GL": 1000, "PC": 6059, "PL": 6154, "ST": 2531, "WD": 4335 },
+      "DirectRegistrant": { "AL": 104, "FC": 38, "GL": 68, "PC": 320, "PL": 328, "ST": 120, "WD": 204 }
+    },
+    "annualTonnes": {
+      "ComplianceScheme": { "AL": 186038, "FC": 102233, "GL": 1801817, "PC": 3882681, "PL": 1759755, "ST": 350565, "WD": 865294 },
+      "DirectRegistrant": { "AL": 5739, "FC": 2876, "GL": 12215, "PC": 88756, "PL": 34186, "ST": 9023, "WD": 74993 }
+    }
+  },
+  "prn": {
+    "statusCounts": {
+      "ComplianceScheme": { "ACCEPTED": 1810, "AWAITINGACCEPTANCE": 2097 },
+      "DirectRegistrant": { "ACCEPTED": 60, "AWAITINGACCEPTANCE": 79 }
+    },
+    "statusTonnes": {
+      "ComplianceScheme": { "ACCEPTED": 4442553, "AWAITINGACCEPTANCE": 1805049 },
+      "DirectRegistrant": { "ACCEPTED": 118256, "AWAITINGACCEPTANCE": 26946 }
+    }
+  }
+}

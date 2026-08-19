@@ -1,0 +1,25 @@
+{
+  "profile": "preprod-pom-2025-prn-2026",
+  "schemaVersion": 1,
+  "sourceEnvironment": "pre-production",
+  "observedAt": "2026-08-19",
+  "pomReportingYear": 2025,
+  "obligationYear": 2026,
+  "dataHandling": "Anonymous aggregate counts, totals and cardinality buckets only. No production identifiers or payload data are retained.",
+  "reconciliations": {
+    "apiRows": 23547,
+    "apiRowsBySubmitterType": {
+      "ComplianceScheme": 22365,
+      "DirectRegistrant": 1182
+    },
+    "activeObligationCalculationRows": 24615,
+    "expectedGlassRemeltExpansionRows": 1068,
+    "uniqueProducers": 6670,
+    "submitters": 311
+  },
+  "knownSnapshotLimits": [
+    "This is the pre-production state on the observation date, not a final end-of-year extract.",
+    "The first generator iteration excludes deleted/historical records, registration processing events and POM file/Cosmos documents.",
+    "NumberOfDaysObligated is intentionally null until an explicit determination-record option is added."
+  ]
+}

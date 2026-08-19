@@ -2,7 +2,8 @@
 
 - Status
 	- This records the discovery undertaken before implementation and the agreed first iteration.
-	- It is intentionally a design and repeatability record. It does not claim that the generator, future compose environment, database scripts or explicit-year runner have been implemented.
+	- The first runnable generator is implemented in `tools/data-generator/` with a CLI-only Compose service. It writes only the material Synapse/PRN path, invokes the stored procedure for the requested year, then posts grouped rows to the existing PRN backend calculation endpoint.
+	- The future Common Data shell/API and a Service-Bus-backed explicit-year runner remain later work. The CLI calls the stored procedure directly because the current MYC HTTP endpoint is clock-driven.
 	- The first profile is an anonymous pre-production snapshot collected on 19 August 2026. It represents POM reporting year 2025 and obligation/PRN calculation year 2026, as visible at that snapshot date.
 
 - User-facing contract
@@ -10,6 +11,7 @@
 		- `generate-year 2025` creates a connected 2025 POM reporting population and 2026 determinations, PRNs and recalculated obligations.
 		- `--increase 25%` later adds 25% realistic connected volume above the normal baseline, maintaining distributions rather than just multiplying tonnes.
 		- `--link-local-accounts` later anchors a representative scheme and direct registrant population to existing local account fixtures, so the normal login flow can see the data.
+		- `--replace-existing` removes the existing local POM material data for the requested reporting year and the corresponding next-year PRNs/calculations before generation. It intentionally retains organisations, account/user fixtures, lookup/target data and all other years. The Synapse and PRN database clean-ups each use a transaction, but cannot be atomic across the two databases.
 	- The generator is a CLI-only tool in a future `compose.cli.yml`. It runs against an already running local stack and uses its existing database endpoints; it needs neither a separate compose project nor a custom network.
 	- The surrounding future environment is named `future`, initially with the `obligations` profile. The data generator remains separately runnable so it can also target the current stack.
 
@@ -73,9 +75,11 @@
 	- Existing PRN seed data is illustrative static data. It is not a model for generated data: it includes hard-coded lookup IDs and static obligation calculations. The generator must resolve target lookup IDs by name and allow the backend to recreate calculations.
 
 - First implementation design
-	- `data-generator` CLI
-		- Reads a versioned aggregate profile, resolves target-database lookups and local seed anchors, produces deterministic synthetic IDs/data from a recorded seed, and writes Synapse and PRN source rows in dependency order.
-		- Writes a run manifest containing profile version, seed, arguments, target year mapping, row counts, generated identifier ranges and validation results.
+	- `data-generator` CLI — implemented
+		- Reads the versioned anonymous profile, produces deterministic synthetic IDs/data from a recorded seed, and writes Synapse and PRN source rows in dependency order.
+		- Writes a run manifest containing profile version, seed, arguments, target year mapping, row counts, generated identifiers and validation results.
+		- Calls `sp_GetApprovedSubmissionsMyc` directly, retains only rows belonging to the generated producer/submitter identity set, then groups and POSTs them to the existing PRN backend calculation endpoint.
+		- Supports `generate-year`, `calculate-year`, `validate-year`, `--dry-run`, `--increase`, `--link-local-accounts` and `--replace-existing`. The account-link option is rejected if its seeded anchors already have POM data in the requested year, avoiding mixed fixture/generated source rows; `--replace-existing` clears those rows first when a complete local reset is wanted.
 	- Future Common Data shell/version
 		- Exposes an explicit POM-year retrieval path over the same Synapse database, retaining production-compatible `sp_GetApprovedSubmissionsMyc` semantics.
 	- Future obligation runner

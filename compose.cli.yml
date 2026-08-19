@@ -1,0 +1,22 @@
+services:
+  data-generator:
+    build:
+      context: ./tools/data-generator
+    image: epr-data-generator:local
+    environment:
+      SYNAPSE_HOST: sqledge
+      SYNAPSE_PORT: "1433"
+      SYNAPSE_DATABASE: EprCommonData
+      PRN_HOST: sqledge
+      PRN_PORT: "1433"
+      PRN_DATABASE: EprPrnBackend
+      ACCOUNTS_HOST: sqledge
+      ACCOUNTS_PORT: "1433"
+      ACCOUNTS_DATABASE: EprBackendAccountMicroservice
+      SQL_USER: sa
+      SQL_PASSWORD: "s4usag3s!"
+      PRN_BACKEND_URL: http://epr-prn-common-backend:8080
+      MANIFEST_DIRECTORY: /manifests
+    volumes:
+      - ./tools/data-generator/manifests:/manifests
+    command: ["node", "src/index.mjs", "help"]
