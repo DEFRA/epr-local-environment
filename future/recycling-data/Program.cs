@@ -15,11 +15,28 @@ app.MapGet("/recycling-data", async (
     int year,
     Guid submitterId,
     ILogger<Program> logger,
-    CancellationToken cancellationToken) =>
+    CancellationToken cancellationToken,
+    long page = 1,
+    long pageSize = 100) =>
 {
     if (year is < 2024 or > 2100)
     {
         return Results.BadRequest(new { error = "year must be between 2024 and 2100." });
+    }
+
+    if (page < 1 || pageSize < 1)
+    {
+        return Results.BadRequest(new { error = "page and pageSize must both be positive integers." });
+    }
+
+    long offset;
+    try
+    {
+        offset = checked((page - 1) * pageSize);
+    }
+    catch (OverflowException)
+    {
+        return Results.BadRequest(new { error = "page and pageSize produce an unsupported offset." });
     }
 
     try
@@ -38,8 +55,21 @@ app.MapGet("/recycling-data", async (
         command.Parameters.Add("@SubmitterId", SqlDbType.UniqueIdentifier).Value = submitterId;
         command.Parameters.Add("@IncludePackagingTypes", SqlDbType.VarChar, -1).Value = RecyclingDataSql.IncludedPackagingTypes;
         command.Parameters.Add("@IncludePackagingMaterials", SqlDbType.VarChar, -1).Value = RecyclingDataSql.IncludedPackagingMaterials;
+        command.Parameters.Add("@Offset", SqlDbType.BigInt).Value = offset;
+        command.Parameters.Add("@PageSize", SqlDbType.BigInt).Value = pageSize;
 
         await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            throw new DataException("The recycling data query did not return a total count.");
+        }
+
+        var totalItems = reader.GetInt64(reader.GetOrdinal("TotalItems"));
+        if (!await reader.NextResultAsync(cancellationToken))
+        {
+            throw new DataException("The recycling data query did not return page data.");
+        }
+
         var submissionPeriodOrdinal = reader.GetOrdinal("SubmissionPeriod");
         var submitterTypeOrdinal = reader.GetOrdinal("SubmitterType");
         var submitterIdOrdinal = reader.GetOrdinal("SubmitterId");
@@ -62,7 +92,7 @@ app.MapGet("/recycling-data", async (
                     : Convert.ToInt32(reader.GetValue(numberOfDaysObligatedOrdinal), CultureInfo.InvariantCulture)));
         }
 
-        return rows.Count == 0 ? Results.NoContent() : Results.Ok(rows);
+        return Results.Ok(new RecyclingDataPage(rows, page, pageSize, totalItems));
     }
     catch (SqlException exception)
     {
@@ -87,6 +117,12 @@ public sealed record RecyclingDataRow(
     int PackagingMaterialWeight,
     int? NumberOfDaysObligated);
 
+public sealed record RecyclingDataPage(
+    IReadOnlyList<RecyclingDataRow> Items,
+    long Page,
+    long PageSize,
+    long TotalItems);
+
 internal static class RecyclingDataSql
 {
     // These lists are deliberately part of the service contract, not request parameters.
@@ -97,6 +133,8 @@ internal static class RecyclingDataSql
     // runtime dependency on that stored procedure. dbo.udf_DQ_SubmissionPeriod remains an upstream
     // data-quality helper function and is restored with the Common Data database.
     internal const string Query = """
+        SET NOCOUNT ON;
+
         DECLARE @RelevantYear varchar(4) = CAST(CAST(@PeriodYear AS int) + 1 AS varchar(4));
 
         WITH
@@ -280,6 +318,7 @@ internal static class RecyclingDataSql
             pom.packaging_material AS PackagingMaterial,
             CAST(ROUND((SUM(pom.packaging_material_weight) - COALESCE(SUM(pom.transitional_packaging_units), 0)) / 1000.0, 0) AS int) AS PackagingMaterialWeight,
             obligations.num_days_obligated AS NumberOfDaysObligated
+        INTO #ApprovedRecyclingData
         FROM LatestAcceptedPomEntries AS pom
         INNER JOIN #LatestAcceptedPomsWith2Periods AS accepted
             ON accepted.submission_period = pom.submission_period
@@ -301,5 +340,20 @@ internal static class RecyclingDataSql
             pom.external_producer_id,
             pom.packaging_material,
             obligations.num_days_obligated;
+
+        SELECT COUNT_BIG(*) AS TotalItems
+        FROM #ApprovedRecyclingData;
+
+        SELECT
+            SubmissionPeriod,
+            SubmitterType,
+            SubmitterId,
+            OrganisationId,
+            PackagingMaterial,
+            PackagingMaterialWeight,
+            NumberOfDaysObligated
+        FROM #ApprovedRecyclingData
+        ORDER BY OrganisationId, PackagingMaterial, NumberOfDaysObligated
+        OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
         """;
 }
