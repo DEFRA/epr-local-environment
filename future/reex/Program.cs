@@ -101,6 +101,67 @@ app.MapGet("/organisations/{organisationId:guid}/prns", async (
     }
 });
 
+app.MapGet("/admin/organisations/prns", async (
+    ILogger<Program> logger,
+    CancellationToken cancellationToken,
+    int? obligationYear = null,
+    int take = 10) =>
+{
+    if (obligationYear is < 2024 or > 2100)
+    {
+        return Results.BadRequest(new { error = "obligationYear must be between 2024 and 2100 when supplied." });
+    }
+
+    if (take < 1)
+    {
+        return Results.BadRequest(new { error = "take must be a positive integer." });
+    }
+
+    try
+    {
+        var items = new List<PrnOrganisationSummary>();
+
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = new SqlCommand(PrnSql.OrganisationDiscoveryQuery, connection)
+        {
+            CommandTimeout = 320
+        };
+        command.Parameters.Add("@ObligationYear", SqlDbType.VarChar, 4).Value = obligationYear?.ToString() ?? (object)DBNull.Value;
+        command.Parameters.Add("@Take", SqlDbType.Int).Value = take;
+
+        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken);
+        var organisationIdOrdinal = reader.GetOrdinal("OrganisationId");
+        var prnCountOrdinal = reader.GetOrdinal("PrnCount");
+        var totalTonnageOrdinal = reader.GetOrdinal("TotalTonnage");
+        var firstIssueDateOrdinal = reader.GetOrdinal("FirstIssueDate");
+        var lastIssueDateOrdinal = reader.GetOrdinal("LastIssueDate");
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new PrnOrganisationSummary(
+                reader.GetGuid(organisationIdOrdinal),
+                reader.GetInt64(prnCountOrdinal),
+                reader.GetInt64(totalTonnageOrdinal),
+                reader.GetDateTime(firstIssueDateOrdinal),
+                reader.GetDateTime(lastIssueDateOrdinal)));
+        }
+
+        return Results.Ok(new PrnOrganisationSummaryPage(obligationYear, take, items));
+    }
+    catch (SqlException exception)
+    {
+        logger.LogError(exception, "Unable to discover organisations with PRNs for obligation year {ObligationYear}", obligationYear);
+        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Unable to discover organisations with PRNs.");
+    }
+    catch (Exception exception)
+    {
+        logger.LogError(exception, "Unexpected error discovering organisations with PRNs for obligation year {ObligationYear}", obligationYear);
+        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Unable to discover organisations with PRNs.");
+    }
+});
+
 app.Run();
 
 public sealed record PrnRow(
@@ -121,6 +182,18 @@ public sealed record PrnPage(
     long Page,
     long PageSize,
     long TotalItems);
+
+public sealed record PrnOrganisationSummary(
+    Guid OrganisationId,
+    long PrnCount,
+    long TotalTonnage,
+    DateTime FirstIssueDate,
+    DateTime LastIssueDate);
+
+public sealed record PrnOrganisationSummaryPage(
+    int? ObligationYear,
+    int Take,
+    IReadOnlyList<PrnOrganisationSummary> Items);
 
 internal static class PrnSql
 {
@@ -149,5 +222,19 @@ internal static class PrnSql
         WHERE prn.OrganisationId = @OrganisationId
         ORDER BY prn.IssueDate DESC, prn.PrnNumber, prn.ExternalId
         OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+        """;
+
+    internal const string OrganisationDiscoveryQuery = """
+        SELECT TOP (@Take)
+            prn.OrganisationId,
+            COUNT_BIG(*) AS PrnCount,
+            COALESCE(SUM(CAST(prn.TonnageValue AS bigint)), 0) AS TotalTonnage,
+            MIN(prn.IssueDate) AS FirstIssueDate,
+            MAX(prn.IssueDate) AS LastIssueDate
+        FROM dbo.Prn AS prn
+        WHERE @ObligationYear IS NULL
+            OR prn.ObligationYear = @ObligationYear
+        GROUP BY prn.OrganisationId
+        ORDER BY PrnCount DESC, TotalTonnage DESC, prn.OrganisationId;
         """;
 }

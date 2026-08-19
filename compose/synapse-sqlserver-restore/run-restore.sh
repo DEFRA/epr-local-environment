@@ -14,8 +14,11 @@ set -Eeuo pipefail
 : "${REBUILD_DATABASE:=false}"
 : "${DUMP_FAILED_SQL:=false}"
 : "${VIEW_PASSES:=6}"
+: "${LOCAL_QUERY_SUPPORT_FILE:=/scripts/local-query-support.sql}"
+: "${APPLY_LOCAL_OPTIMISATION_INDEXES:=true}"
+: "${LOCAL_OPTIMISATION_INDEX_FILE:=/scripts/local-optimisation-indexes.sql}"
 
-for boolean_variable in RESTORE_SYNAPSE_DATABASE REBUILD_DATABASE; do
+for boolean_variable in RESTORE_SYNAPSE_DATABASE REBUILD_DATABASE APPLY_LOCAL_OPTIMISATION_INDEXES; do
     case "${!boolean_variable}" in
         true|false) ;;
         *)
@@ -215,6 +218,31 @@ run_master_sqlcmd() {
     "${SQLCMD}" -S "${SERVER},${PORT}" -U "${USER}" -P "${PASSWORD}" -d master -I -b "$@"
 }
 
+apply_local_query_support() {
+    if [[ ! -f "${LOCAL_QUERY_SUPPORT_FILE}" ]]; then
+        echo "Local SQL Server query-support script is missing: ${LOCAL_QUERY_SUPPORT_FILE}" >&2
+        exit 2
+    fi
+
+    echo "=== Local SQL Server query support (local environment only) ==="
+    run_sqlcmd -i "${LOCAL_QUERY_SUPPORT_FILE}"
+}
+
+apply_local_optimisation_indexes() {
+    if [[ "${APPLY_LOCAL_OPTIMISATION_INDEXES}" == "false" ]]; then
+        echo "=== Local SQL Server optimisation indexes disabled ==="
+        return
+    fi
+
+    if [[ ! -f "${LOCAL_OPTIMISATION_INDEX_FILE}" ]]; then
+        echo "Local SQL Server optimisation-index script is missing: ${LOCAL_OPTIMISATION_INDEX_FILE}" >&2
+        exit 2
+    fi
+
+    echo "=== Local SQL Server optimisation indexes (local environment only) ==="
+    run_sqlcmd -i "${LOCAL_OPTIMISATION_INDEX_FILE}"
+}
+
 master_scalar() {
     run_master_sqlcmd -h -1 -W -Q "$1" | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1
 }
@@ -244,6 +272,8 @@ if [[ "${database_exists}" == "1" ]]; then
         if [[ "${restored_commit}" == "${SOURCE_COMMIT}" && "${restored_schema_set}" == "${SCHEMA_SET}" && "${REBUILD_DATABASE}" != "true" ]]; then
             if [[ "${restored_map_hash}" == "${SCHEMA_MAP_HASH}" || ( "${SCHEMA_SET}" == "full" && -z "${restored_map_hash}" ) ]]; then
                 echo "${DATABASE} already matches epr-data-sqldb ${SOURCE_COMMIT} with schema set '${SCHEMA_SET}'; restore skipped."
+                apply_local_query_support
+                apply_local_optimisation_indexes
                 exit 0
             fi
         fi
@@ -433,6 +463,12 @@ if [[ "${selected_seed_mode}" == "baseline" ]]; then
 else
     echo "=== Baseline seed skipped by schema set ==="
 fi
+
+# These scripts intentionally run only after all selected upstream objects and
+# the baseline seed exist. They are SQL Server local-environment additions, not
+# epr-data-sqldb/Synapse source objects.
+apply_local_query_support
+apply_local_optimisation_indexes
 
 run_sqlcmd -Q "
 IF OBJECT_ID(N'dbo.LocalSynapseRestoreHistory', N'U') IS NULL

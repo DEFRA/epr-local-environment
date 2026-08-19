@@ -23,7 +23,10 @@ For example:
 
 ```sh
 docker compose -f compose.yml -f compose.future.yml --profile future up --build obligations
-curl -X POST 'http://localhost:8014/organisations/a1767a6b-0599-5ef9-80d0-a1192c47e090/calculate-obligations?year=2025'
+organisation_id=$(curl --silent \
+  'http://localhost:8012/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
+  | jq -r '.items[0].submitterId')
+curl -X POST "http://localhost:8014/organisations/${organisation_id}/calculate-obligations?year=2025"
 ```
 
 The request contains no body. The service gets approved recycling data for the organisation from

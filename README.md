@@ -420,6 +420,12 @@ closure of the current local API surface; set `EPR_LOCAL_SYNAPSE_SCHEMA_SET=full
 upstream schema is required. See the [restore README](./compose/synapse-sqlserver-restore/README.md)
 and [Common Data API testing strategy](./agents/common-data-api-testing-strategy.md).
 
+Once those required SQL elements exist, the restore applies local SQL Server-only access projections
+and, by default, optional nonclustered indexes for future-state analytical queries that use them. They
+are a local performance optimisation, not a Synapse schema change. Set
+`EPR_LOCAL_APPLY_SYNAPSE_LOCAL_OPTIMISATION_INDEXES=false` in `.env` to skip creating the physical
+indexes; see the restore README for behaviour when indexes already exist.
+
 The restore defaults to enabled. Set `EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false` in `.env` to use an
 already-created local database without fetching or restoring it. The shallow source checkout is
 retained under `.cache/synapse-source` in this repository and ignored by Git; see the restore README
