@@ -442,6 +442,26 @@ and explicit local-year replacement. Start with the [data generator README](./to
 the [decision record](./tools/data-generator/docs/first-iteration.md) explains its scope and
 known limits.
 
+### Future-state obligations prototype
+
+`compose.future.yml` adds three local minimal APIs for exploring a future obligations flow against
+the same restored Common Data and PRN databases. Start it with the obligations profile so its
+existing dependencies, migrations and calculation backend are also available:
+
+```sh
+docker compose -f compose.yml -f compose.future.yml \
+  --profile obligations --profile future up -d --build --wait
+```
+
+- `recycling-data` — `http://localhost:8012`, approved POM recycling data for a submitter/year.
+- `reex` — `http://localhost:8013`, PRNs for an organisation.
+- `obligations` — `http://localhost:8014`, transient in-process obligation calculations.
+
+After generating a year of synthetic data, each service exposes local discovery endpoints so callers
+can find the newly generated IDs rather than relying on fixed examples. The complete workflow—from
+generation through ID discovery, endpoint calls and baseline-versus-local-SQL benchmarking—is in the
+[data generator README](./tools/data-generator/README.md#generate-discover-and-assess-future-state-data).
+
 See [packaging](#packaging) profile for local running.
 
 The cron for the obligation calculator function is set for a single run at 10am. If you need to run the function manually to kick of the process, it can be initiated via:
