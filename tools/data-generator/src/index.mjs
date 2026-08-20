@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import profile from '../profiles/baselines/preprod-pom-2025-prn-2026.json' with { type: 'json' };
+import profile from '../profiles/baselines/preprod-complete-2025-prn-shape.json' with { type: 'json' };
 import { buildPlan } from './plan.mjs';
 import {
   approvedSubmissions,

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "name": "preprod-complete-2025-prn-shape",
+  "description": "Synthetic 2025 POM data with the endpoint-eligible PRN volume and concentration observed for completed pre-production obligation year 2025.",
+  "pomYear": 2025,
+  "obligationYear": 2026,
+  "prnSourceObligationYear": 2025,
+  "producerAssociations": {
+    "ComplianceScheme": [
+      { "submitterCount": 5, "totalProducers": 260 },
+      { "submitterCount": 4, "totalProducers": 1307 },
+      { "submitterCount": 4, "totalProducers": 2674 },
+      { "submitterCount": 1, "totalProducers": 2093 }
+    ],
+    "DirectRegistrant": [
+      { "submitterCount": 278, "totalProducers": 278 },
+      { "submitterCount": 17, "totalProducers": 45 },
+      { "submitterCount": 2, "totalProducers": 14 }
+    ]
+  },
+  "pom": {
+    "materials": ["AL", "FC", "GL", "PC", "PL", "ST", "WD"],
+    "packagingTypes": ["HH", "NH", "PB", "HDC", "NDC"],
+    "materialRows": {
+      "ComplianceScheme": { "AL": 1582, "FC": 704, "GL": 1000, "PC": 6059, "PL": 6154, "ST": 2531, "WD": 4335 },
+      "DirectRegistrant": { "AL": 104, "FC": 38, "GL": 68, "PC": 320, "PL": 328, "ST": 120, "WD": 204 }
+    },
+    "annualTonnes": {
+      "ComplianceScheme": { "AL": 186038, "FC": 102233, "GL": 1801817, "PC": 3882681, "PL": 1759755, "ST": 350565, "WD": 865294 },
+      "DirectRegistrant": { "AL": 5739, "FC": 2876, "GL": 12215, "PC": 88756, "PL": 34186, "ST": 9023, "WD": 74993 }
+    }
+  },
+  "prn": {
+    "statusCounts": {
+      "ACCEPTED": 9832,
+      "AWAITINGACCEPTANCE": 16
+    },
+    "statusTonnes": {
+      "ACCEPTED": 7496985,
+      "AWAITINGACCEPTANCE": 3059
+    },
+    "rankedSubmitterCounts": {
+      "ACCEPTED": [2794, 1829, 599, 593, 409, 297, 255, 249, 227, 151, 131, 114, 84, 81, 70, 66, 49, 46, 42, 28],
+      "AWAITINGACCEPTANCE": [0, 4, 0, 1, 2, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0]
+    }
+  }
+}

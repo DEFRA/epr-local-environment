@@ -2,12 +2,13 @@
 
 Profiles are versioned, anonymous aggregate descriptions of a real environment's data shape. They are input to the generator; they are not production extracts.
 
-The first planned profile name is `preprod-pom-2025-prn-2026`:
+The current default profile is `preprod-complete-2025-prn-shape`:
 
 - Input POM reporting year: 2025
 - Derived obligation/PRN year: 2026
-- Observation date: 19 August 2026
-- Source: pre-production aggregate query results supplied during discovery
+- POM source: pre-production 2025/2026 baseline
+- PRN source: completed pre-production obligation year 2025
+- Observation date: 20 August 2026
 
 ## Content rules
 
@@ -29,7 +30,8 @@ Never store organisation IDs, company names, people, user details, addresses, em
 - `schemas/` — reserved for JSON schema and validation constraints; no runtime profile-schema
   validator exists in the first iteration.
 
-The checked-in [2025/2026 profile](baselines/preprod-pom-2025-prn-2026.json) and [its provenance](baselines/preprod-pom-2025-prn-2026.metadata.json) are the current default.
+The checked-in [completed 2025 PRN-shape profile](baselines/preprod-complete-2025-prn-shape.json)
+and [its provenance](baselines/preprod-complete-2025-prn-shape.metadata.json) are the current default.
 
 Do not overwrite an existing profile after a re-run. Add a new version or observation-date suffix, retain the aggregate evidence and document the difference in the profile metadata.
 
