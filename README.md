@@ -143,7 +143,7 @@ eprlocalenv() {
     down)
       if (( $# == 0 )); then
         docker compose -f "$env_root/compose.yml" \
-          --profile "$profile" down -v --remove-orphans
+          --profile "$profile" down
       else
         docker compose -f "$env_root/compose.yml" \
           --profile "$profile" down "$@"
@@ -170,11 +170,18 @@ eprlocalenv obligations up waste-obligations-frontend
 # Build multiple selected services from their sibling source folders.
 eprlocalenv obligations up waste-obligations-frontend waste-obligations
 
-# Stop and remove the full profile, including its volumes.
+# Stop the profile while retaining database and emulator data.
 eprlocalenv obligations down
+
+# Remove the profile and all of its Compose volumes (a destructive full reset).
+eprlocalenv obligations down --volumes --remove-orphans
 ```
 
 The services supplied to `up` choose which images are built locally; they do not limit which services in the profile are started. `pull_policy: build` prevents Docker Compose from pulling those service images, although Docker may still pull base images named in a source Dockerfile's `FROM` instruction.
+
+The no-argument `down` form intentionally retains volumes. This keeps the local SQL Server and
+emulator state, and avoids the expensive reinitialisation caused by `down --volumes`. Use the second
+form only when a clean local state is required.
 
 The `eprlocalenv_targets` map is only needed for Dockerfiles whose normal runtime image is not their final build stage. `waste-obligations-frontend` uses its `production` stage so that the local image matches the runtime image rather than its final `integration` stage.
 
@@ -403,11 +410,31 @@ The packaging front end will be started alongside all necessary services that al
 
 The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
 
-A local emulated version of Synapse will be started in sqledge. Currently only the obligation calculation process is supported in the SQL definitions applied within Synapse.
+A local SQL Server-compatible representation of Synapse is created in `sqledge` before Common
+Data API starts. The restore service shallow-fetches the current `main` branch of
+`epr-data-sqldb`, converts Synapse physical-storage declarations for SQL Server, restores the
+upstream objects required by the Common Data API, and then applies the local baseline seed. The
+resolved upstream commit, schema set and map fingerprint are recorded in the database; repeat starts
+skip an unchanged source and map. The default `common-data-api` schema set is a static dependency
+closure of the current local API surface; set `EPR_LOCAL_SYNAPSE_SCHEMA_SET=full` only when the full
+upstream schema is required. See the [restore README](./compose/synapse-sqlserver-restore/README.md)
+and [Common Data API testing strategy](./agents/common-data-api-testing-strategy.md).
 
-Also note that this is a very brittle approach to standing up a DB that emulates Synapse. There are SQL definitions from the epr-common-data-api layer on top of definitions from epr-data-sqldb and not all are applied. See [further README](./compose/epr-common-data-api-migrations/README.md) for more details at time of writing.
+The restore defaults to enabled. Set `EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false` in `.env` to use an
+already-created local database without fetching or restoring it. The shallow source checkout is
+retained under `.cache/synapse-source` in this repository and ignored by Git; see the restore README
+for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
+
+### Synthetic obligations data
+
+The optional `data-generator` CLI creates a connected synthetic POM year, matching PRNs and
+recalculated obligation records against an already-running obligations stack. It is separate from
+the profile Compose file and supports deterministic, manifest-backed runs, scaling, account linking
+and explicit local-year replacement. Start with the [data generator README](./tools/data-generator/README.md);
+the [decision record](./tools/data-generator/docs/first-iteration.md) explains its scope and
+known limits.
 
 See [packaging](#packaging) profile for local running.
 
@@ -502,14 +529,13 @@ The producer and both subsidiaries appear in the POM and company-details data.
 | Packaging data (POM) | July to December 2025 | Approved, then **a resubmission in progress** — fee ready to view, not paid or finally submitted |
 | Packaging data (POM) | January to June 2026 | Approved, then a corrected file **rejected** by the regulator |
 
-The 2025 H2 resubmission fee is served by a scenario branch in
-`compose/epr-common-data-api-migrations/scripts/procedures/pom-resubmission-paycal-parameters.sql`
-(reference `PQL-2025H2-POM-RESUB-0001`, member count 3 = the producer plus its 2 subsidiaries) —
-see `agents/common-data-api-testing-strategy.md` for why that endpoint is stubbed rather than seeded.
+The 2025 H2 resubmission fee uses the upstream
+`sp_PomResubmissionPaycalParameters` procedure restored from `epr-data-sqldb` (reference
+`PQL-2025H2-POM-RESUB-0001`, member count 3 = the producer plus its 2 subsidiaries).
 
 This data spans four places that must be kept in step, all keyed on the same SubmissionId/FileId/
 BlobName GUIDs: the CSVs in `compose/seed-data/popquest/` (uploaded to Azurite by `azurite-init`),
-`compose/epr-common-data-api-migrations/seed.sql`, `mocks/CosmosDbInit/Program.cs`, and
+`compose/synapse-sqlserver-restore/seed/baseline.sql`, `mocks/CosmosDbInit/Program.cs`, and
 `compose/epr-payment-service-migrations/seed.sql`.
 
 ### Compliance Scheme — "Northbridge Compliance Solutions Ltd" (CHN `11000000`)

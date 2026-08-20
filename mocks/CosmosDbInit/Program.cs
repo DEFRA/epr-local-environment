@@ -53,7 +53,7 @@ Console.WriteLine("Cosmos DB emulator initialisation complete.");
 // Small); 2026 is still split into a Large-producer submission and a Small-producer submission
 // (RegistrationJourney is submission-level, so the two bands can't share a submission there).
 // Mirrors the same SubmissionId/FileId/SubmissionEventId GUIDs and field values seeded into
-// the Synapse mirror in epr-common-data-api-migrations/seed.sql, so both stores describe the
+// the Synapse mirror in synapse-sqlserver-restore/seed/baseline.sql, so both stores describe the
 // same underlying events.
 static async Task SeedNorthbridgeRegistrationsAsync(Database database)
 {
@@ -278,7 +278,7 @@ static async Task SeedNorthbridgeRegistrationsAsync(Database database)
 // Each submission's shape genuinely differs (decision outcome, resubmission tail on 2025 H2 only),
 // so the event chains are written out explicitly per submission rather than forced through a
 // shared record shape. Mirrors the same GUIDs/values seeded into the Synapse mirror in
-// epr-common-data-api-migrations/seed.sql, so both stores describe the same underlying events.
+// synapse-sqlserver-restore/seed/baseline.sql, so both stores describe the same underlying events.
 static async Task SeedNorthbridgePackagingDataAsync(Database database)
 {
     const string csApprovedPersonUserId = "94BFD894-8F64-4F8D-9975-259D08786C2B";
@@ -630,7 +630,7 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
 // that no ComplianceSchemeId is set anywhere, RegistrationJourney stays null, and the
 // "members" behind the data are the producer itself plus its 2 subsidiaries rather than scheme
 // members. Mirrors the same GUIDs seeded into the Synapse replica in
-// epr-common-data-api-migrations/seed.sql and uploaded to Azurite by compose.yml's azurite-init.
+// synapse-sqlserver-restore/seed/baseline.sql and uploaded to Azurite by compose.yml's azurite-init.
 static async Task SeedPopQuestRegistrationsAsync(Database database)
 {
     const string approvedPersonUserId = "79D0DEAB-C22D-4C30-8082-508FF8DC1BD7";
@@ -843,7 +843,7 @@ static async Task SeedPopQuestPackagingDataAsync(Database database)
     // The regulator decision is left to the caller since it differs per submission.
     // eventIds must supply exactly those 5 ids, in that order - they are passed in rather than
     // generated so the pre-existing 2025 H1/H2 events can reuse the GUIDs already committed to
-    // epr-common-data-api-migrations/seed.sql instead of inventing a second set.
+    // synapse-sqlserver-restore/seed/baseline.sql instead of inventing a second set.
     async Task UpsertFileCycle(string submissionId, string[] eventIds, string fileId,
         string blobName, string fileName, string period, string day, bool isResubmission)
     {

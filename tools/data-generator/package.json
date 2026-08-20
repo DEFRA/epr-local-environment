@@ -1,0 +1,14 @@
+{
+  "name": "epr-data-generator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deterministic local EPR obligations data generator",
+  "scripts": {
+    "test": "node --test tests/**/*.test.mjs",
+    "start": "node src/index.mjs"
+  },
+  "dependencies": {
+    "mssql": "^11.0.1"
+  }
+}

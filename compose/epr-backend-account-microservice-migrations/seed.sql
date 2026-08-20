@@ -149,7 +149,7 @@ if not exists (select 1 from Enrolments where ConnectionId = @dpBasicConnectionI
 -- Organisations row, an OrganisationRelationships row (type 1 = Parent) pointing parent -> child,
 -- and a SubsidiaryOrganisations marker keyed on the subsidiary's own generated ReferenceNumber.
 -- Subsidiaries get no Users/Persons/Enrolments - they have no login of their own and are managed
--- under POP QUEST LTD's account. Mirrored into epr-common-data-api-migrations/seed.sql as
+-- under POP QUEST LTD's account. Mirrored into synapse-sqlserver-restore/seed/baseline.sql as
 -- rpd.Organisations 165283/165284 using these same ExternalIds.
 -- ============================================================
 

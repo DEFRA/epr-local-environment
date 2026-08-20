@@ -1,0 +1,38 @@
+# Generator profiles
+
+Profiles are versioned, anonymous aggregate descriptions of a real environment's data shape. They are input to the generator; they are not production extracts.
+
+The first planned profile name is `preprod-pom-2025-prn-2026`:
+
+- Input POM reporting year: 2025
+- Derived obligation/PRN year: 2026
+- Observation date: 19 August 2026
+- Source: pre-production aggregate query results supplied during discovery
+
+## Content rules
+
+A baseline profile should include only counts, ranges, bucket distributions and aggregate weights, including:
+
+- submitters and producers by type;
+- POM reporting-period, packaging-material/type and row/weight distributions;
+- producer-to-submitter relationship buckets;
+- accepted and awaiting-acceptance PRN distributions and totals;
+- active obligation calculation counts, including the expected Glass-to-GlassRemelt expansion;
+- profile provenance: target years, snapshot date, query revision and source-environment label.
+
+Never store organisation IDs, company names, people, user details, addresses, emails, phone numbers, submission IDs, PRN numbers, CSV/document content or blobs.
+
+## Files and current limitations
+
+- `baselines/<profile>.json` — anonymous normal-volume aggregate profile.
+- `baselines/<profile>.metadata.json` — provenance and reconciliation values.
+- `schemas/` — reserved for JSON schema and validation constraints; no runtime profile-schema
+  validator exists in the first iteration.
+
+The checked-in [2025/2026 profile](baselines/preprod-pom-2025-prn-2026.json) and [its provenance](baselines/preprod-pom-2025-prn-2026.metadata.json) are the current default.
+
+Do not overwrite an existing profile after a re-run. Add a new version or observation-date suffix, retain the aggregate evidence and document the difference in the profile metadata.
+
+The first CLI iteration has one checked-in default profile and does not yet expose profile selection
+as a command-line option. Collecting a new profile therefore follows the refresh process, then changes
+the reviewed default profile import in the generator until multi-profile selection is added.
