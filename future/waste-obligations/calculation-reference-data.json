@@ -1,0 +1,22 @@
+{
+  "Calculation": {
+    "MaterialCodes": {
+      "PL": "Plastic",
+      "WD": "Wood",
+      "AL": "Aluminium",
+      "ST": "Steel",
+      "PC": "Paper",
+      "GL": "Glass",
+      "GR": "GlassRemelt",
+      "FC": "FibreComposite"
+    },
+    "RecyclingTargets": {
+      "2025": { "Aluminium": 0.61, "FibreComposite": 0.75, "Glass": 0.74, "GlassRemelt": 0.75, "Paper": 0.75, "Plastic": 0.55, "Steel": 0.80, "Wood": 0.45 },
+      "2026": { "Aluminium": 0.62, "FibreComposite": 0.77, "Glass": 0.76, "GlassRemelt": 0.76, "Paper": 0.77, "Plastic": 0.57, "Steel": 0.81, "Wood": 0.46 },
+      "2027": { "Aluminium": 0.63, "FibreComposite": 0.79, "Glass": 0.78, "GlassRemelt": 0.77, "Paper": 0.79, "Plastic": 0.59, "Steel": 0.82, "Wood": 0.47 },
+      "2028": { "Aluminium": 0.64, "FibreComposite": 0.81, "Glass": 0.80, "GlassRemelt": 0.78, "Paper": 0.81, "Plastic": 0.61, "Steel": 0.83, "Wood": 0.48 },
+      "2029": { "Aluminium": 0.65, "FibreComposite": 0.83, "Glass": 0.82, "GlassRemelt": 0.79, "Paper": 0.83, "Plastic": 0.63, "Steel": 0.84, "Wood": 0.49 },
+      "2030": { "Aluminium": 0.67, "FibreComposite": 0.85, "Glass": 0.85, "GlassRemelt": 0.80, "Paper": 0.85, "Plastic": 0.65, "Steel": 0.85, "Wood": 0.50 }
+    }
+  }
+}

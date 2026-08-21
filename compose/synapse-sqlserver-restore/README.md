@@ -54,6 +54,32 @@ the current `main` revision of `epr-data-sqldb`.
 EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false
 ```
 
+## Local SQL Server optimisation indexes
+
+After the selected upstream schema and baseline seed have been created, the restore adds bounded,
+persisted local access projections and, by default, a small set of nonclustered indexes. These are
+**local-environment-only performance optimisations** for SQL Server: they are not part of
+`epr-data-sqldb`, must not be copied back to Synapse, and are deliberately kept outside
+[`schema-map.txt`](./schema-map.txt).
+
+The projections make the wide Synapse text columns indexable in SQL Server. The embedded
+recycling-data query retains its original full-value predicates after using the projections, so the
+optimisation cannot broaden its result set. The physical indexes are idempotent and run after the
+required SQL elements exist.
+
+They default to enabled. To create/use the local database without these physical indexes, set this
+in `.env` before the restore starts:
+
+```dotenv
+EPR_LOCAL_APPLY_SYNAPSE_LOCAL_OPTIMISATION_INDEXES=false
+```
+
+This prevents creation on future runs; it does not automatically remove indexes that already exist
+in the retained local database. Keep the setting enabled for realistic performance from local queries
+that explicitly use the access projections, including the future-state recycling-data service. Index
+creation adds disk use and can noticeably extend the first restore of a full-size local seed; disable
+it when that query performance is not needed.
+
 ## Schema sets
 
 Set `EPR_LOCAL_SYNAPSE_SCHEMA_SET` in `.env` to choose a set in

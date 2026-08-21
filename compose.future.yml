@@ -1,0 +1,111 @@
+services:
+  # The future profile needs the existing local Common Data database lifecycle,
+  # but must remain independently startable from the obligations profile.
+  sqledge:
+    profiles:
+      - paycal
+      - packaging
+      - prn
+      - obligations
+      - regulator
+      - future
+
+  synapse-source-sync:
+    profiles:
+      - prn
+      - obligations
+      - packaging
+      - regulator
+      - future
+
+  synapse-sqlserver-restore:
+    profiles:
+      - prn
+      - obligations
+      - packaging
+      - regulator
+      - future
+
+  epr-prn-common-backend-migrations:
+    profiles:
+      - prn
+      - packaging
+      - obligations
+      - regulator
+      - future
+
+  recycling-data:
+    build:
+      context: ./future/recycling-data
+    image: epr-recycling-data:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EprCommonData: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprCommonData;TrustServerCertificate=True"
+    depends_on:
+      sqledge:
+        condition: service_healthy
+      synapse-sqlserver-restore:
+        condition: service_completed_successfully
+    ports:
+      - "8012:8080"
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - future
+
+  reex:
+    build:
+      context: ./future/reex
+    image: epr-reex:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EprPrnBackend: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=EprPrnBackend;TrustServerCertificate=True"
+    depends_on:
+      sqledge:
+        condition: service_healthy
+      epr-prn-common-backend-migrations:
+        condition: service_completed_successfully
+    ports:
+      - "8013:8080"
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - future
+
+  obligations:
+    build:
+      context: ./future/waste-obligations
+    image: epr-waste-obligations:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      RecyclingData__BaseUrl: http://recycling-data:8080
+      Reex__BaseUrl: http://reex:8080
+    depends_on:
+      recycling-data:
+        condition: service_healthy
+      reex:
+        condition: service_healthy
+    ports:
+      - "8014:8080"
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - future

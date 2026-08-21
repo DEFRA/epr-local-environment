@@ -3,7 +3,7 @@
 - Status
 	- This records the discovery undertaken before implementation and the agreed first iteration.
 	- The first runnable generator is implemented in `tools/data-generator/` with a CLI-only Compose service. It writes only the material Synapse/PRN path, invokes the stored procedure for the requested year, then posts grouped rows to the existing PRN backend calculation endpoint.
-	- The future Common Data shell/API and a Service-Bus-backed explicit-year runner remain later work. The CLI calls the stored procedure directly because the current MYC HTTP endpoint is clock-driven.
+	- The future-state `recycling-data` service now provides an explicit POM-year retrieval API. The future `obligations` service calculates transient obligations in-process, and can also assess those calculations against the future `reex` PRN API without persistence. A Service-Bus-backed explicit-year runner remains later work. The CLI continues to call the stored procedure directly because its purpose is to exercise the existing persisted PRN-backend calculation path.
 	- The first profile is an anonymous pre-production snapshot collected on 19 August 2026. It represents POM reporting year 2025 and obligation/PRN calculation year 2026, as visible at that snapshot date.
 
 	- User-facing contract
@@ -18,7 +18,7 @@
 - End-to-end data path to exercise
 	- The Common Data API endpoint is [`GET api/submissions/v1/pom/approved/{approvedAfterDateString}`](https://github.com/DEFRA/epr-common-data-api/blob/04107e1c2e30881f1ce6c964985c01c7/src/EPR.CommonDataService.Api/Controllers/SubmissionsController.cs#L53-L88).
 		- The currently always-enabled MYC feature path derives the reporting period from the current date; it does not honour the supplied latest-update date for selecting data.
-		- The first CLI iteration calls `sp_GetApprovedSubmissionsMyc` directly with the requested POM year, avoiding that clock-driven HTTP behaviour. A future explicit-year API runner should preserve the same semantics.
+		- The first CLI iteration calls `sp_GetApprovedSubmissionsMyc` directly with the requested POM year, avoiding that clock-driven HTTP behaviour. The future-state `recycling-data` API now provides an explicit-year alternative with the same inclusion and period-pairing semantics.
 	- The Common Data service calls [`dbo.sp_GetApprovedSubmissionsMyc`](https://github.com/DEFRA/epr-common-data-api/blob/04107e1c2e30881f1ce6c964985c01c7/src/EPR.CommonDataService.Core/Services/SubmissionsService.cs#L89-L107). The stored procedure source is [`sp_GetApprovedSubmissionsMyc.sql`](https://github.com/DEFRA/epr-data-sqldb/blob/76cf2cf5feb7c02734956c05f0357ac64ac9fcc6/dbo/Stored%20Procedures/sp_GetApprovedSubmissionsMyc.sql#L89-L247).
 		- It chooses the latest accepted POM submission per producer/period/submitter, aggregates filtered POM materials and types, and optionally joins `dbo.t_producer_obligation_determination` using the following obligation year.
 		- For years after 2024, it needs matching H1 and H2 submissions for the same producer and submitter. For POM year 2025, the generator must always create both 2025-H1 and 2025-H2 with stable identities.
@@ -80,10 +80,11 @@
 		- Writes a run manifest containing profile version, seed, arguments, target year mapping, row counts, generated identifiers and validation results.
 		- Calls `sp_GetApprovedSubmissionsMyc` directly, retains only rows belonging to the generated producer/submitter identity set, then groups and POSTs them to the existing PRN backend calculation endpoint.
 		- Supports `generate-year`, `calculate-year`, `validate-year`, `--dry-run`, `--increase`, `--link-local-accounts` and `--replace-existing`. The account-link option is rejected if its seeded anchors already have POM data in the requested year, avoiding mixed fixture/generated source rows; `--replace-existing` clears those rows first when a complete local reset is wanted.
-	- Future Common Data shell/version
-		- Exposes an explicit POM-year retrieval path over the same Synapse database, retaining production-compatible `sp_GetApprovedSubmissionsMyc` semantics.
-	- Future obligation runner
-		- Requests that explicit year, groups by submitter in the existing format, publishes to the existing obligation queue, and waits/reports on calculated results.
+	- Future Common Data shell/version — implemented
+		- `future/recycling-data` exposes an explicit POM-year retrieval path over the same local Synapse representation. It embeds the approved-submissions query rather than calling the stored procedure and supports submitter-specific paging.
+	- Future obligation runner — partially implemented
+		- `future/obligations` retrieves that explicit year, traverses every recycling-data page and applies the calculation in-process. Its `calculate-obligations-with-prns` path also traverses `future/reex` PRN pages and returns transient Met/NotMet assessments. Neither path publishes to the obligation queue or persists data.
+		- A queue-backed runner that uses the existing timer/function path remains later work.
 	- Existing PRN backend
 		- Receives the normal calculation request and owns deletion/recalculation/upsert of obligation calculations.
 	- Baseline and validator
@@ -100,9 +101,9 @@
 		- API source rows plus expected GlassRemelt expansion must reconcile to obligation-calculation rows.
 		- Producer/submitter cardinality buckets must reconcile to their totals.
 		- POM output kilograms/tonnes must reconcile to source aggregate conventions.
-	- Generate locally with a fixed seed, run the direct stored-procedure/PRN-backend CLI journey, then execute the same validation SQL locally. Repeat with an explicit-year API/queue runner when that future path is implemented.
+	- Generate locally with a fixed seed, run the direct stored-procedure/PRN-backend CLI journey, then execute the same validation SQL locally. Use the future-state API flow to validate explicit-year retrieval and transient calculation; repeat with the queue runner when that path is implemented.
 	- Record the comparison and manifest. Only then promote the new profile as the default baseline.
 
 	- Delivery status
-	- Completed: the anonymous 2025 POM / 2026 obligation profile, baseline and local validation SQL, deterministic source-row generation, run manifests, PRN generation, direct PRN-backend recalculation, `--increase` and `--link-local-accounts`.
-	- Future: profile selection and JSON-schema validation, optional determination records, an explicit-year Common Data API surface, and a queue-backed obligation runner that exercises the timer/function path.
+	- Completed: the anonymous 2025 POM / 2026 obligation profile, baseline and local validation SQL, deterministic source-row generation, run manifests, PRN generation, direct PRN-backend recalculation, `--increase`, `--link-local-accounts`, the explicit-year `recycling-data` API, and transient `obligations` calculation and PRN-assessment APIs.
+	- Future: profile selection and JSON-schema validation, optional determination records, and a queue-backed obligation runner that exercises the timer/function path.

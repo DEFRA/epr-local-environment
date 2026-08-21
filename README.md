@@ -420,6 +420,12 @@ closure of the current local API surface; set `EPR_LOCAL_SYNAPSE_SCHEMA_SET=full
 upstream schema is required. See the [restore README](./compose/synapse-sqlserver-restore/README.md)
 and [Common Data API testing strategy](./agents/common-data-api-testing-strategy.md).
 
+Once those required SQL elements exist, the restore applies local SQL Server-only access projections
+and, by default, optional nonclustered indexes for future-state analytical queries that use them. They
+are a local performance optimisation, not a Synapse schema change. Set
+`EPR_LOCAL_APPLY_SYNAPSE_LOCAL_OPTIMISATION_INDEXES=false` in `.env` to skip creating the physical
+indexes; see the restore README for behaviour when indexes already exist.
+
 The restore defaults to enabled. Set `EPR_LOCAL_RESTORE_SYNAPSE_DATABASE=false` in `.env` to use an
 already-created local database without fetching or restoring it. The shallow source checkout is
 retained under `.cache/synapse-source` in this repository and ignored by Git; see the restore README
@@ -435,6 +441,28 @@ the profile Compose file and supports deterministic, manifest-backed runs, scali
 and explicit local-year replacement. Start with the [data generator README](./tools/data-generator/README.md);
 the [decision record](./tools/data-generator/docs/first-iteration.md) explains its scope and
 known limits.
+
+### Future-state obligations prototype
+
+`compose.future.yml` adds three local minimal APIs for exploring a future obligations flow against
+the same restored Common Data and PRN databases. Start it with the obligations profile so its
+existing dependencies, migrations and calculation backend are also available:
+
+```sh
+docker compose -f compose.yml -f compose.future.yml \
+  --profile obligations --profile future up -d --build --wait
+```
+
+- `recycling-data` — `http://localhost:8012`, approved POM recycling data for a submitter/year.
+- `reex` — `http://localhost:8013`, PRNs for an organisation.
+- `obligations` — `http://localhost:8014`, transient in-process obligation calculations and a
+  PRN-assessed calculation endpoint. Its [service README](./future/waste-obligations/README.md)
+  includes endpoint details and future-state latency benchmarks.
+
+After generating a year of synthetic data, each service exposes local discovery endpoints so callers
+can find the newly generated IDs rather than relying on fixed examples. The complete workflow—from
+generation through ID discovery, endpoint calls and baseline-versus-local-SQL benchmarking—is in the
+[data generator README](./tools/data-generator/README.md#generate-discover-and-assess-future-state-data).
 
 See [packaging](#packaging) profile for local running.
 
