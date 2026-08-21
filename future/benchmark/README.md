@@ -40,13 +40,13 @@ flowchart LR
     common[(EprCommonData local SQL Server representation of Synapse)]
     prn[(EprPrnBackend local SQL Server)]
 
-    caller -->|GET /recycling-data| recycling
-    caller -->|GET /organisations/{id}/prns| reex
-    caller -->|GET /organisations/{id}/calculate-obligations| obligations
-    caller -->|GET /organisations/{id}/calculate-obligations-with-prns| obligations
+    caller -->|GET recycling data| recycling
+    caller -->|GET organisation PRNs| reex
+    caller -->|GET calculate obligations| obligations
+    caller -->|GET calculate obligations with PRNs| obligations
 
-    obligations -->|GET /recycling-data - first page, then all pages| recycling
-    obligations -->|GET /organisations/{id}/prns - first page, then all pages, with PRNs route only| reex
+    obligations -->|recycling data: first page, then all pages| recycling
+    obligations -->|organisation PRNs: first page, then all pages, PRN-aware route only| reex
     recycling --> common
     reex --> prn
 ```
