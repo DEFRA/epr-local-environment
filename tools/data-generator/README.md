@@ -43,10 +43,16 @@ docker compose -f compose.yml -f compose.cli.yml build data-generator
 docker compose -f compose.yml -f compose.cli.yml run --rm data-generator generate-year 2025
 ```
 
-The first iteration always imports the checked-in
-`preprod-pom-2025-prn-2026` profile. Adding a newly collected profile is a versioned data change,
+The first iteration imports the checked-in
+`preprod-complete-2025-prn-shape` profile. Its POM shape is retained from the 2025/2026 baseline,
+while its endpoint-eligible PRN distribution is taken from the completed 2025 pre-production year:
+9,848 PRNs, with the largest organisation holding 2,794. Adding a newly collected profile is a versioned data change,
 but selecting a different profile at the command line is not implemented yet; update the default
 profile import only after completing the profile-refresh validation process.
+
+`--increase` scales the PRN totals and the ranked high-volume organisations with the POM data.
+For example, `--increase 25%` generates 12,310 eligible PRNs and a largest organisation with
+3,493 PRNs.
 
 The command writes a manifest to `tools/data-generator/manifests/<run-id>.json`. It executes the stored procedure directly for the requested POM year, filters to the generated identity set, groups rows as the obligation function does, and posts them to the existing PRN backend calculation endpoint.
 

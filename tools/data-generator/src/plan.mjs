@@ -140,17 +140,30 @@ function createAssociations(type, submitterDefinitions, reference, runId, random
   return { submitters, associations: shuffled(associations, random) };
 }
 
-function prnCountsForSubmitters(submitters, total, random) {
-  const weights = submitters.map((submitter) => Math.max(1, submitter.producerCount));
-  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
-  const counts = weights.map((weight) => Math.floor((total * weight) / totalWeight));
-  let remainder = total - counts.reduce((sum, value) => sum + value, 0);
-  for (const index of shuffled(counts.map((_, index) => index), random)) {
-    if (remainder === 0) break;
-    counts[index] += 1;
-    remainder -= 1;
+function createPrnCounts(submitters, total, rankedCounts, random) {
+  if (rankedCounts.length > submitters.length) {
+    throw new Error('Profile has more ranked PRN counts than generated submitters.');
   }
-  return counts;
+
+  const rankedTotal = rankedCounts.reduce((sum, count) => sum + count, 0);
+  if (rankedTotal > total) {
+    throw new Error('Profile ranked PRN counts exceed the status total.');
+  }
+
+  const remainingSubmitterCount = submitters.length - rankedCounts.length;
+  const remainingTotal = total - rankedTotal;
+  if (remainingSubmitterCount === 0) {
+    if (remainingTotal !== 0) {
+      throw new Error('Profile has PRNs remaining after all submitters received ranked counts.');
+    }
+
+    return rankedCounts;
+  }
+
+  return [
+    ...rankedCounts,
+    ...shuffled(distribute(remainingTotal, remainingSubmitterCount), random)
+  ];
 }
 
 function createPrns(submitters, profile, runId, random) {
@@ -172,32 +185,35 @@ function createPrns(submitters, profile, runId, random) {
     }
     return materials.at(-1).code;
   };
-  for (const type of ['ComplianceScheme', 'DirectRegistrant']) {
-    const typeSubmitters = submitters.filter((submitter) => submitter.type === type);
-    for (const [status, total] of Object.entries(profile.prn.statusCounts[type])) {
-      const statusSubmitters = status === 'AWAITINGACCEPTANCE'
-        ? typeSubmitters.slice(0, type === 'ComplianceScheme' ? 13 : 37)
-        : typeSubmitters;
-      const counts = prnCountsForSubmitters(statusSubmitters, total, random);
-      const rowKeys = [];
-      counts.forEach((count, submitterIndex) => {
-        for (let index = 0; index < count; index += 1) rowKeys.push({ submitter: statusSubmitters[submitterIndex], index });
+  for (const [status, total] of Object.entries(profile.prn.statusCounts)) {
+    if (total === 0) continue;
+
+    const counts = createPrnCounts(
+      submitters,
+      total,
+      profile.prn.rankedSubmitterCounts[status] ?? [],
+      random
+    );
+    const rowKeys = [];
+    counts.forEach((count, submitterIndex) => {
+      for (let index = 0; index < count; index += 1) {
+        rowKeys.push({ submitter: submitters[submitterIndex], index });
+      }
+    });
+    const tonnes = allocateWeightedIntegers(profile.prn.statusTonnes[status], rowKeys, random);
+    rowKeys.forEach((row, index) => {
+      const code = chooseMaterial();
+      prns.push({
+        prnNumber: `DG${prnRunKey}${row.submitter.type === 'ComplianceScheme' ? 'C' : 'D'}${status === 'ACCEPTED' ? 'A' : 'W'}${String(index + 1).padStart(5, '0')}`,
+        externalId: deterministicUuid(`${runId}:prn:${row.submitter.type}:${status}:${index}`),
+        submitterId: row.submitter.submitterId,
+        submitterName: row.submitter.name,
+        status,
+        materialCode: code,
+        materialName: materialNames[code],
+        tonnes: tonnes[index]
       });
-      const tonnes = allocateWeightedIntegers(profile.prn.statusTonnes[type][status], rowKeys, random);
-      rowKeys.forEach((row, index) => {
-        const code = chooseMaterial();
-        prns.push({
-          prnNumber: `DG${prnRunKey}${type === 'ComplianceScheme' ? 'C' : 'D'}${status === 'ACCEPTED' ? 'A' : 'W'}${String(index + 1).padStart(5, '0')}`,
-          externalId: deterministicUuid(`${runId}:prn:${type}:${status}:${index}`),
-          submitterId: row.submitter.submitterId,
-          submitterName: row.submitter.name,
-          status,
-          materialCode: code,
-          materialName: materialNames[code],
-          tonnes: tonnes[index]
-        });
-      });
-    }
+    });
   }
   return prns;
 }
@@ -300,11 +316,11 @@ export function buildPlan(profile, options) {
     }
   }
   const scaledPrnProfile = structuredClone(profile);
-  for (const type of ['ComplianceScheme', 'DirectRegistrant']) {
-    for (const status of Object.keys(scaledPrnProfile.prn.statusCounts[type])) {
-      scaledPrnProfile.prn.statusCounts[type][status] = Math.max(1, Math.round(scaledPrnProfile.prn.statusCounts[type][status] * scale));
-      scaledPrnProfile.prn.statusTonnes[type][status] = Math.max(1, Math.round(scaledPrnProfile.prn.statusTonnes[type][status] * scale));
-    }
+  for (const status of Object.keys(scaledPrnProfile.prn.statusCounts)) {
+    scaledPrnProfile.prn.statusCounts[status] = Math.round(scaledPrnProfile.prn.statusCounts[status] * scale);
+    scaledPrnProfile.prn.statusTonnes[status] = Math.round(scaledPrnProfile.prn.statusTonnes[status] * scale);
+    scaledPrnProfile.prn.rankedSubmitterCounts[status] = scaledPrnProfile.prn.rankedSubmitterCounts[status]
+      .map((count) => Math.round(count * scale));
   }
   const prns = createPrns(submitters, scaledPrnProfile, runId, random);
   return {

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import profile from '../profiles/baselines/preprod-pom-2025-prn-2026.json' with { type: 'json' };
+import profile from '../profiles/baselines/preprod-complete-2025-prn-shape.json' with { type: 'json' };
 import { buildPlan, normaliseIncrease } from '../src/plan.mjs';
 
-test('normal-volume 2025 plan reproduces the captured aggregate shape', () => {
+test('normal-volume 2025 plan reproduces the completed 2025 PRN shape', () => {
   const plan = buildPlan(profile, { year: 2025, seed: 'test', referenceStart: 900000000 });
   assert.equal(plan.obligationYear, 2026);
   assert.equal(plan.expected.submitters, 311);
@@ -11,9 +11,18 @@ test('normal-volume 2025 plan reproduces the captured aggregate shape', () => {
   assert.equal(plan.expected.materialRows, 23547);
   assert.equal(plan.expected.pomRows, 47094);
   assert.equal(plan.expected.files, 622);
-  assert.equal(plan.expected.prns, 4046);
-  assert.equal(plan.expected.prnTonnes, 6392804);
+  assert.equal(plan.expected.prns, 9848);
+  assert.equal(plan.expected.prnTonnes, 7500044);
   assert.ok(plan.prns.every((prn) => prn.prnNumber.length <= 20));
+  assert.equal(plan.prns.filter((prn) => prn.status === 'ACCEPTED').length, 9832);
+  assert.equal(plan.prns.filter((prn) => prn.status === 'AWAITINGACCEPTANCE').length, 16);
+  const prnCounts = [...Map.groupBy(plan.prns, (prn) => prn.submitterId).values()]
+    .map((prns) => prns.length)
+    .sort((left, right) => right - left);
+  assert.deepEqual(prnCounts.slice(0, 20), [
+    2794, 1833, 599, 594, 411, 297, 255, 249, 227, 152,
+    132, 115, 84, 81, 70, 67, 49, 46, 42, 28
+  ]);
   assert.equal(plan.associations.filter((association) => association.materials.has('GL')).length, 1068);
   for (const type of ['ComplianceScheme', 'DirectRegistrant']) {
     for (const [material, targetTonnes] of Object.entries(profile.pom.annualTonnes[type])) {
@@ -42,4 +51,9 @@ test('increase accepts the documented percent syntax and adds connected volume',
   assert.ok(increased.expected.producers > normal.expected.producers);
   assert.ok(increased.expected.materialRows > normal.expected.materialRows);
   assert.ok(increased.expected.prns > normal.expected.prns);
+  assert.equal(increased.expected.prns, 12310);
+  assert.equal(
+    Math.max(...Map.groupBy(increased.prns, (prn) => prn.submitterId).values().map((prns) => prns.length)),
+    3493
+  );
 });

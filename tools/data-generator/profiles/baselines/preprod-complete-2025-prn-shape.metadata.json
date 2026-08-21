@@ -1,0 +1,33 @@
+{
+  "profile": "preprod-complete-2025-prn-shape",
+  "schemaVersion": 1,
+  "sourceEnvironment": "pre-production",
+  "observedAt": "2026-08-20",
+  "pomReportingYear": 2025,
+  "generatedObligationYear": 2026,
+  "prnSourceObligationYear": 2025,
+  "dataHandling": "Anonymous aggregate counts, totals and ranked volume distribution only. No production identifiers, names, PRN numbers or payload data are retained.",
+  "reconciliations": {
+    "pomApiRows": 23547,
+    "uniqueProducers": 6670,
+    "pomSubmitters": 311,
+    "sourcePrnRows": 10132,
+    "sourcePrnOrganisations": 446,
+    "sourcePrnTonnes": 7808737,
+    "endpointEligiblePrns": 9848,
+    "endpointEligiblePrnTonnes": 7500044,
+    "acceptedPrns": 9832,
+    "acceptedPrnTonnes": 7496985,
+    "awaitingAcceptancePrns": 16,
+    "awaitingAcceptancePrnTonnes": 3059,
+    "largestOrganisationPrns": 2794,
+    "secondLargestOrganisationPrns": 1833,
+    "thirdLargestOrganisationPrns": 599
+  },
+  "knownSnapshotLimits": [
+    "The PRN values represent endpoint-eligible completed-year 2025 data and deliberately exclude cancelled and rejected PRNs.",
+    "The generator applies the completed 2025 PRN shape to its local 2025 POM / 2026 obligation-year journey.",
+    "The fixed ranked PRN counts cover the observed top 20 organisations; the remaining generated POM submitters receive the residual volume evenly. The source has 440 eligible PRN holders, while the retained POM model has 311 submitters.",
+    "NumberOfDaysObligated is intentionally null until an explicit determination-record option is added."
+  ]
+}
