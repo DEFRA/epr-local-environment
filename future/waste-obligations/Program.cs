@@ -31,9 +31,10 @@ var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok());
 
-app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async (
+app.MapGet("/organisations/{organisationId:guid}/calculate-obligations", async (
     Guid organisationId,
     int year,
+    HttpContext httpContext,
     IHttpClientFactory httpClientFactory,
     ObligationCalculator obligationCalculator,
     ILogger<Program> logger,
@@ -41,6 +42,10 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async 
     long? page = null,
     long? pageSize = null) =>
 {
+    // Calculations are read-only but depend on the latest downstream source data.
+    // Do not let browsers, proxies, or other intermediaries reuse a previous result.
+    httpContext.Response.Headers.CacheControl = "no-store";
+
     if (year is < 2024 or > 2100)
     {
         return Results.BadRequest(new { error = "year must be between 2024 and 2100." });
@@ -109,9 +114,10 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async 
     }
 });
 
-app.MapPost("/organisations/{organisationId:guid}/calculate-obligations-with-prns", async (
+app.MapGet("/organisations/{organisationId:guid}/calculate-obligations-with-prns", async (
     Guid organisationId,
     int year,
+    HttpContext httpContext,
     IHttpClientFactory httpClientFactory,
     ObligationCalculator obligationCalculator,
     ILogger<Program> logger,
@@ -119,6 +125,10 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations-with-prn
     long? page = null,
     long? pageSize = null) =>
 {
+    // Calculations are read-only but depend on the latest downstream source data.
+    // Do not let browsers, proxies, or other intermediaries reuse a previous result.
+    httpContext.Response.Headers.CacheControl = "no-store";
+
     if (year is < 2024 or > 2100)
     {
         return Results.BadRequest(new { error = "year must be between 2024 and 2100." });

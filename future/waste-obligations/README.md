@@ -6,7 +6,7 @@ obligations in-process. It has no database and does not persist data.
 ## Endpoint
 
 ```text
-POST /organisations/{organisationId}/calculate-obligations?year={year}&page={page}&pageSize={pageSize}
+GET /organisations/{organisationId}/calculate-obligations?year={year}&page={page}&pageSize={pageSize}
 ```
 
 `year` is required because it selects the approved POM reporting year. `page` and `pageSize` are
@@ -24,19 +24,21 @@ For example:
 ```sh
 docker compose -f compose.yml -f compose.future.yml --profile future up --build obligations
 organisation_id=$(curl --silent \
-  'http://localhost:8012/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
+  'http://localhost:8016/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
   | jq -r '.items[0].submitterId')
-curl -X POST "http://localhost:8014/organisations/${organisation_id}/calculate-obligations?year=2025"
+curl "http://localhost:8018/organisations/${organisation_id}/calculate-obligations?year=2025"
 ```
 
 The request contains no body. The service gets approved recycling data for the organisation from
 `recycling-data`, fetches every response page, and applies the same material and glass calculations
-locally. It makes no PRN backend HTTP or database call.
+locally. It makes no PRN backend HTTP or database call. Both calculation routes return
+`Cache-Control: no-store`: although they are GET requests, the response is calculated from the
+latest downstream data and must not be reused by browsers or intermediaries.
 
 ## Calculated obligations with PRNs
 
 ```text
-POST /organisations/{organisationId}/calculate-obligations-with-prns?year={year}&page={page}&pageSize={pageSize}
+GET /organisations/{organisationId}/calculate-obligations-with-prns?year={year}&page={page}&pageSize={pageSize}
 ```
 
 This follows the same POM retrieval and transient calculation flow as
@@ -64,8 +66,8 @@ full organisation dataset.
 For example:
 
 ```sh
-curl -X POST \
-  "http://localhost:8014/organisations/${organisation_id}/calculate-obligations-with-prns?year=2025"
+curl \
+  "http://localhost:8018/organisations/${organisation_id}/calculate-obligations-with-prns?year=2025"
 ```
 
 ## Performance benchmark and result discussion
@@ -97,3 +99,6 @@ On 19 August 2026, the largest generated compliance scheme for POM year 2025
 warm-up measured **1.995s minimum**, **2.014s median**, **2.012s mean** and **2.026s maximum**.
 The call returned seven material assessments and no awaiting-acceptance PRNs. These times include
 the full future Recycling Data, ReEx and in-process calculation path only.
+
+For a single real-time call to both obligations routes at every representative generated volume,
+using default downstream paging, see the [future-state real-time benchmark](../benchmark/README.md).

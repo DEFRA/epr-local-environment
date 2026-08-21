@@ -48,7 +48,8 @@ services:
       synapse-sqlserver-restore:
         condition: service_completed_successfully
     ports:
-      - "8012:8080"
+      # 8012-8015 are occupied by services in the obligations profile.
+      - "8016:8080"
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 5s
@@ -73,7 +74,7 @@ services:
       epr-prn-common-backend-migrations:
         condition: service_completed_successfully
     ports:
-      - "8013:8080"
+      - "8017:8080"
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 5s
@@ -99,7 +100,7 @@ services:
       reex:
         condition: service_healthy
     ports:
-      - "8014:8080"
+      - "8018:8080"
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 5s

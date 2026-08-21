@@ -12,8 +12,8 @@ Options:
   --organisation-id <guid>   Optional organisation ID; defaults to the largest discovered compliance scheme
   --page-size <number>       Page size used for both downstream requests (default: 50000)
   --iterations <number>      Timed future-service calls after one warm-up (default: 3)
-  --obligations-url <url>    Future obligations API URL (default: http://localhost:8014)
-  --recycling-data-url <url> Recycling Data API URL used for ID discovery (default: http://localhost:8012)
+  --obligations-url <url>    Future obligations API URL (default: http://localhost:8018)
+  --recycling-data-url <url> Recycling Data API URL used for ID discovery (default: http://localhost:8016)
   --help                     Show this help text
 
 The script measures only the future-state flow: the obligations endpoint and its calls to
@@ -25,8 +25,8 @@ year=2025
 organisation_id=
 page_size=50000
 iterations=3
-obligations_url=http://localhost:8014
-recycling_data_url=http://localhost:8012
+obligations_url=http://localhost:8018
+recycling_data_url=http://localhost:8016
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -109,7 +109,6 @@ call_future_service() {
         --fail \
         --silent \
         --show-error \
-        --request POST \
         --output "$future_response" \
         --write-out '%{time_total}' \
         "${obligations_url%/}/organisations/${organisation_id}/calculate-obligations-with-prns?year=${year}&pageSize=${page_size}"

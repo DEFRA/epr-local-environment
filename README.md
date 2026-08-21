@@ -453,9 +453,9 @@ docker compose -f compose.yml -f compose.future.yml \
   --profile obligations --profile future up -d --build --wait
 ```
 
-- `recycling-data` — `http://localhost:8012`, approved POM recycling data for a submitter/year.
-- `reex` — `http://localhost:8013`, PRNs for an organisation.
-- `obligations` — `http://localhost:8014`, transient in-process obligation calculations and a
+- `recycling-data` — `http://localhost:8016`, approved POM recycling data for a submitter/year.
+- `reex` — `http://localhost:8017`, PRNs for an organisation.
+- `obligations` — `http://localhost:8018`, transient in-process obligation calculations and a
   PRN-assessed calculation endpoint. Its [service README](./future/waste-obligations/README.md)
   includes endpoint details and future-state latency benchmarks.
 
@@ -463,6 +463,9 @@ After generating a year of synthetic data, each service exposes local discovery 
 can find the newly generated IDs rather than relying on fixed examples. The complete workflow—from
 generation through ID discovery, endpoint calls and baseline-versus-local-SQL benchmarking—is in the
 [data generator README](./tools/data-generator/README.md#generate-discover-and-assess-future-state-data).
+The [future-state real-time benchmark guide](./future/benchmark/README.md) runs the two obligations
+routes and their future-service dependencies across representative compliance-scheme and
+direct-registrant volumes.
 
 See [packaging](#packaging) profile for local running.
 

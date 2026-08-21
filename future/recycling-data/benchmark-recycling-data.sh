@@ -12,7 +12,7 @@ Options:
   --submitter-id <guid>  Optional submitter ID; defaults to the largest discovered submitter
   --page-size <number>   Requested page size (default: 100)
   --iterations <number>  Timed calls per SQL mode, after one warm-up (default: 3)
-  --base-url <url>       Recycling Data API URL (default: http://localhost:8012)
+  --base-url <url>       Recycling Data API URL (default: http://localhost:8016)
   --help                 Show this help text
 
 The script runs the same request through both paths:
@@ -25,7 +25,7 @@ year=2025
 submitter_id=
 page_size=100
 iterations=3
-base_url=http://localhost:8012
+base_url=http://localhost:8016
 
 while [[ $# -gt 0 ]]; do
     case "$1" in

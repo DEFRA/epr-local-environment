@@ -15,9 +15,9 @@ For example, after starting the future profile:
 ```sh
 docker compose -f compose.yml -f compose.future.yml --profile future up --build recycling-data
 submitter_id=$(curl --silent \
-  'http://localhost:8012/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
+  'http://localhost:8016/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
   | jq -r '.items[0].submitterId')
-curl "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
+curl "http://localhost:8016/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
 ```
 
 `year` and `submitterId` are required query parameters. `page` defaults to `1` and `pageSize`
@@ -42,7 +42,7 @@ benchmark then reports the exact `/recycling-data` result count.
 For example:
 
 ```sh
-curl 'http://localhost:8012/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme'
+curl 'http://localhost:8016/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme'
 ```
 
 `year` is required and `take` defaults to `10`. Optionally use `submitterType=ComplianceScheme` or
@@ -146,3 +146,6 @@ than another index iteration:
 The last option permits an indexed page lookup rather than reconstructing the calculation on every
 request. It should be evaluated against the actual Synapse implementation as well as this local SQL
 Server representation.
+
+For default-page behaviour through both real-time obligations routes, see the
+[future-state real-time benchmark](../benchmark/README.md).
