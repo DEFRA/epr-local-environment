@@ -12,6 +12,7 @@ Options:
   --scenario <name>          all (default), scheme-small, scheme-medium, scheme-large,
                              scheme-very-large, direct-one, direct-small, or direct-large
   --page-size <number>       Override the downstream default page size for every call
+  --max-concurrency <number> Concurrent downstream page requests for calculation calls (1-8)
   --recycling-data-url <url> Recycling Data API URL (default: http://localhost:8016)
   --reex-url <url>           ReEx API URL (default: http://localhost:8017)
   --obligations-url <url>    Obligations API URL (default: http://localhost:8018)
@@ -21,13 +22,15 @@ Runs exactly one real-time call to each future endpoint for each selected scenar
 --page-size the endpoint defaults are used: page=1 and pageSize=100. The Markdown output makes the
 two end-to-end calculation durations the primary metrics; row/page counts explain the input volume.
 The calculation calls follow the direct service calls, so they may observe a warmed local database
-cache. It does not call the existing PRN backend.
+cache. Omit --max-concurrency for the sequential default; 4 is the recommended initial comparison.
+It does not call the existing PRN backend.
 EOF
 }
 
 year=2025
 scenario=all
 page_size=
+max_concurrency=
 recycling_data_url=http://localhost:8016
 reex_url=http://localhost:8017
 obligations_url=http://localhost:8018
@@ -44,6 +47,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --page-size)
             page_size=${2:?A value is required for --page-size}
+            shift 2
+            ;;
+        --max-concurrency)
+            max_concurrency=${2:?A value is required for --max-concurrency}
             shift 2
             ;;
         --recycling-data-url)
@@ -84,6 +91,11 @@ fi
 
 if [[ -n "$page_size" && ! "$page_size" =~ ^[1-9][0-9]*$ ]]; then
     printf 'page-size must be a positive integer when supplied.\n' >&2
+    exit 2
+fi
+
+if [[ -n "$max_concurrency" && ( ! "$max_concurrency" =~ ^[1-9][0-9]*$ || "$max_concurrency" -gt 8 ) ]]; then
+    printf 'max-concurrency must be an integer from 1 to 8 when supplied.\n' >&2
     exit 2
 fi
 
@@ -186,6 +198,12 @@ reex_page_query() {
     fi
 }
 
+concurrency_query() {
+    if [[ -n "$max_concurrency" ]]; then
+        printf '&maxConcurrency=%s' "$max_concurrency"
+    fi
+}
+
 check_health
 discover_submitters
 
@@ -194,9 +212,14 @@ if [[ -n "$page_size" ]]; then
     page_description="override (pageSize=${page_size})"
 fi
 
+concurrency_description='1 (sequential default)'
+if [[ -n "$max_concurrency" ]]; then
+    concurrency_description=$max_concurrency
+fi
+
 printf '# Future-state real-time benchmark\n\n'
-printf 'POM year: %s | Compliance year: %s | Downstream paging: %s\n\n' \
-    "$year" "$((year + 1))" "$page_description"
+printf 'POM year: %s | Compliance year: %s | Downstream paging: %s | Page concurrency: %s\n\n' \
+    "$year" "$((year + 1))" "$page_description" "$concurrency_description"
 printf 'Each value is one end-to-end HTTP call. The calculation calls follow the direct service calls '
 printf 'and can observe their warmed local database cache. `calculate-obligations` and '
 printf '`calculate-obligations-with-prns` always retrieve every downstream page before responding.\n\n'
@@ -234,12 +257,12 @@ for scenario_name in "${scenarios[@]}"; do
     reex_page_count=$(( (reex_total + reex_page_size - 1) / reex_page_size ))
 
     calculation_metric=$(call_json "$calculation_response" \
-        "${obligations_url%/}/organisations/${submitter_id}/calculate-obligations?year=${year}$(page_query)")
+        "${obligations_url%/}/organisations/${submitter_id}/calculate-obligations?year=${year}$(page_query)$(concurrency_query)")
     parse_metric "$calculation_metric"
     calculation_seconds=$metric_seconds
 
     calculation_with_prns_metric=$(call_json "$calculation_with_prns_response" \
-        "${obligations_url%/}/organisations/${submitter_id}/calculate-obligations-with-prns?year=${year}$(page_query)")
+        "${obligations_url%/}/organisations/${submitter_id}/calculate-obligations-with-prns?year=${year}$(page_query)$(concurrency_query)")
     parse_metric "$calculation_with_prns_metric"
     calculation_with_prns_seconds=$metric_seconds
 

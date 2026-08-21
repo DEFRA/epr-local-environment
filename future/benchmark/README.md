@@ -64,6 +64,11 @@ Both calculation endpoints are `GET` because they have no body and make no state
 `Cache-Control: no-store`, so a browser, proxy or other intermediary must not reuse a calculation
 that was derived from source data which may have changed since the earlier request.
 
+Both routes accept `maxConcurrency=1` through `8`. When omitted, page retrieval stays sequential.
+`4` is the recommended initial local comparison: after the first page determines the page count, it
+allows up to four page requests at once without creating an unbounded number of concurrent full SQL
+aggregations. The PRN-aware route completes its Recycling Data pages before it begins its ReEx pages.
+
 ## Prepare the local environment
 
 Prerequisites are Docker Compose, `curl`, `jq`, and enough local disk for the cached Synapse source
@@ -141,6 +146,15 @@ Start with an inexpensive direct-registrant scenario while checking a new enviro
 ./future/benchmark/run-real-time-benchmark.sh \
   --year 2025 \
   --scenario direct-one
+```
+
+To compare the default sequential page retrieval with the initial concurrent setting, run the same
+multi-page scenario twice. `4` is deliberately an explicit opt-in, so production-like sequential
+behaviour remains the default.
+
+```sh
+./future/benchmark/run-real-time-benchmark.sh --year 2025 --scenario scheme-large
+./future/benchmark/run-real-time-benchmark.sh --year 2025 --scenario scheme-large --max-concurrency 4
 ```
 
 The available scenarios are:
@@ -298,15 +312,16 @@ design evidence, not a prediction of Synapse production latency.
 
 Read the two right-most columns first: they are the primary result. The input columns explain how
 much source data the real-time calculation traversed. The standalone Recycling Data benchmark below
-contains the separate source-query timings.
+contains the separate source-query timings. The table below uses the default sequential page
+retrieval (`maxConcurrency=1`).
 
 `🟠` marks a response time above the 2-second warning threshold.
 
 | Scenario | Page size | Recycling data (pages) | PRNs (pages) | `calculate-obligations` | `calculate-obligations-with-prns` |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Compliance scheme: 1–100 producers | 100 | 190 (2) | 132 (2) | **0.557s** | **0.538s** |
-| Compliance scheme: 101–500 producers | 100 | 1,181 (12) | 297 (3) | 🟠 **12.068s** | 🟠 **12.633s** |
-| Compliance scheme: 501–2,000 producers | 100 | 2,363 (24) | 599 (6) | 🟠 **77.760s** | 🟠 **77.318s** |
+| Compliance scheme: 101–500 producers | 100 | 1,181 (12) | 297 (3) | 🟠 **12.188s** | 🟠 **12.183s** |
+| Compliance scheme: 501–2,000 producers | 100 | 2,363 (24) | 599 (6) | 🟠 **85.555s** | 🟠 **83.100s** |
 | Compliance scheme: 2,001+ producers | 50,000 | 7,425 (1) | 2,794 (1) | **1.962s** | **1.974s** |
 | Direct registrant: 1 producer | 100 | 7 (1) | 6 (1) | **0.169s** | **0.175s** |
 | Direct registrant: 2–5 producers | 100 | 16 (1) | 46 (1) | **0.174s** | **0.185s** |
@@ -317,6 +332,26 @@ calculation replay 75 Recycling Data pages, plus 28 PRN pages for the PRN-aware 
 not comparable with the default-page rows. The standalone Recycling Data benchmark shows that a
 larger page does not materially reduce a single query's SQL work; it avoids repeating that work for
 every page.
+
+### Concurrent page retrieval comparison
+
+The following fresh comparison was run after recreating the future services and regenerating the
+2025 dataset. Each paired call uses the same representative submitter, default downstream paging,
+and the runner's normal source calls before the real-time calculation. `maxConcurrency=4` retains a
+sequential first page, then retrieves the remaining pages in batches of up to four. The values are
+single local requests, so the direction and magnitude are useful design evidence rather than a
+production prediction.
+
+| Scenario | Source volume (Recycling / PRNs) | `calculate-obligations`: sequential → 4-way | `calculate-obligations-with-prns`: sequential → 4-way |
+| --- | --- | --- | --- |
+| Compliance scheme: 101–500 producers | 1,181 records (12 pages) / 297 PRNs (3 pages) | 🟠 **12.188s** → 🟠 **4.943s**<br>**↓ 7.246s (59.4% lower)** | 🟠 **12.183s** → 🟠 **4.441s**<br>**↓ 7.742s (63.5% lower)** |
+| Compliance scheme: 501–2,000 producers | 2,363 records (24 pages) / 599 PRNs (6 pages) | 🟠 **85.555s** → 🟠 **26.210s**<br>**↓ 59.345s (69.4% lower)** | 🟠 **83.100s** → 🟠 **25.967s**<br>**↓ 57.133s (68.8% lower)** |
+
+This improves the local prototype materially for multi-page organisations, but it does not remove
+the underlying issue: each Recycling Data page still executes the current full aggregation. Four is
+therefore an opt-in, bounded local experiment rather than a replacement for the planned recycling
+read model. One-page calls have no remaining pages to parallelise and should not be expected to
+change.
 
 ## Record a result
 

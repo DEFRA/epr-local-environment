@@ -6,7 +6,7 @@ obligations in-process. It has no database and does not persist data.
 ## Endpoint
 
 ```text
-GET /organisations/{organisationId}/calculate-obligations?year={year}&page={page}&pageSize={pageSize}
+GET /organisations/{organisationId}/calculate-obligations?year={year}&page={page}&pageSize={pageSize}&maxConcurrency={1-8}
 ```
 
 `year` is required because it selects the approved POM reporting year. `page` and `pageSize` are
@@ -14,6 +14,12 @@ optional and are sent to `recycling-data` only when supplied. When omitted, the 
 the downstream defaults (`page=1`, `pageSize=100`). Regardless of the page requested, this service
 then obtains every page before calculating, so a calculation always uses the full
 approved-recycling dataset for the organisation and year.
+
+`maxConcurrency` is optional and defaults to `1`, preserving the sequential page retrieval used by
+the first iteration. When set above `1`, each batch of remaining Recycling Data pages is requested
+in parallel, up to that limit. The first page always remains sequential because it supplies the total
+page count. The service accepts a maximum of `8`; use `4` as the initial local comparison value to
+avoid overloading the shared SQL Server with concurrent full aggregations.
 
 The response is `200 OK` with transient calculation obligations. It has no calculation ID because
 no row is stored. The calculation uses the material-code map and annual recycling targets in
@@ -38,7 +44,7 @@ latest downstream data and must not be reused by browsers or intermediaries.
 ## Calculated obligations with PRNs
 
 ```text
-GET /organisations/{organisationId}/calculate-obligations-with-prns?year={year}&page={page}&pageSize={pageSize}
+GET /organisations/{organisationId}/calculate-obligations-with-prns?year={year}&page={page}&pageSize={pageSize}&maxConcurrency={1-8}
 ```
 
 This follows the same POM retrieval and transient calculation flow as
@@ -61,7 +67,9 @@ returns the equivalent of the PRN backend's obligation view, without storing the
 `year + 1`; for example, a 2025 POM request is matched with PRNs for obligation year 2026.
 `page` and `pageSize` are optional. When supplied they are used for the initial calls to both
 downstream services; the service always follows every remaining page, so the assessment covers the
-full organisation dataset.
+full organisation dataset. `maxConcurrency` has the same default and range as the calculation-only
+route. It applies separately to the Recycling Data sequence and then the ReEx sequence; the two
+services are not fetched concurrently.
 
 For example:
 
@@ -87,6 +95,10 @@ overhead is the subject being assessed.
   --year 2025 \
   --page-size 50000
 ```
+
+To compare parallel page retrieval with the default sequential flow, add
+`--max-concurrency 4`. This has no material effect for a one-page request; use the cross-service
+benchmark with the default page size to assess multiple pages.
 
 By default the script discovers the largest generated compliance scheme. Supply
 `--organisation-id {guid}` to use a different generated organisation, and use `--iterations` to
