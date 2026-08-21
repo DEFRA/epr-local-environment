@@ -27,6 +27,10 @@ interpreting the two obligations timings.
 
 ## Future-state service flow
 
+> **Prototype route caveat:** the future-state service paths and endpoint names in this guide exist
+> only to drive this small, connected local behaviour. They are not a proposed final API contract and
+> must not be treated as representative of the final services, routes, or service boundaries.
+
 ```mermaid
 flowchart LR
     caller[Benchmark runner or caller]
