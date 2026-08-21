@@ -50,6 +50,10 @@ while its endpoint-eligible PRN distribution is taken from the completed 2025 pr
 but selecting a different profile at the command line is not implemented yet; update the default
 profile import only after completing the profile-refresh validation process.
 
+The retained ranked PRN distribution is assigned to generated organisations in descending producer-
+association order. It preserves the observed total and concentration while making a larger compliance
+scheme carry the larger PRN population in the connected local dataset.
+
 `--increase` scales the PRN totals and the ranked high-volume organisations with the POM data.
 For example, `--increase 25%` generates 12,310 eligible PRNs and a largest organisation with
 3,493 PRNs.
@@ -106,8 +110,8 @@ run: generated identifiers are not stable and should never be copied into script
    year is `2026`.
 
    ```sh
-   curl 'http://localhost:8012/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme' | jq
-   curl 'http://localhost:8013/admin/organisations/prns?obligationYear=2026&take=10' | jq
+   curl 'http://localhost:8016/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme' | jq
+   curl 'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=10' | jq
    ```
 
 4. Call the APIs with IDs returned by those commands. The first `jq` expression below selects the
@@ -115,16 +119,16 @@ run: generated identifiers are not stable and should never be copied into script
 
    ```sh
    submitter_id=$(curl --silent \
-     'http://localhost:8012/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
+     'http://localhost:8016/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
      | jq -r '.items[0].submitterId')
    prn_organisation_id=$(curl --silent \
-     'http://localhost:8013/admin/organisations/prns?obligationYear=2026&take=1' \
+     'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=1' \
      | jq -r '.items[0].organisationId')
 
-   curl "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
-   curl "http://localhost:8013/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
-   curl -X POST "http://localhost:8014/organisations/${submitter_id}/calculate-obligations?year=2025"
-   curl -X POST "http://localhost:8014/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025"
+   curl "http://localhost:8016/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
+   curl "http://localhost:8017/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
+   curl "http://localhost:8018/organisations/${submitter_id}/calculate-obligations?year=2025"
+   curl "http://localhost:8018/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025"
    ```
 
    To capture an end-to-end HTTP duration without printing the response body, use the same IDs with
@@ -133,16 +137,16 @@ run: generated identifiers are not stable and should never be copied into script
    ```sh
    curl --fail --silent --output /dev/null \
      --write-out 'recycling-data: %{http_code} %{time_total}s\n' \
-     "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
+     "http://localhost:8016/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
    curl --fail --silent --output /dev/null \
      --write-out 'reex: %{http_code} %{time_total}s\n' \
-     "http://localhost:8013/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
-   curl --fail --silent --output /dev/null -X POST \
+     "http://localhost:8017/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
+   curl --fail --silent --output /dev/null \
      --write-out 'obligations: %{http_code} %{time_total}s\n' \
-     "http://localhost:8014/organisations/${submitter_id}/calculate-obligations?year=2025"
-   curl --fail --silent --output /dev/null -X POST \
+     "http://localhost:8018/organisations/${submitter_id}/calculate-obligations?year=2025"
+   curl --fail --silent --output /dev/null \
      --write-out 'obligations with PRNs: %{http_code} %{time_total}s\n' \
-     "http://localhost:8014/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025&pageSize=50000"
+     "http://localhost:8018/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025&pageSize=50000"
    ```
 
 5. Benchmark Recycling Data using the same generated largest compliance scheme. The first command
@@ -175,6 +179,11 @@ run: generated identifiers are not stable and should never be copied into script
    The script discovers the largest generated compliance scheme unless `--organisation-id` is
    supplied. See the [Obligations benchmark results](../../future/waste-obligations/README.md#recorded-local-result)
    for the recorded result and the rationale for using a page size that covers the full dataset.
+
+7. Run the [cross-service real-time benchmark](../../future/benchmark/README.md) to exercise both
+   obligations routes with their default downstream page size across compliance-scheme and
+   direct-registrant producer bands. It makes the two end-to-end calculation latencies prominent and
+   uses row/PRN page counts to explain the input volume.
 
 The endpoint-specific fields and response shapes are documented in
 [Recycling Data](../../future/recycling-data/README.md), [ReEx](../../future/reex/README.md) and

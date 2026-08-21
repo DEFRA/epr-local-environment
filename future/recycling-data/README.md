@@ -15,9 +15,9 @@ For example, after starting the future profile:
 ```sh
 docker compose -f compose.yml -f compose.future.yml --profile future up --build recycling-data
 submitter_id=$(curl --silent \
-  'http://localhost:8012/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
+  'http://localhost:8016/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
   | jq -r '.items[0].submitterId')
-curl "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
+curl "http://localhost:8016/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
 ```
 
 `year` and `submitterId` are required query parameters. `page` defaults to `1` and `pageSize`
@@ -42,7 +42,7 @@ benchmark then reports the exact `/recycling-data` result count.
 For example:
 
 ```sh
-curl 'http://localhost:8012/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme'
+curl 'http://localhost:8016/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme'
 ```
 
 `year` is required and `take` defaults to `10`. Optionally use `submitterType=ComplianceScheme` or
@@ -100,30 +100,45 @@ year, submitter, page size and iteration count unchanged when comparing the two 
 
 ### Recorded local result
 
-The following is a local snapshot from 19 August 2026, using the generated 2025 dataset and the
-largest discovered compliance scheme. It returned 7,377 recycling rows. Timings are mean end-to-end
-HTTP durations after warm-up, and will vary by machine and local database state.
+The following is a local snapshot from 21 August 2026, using the regenerated 2025 dataset and the
+largest discovered compliance scheme. It returned 7,425 recycling rows. Timings are median end-to-end
+HTTP durations from three calls after one warm-up per SQL path; they vary by machine and local
+database cache state.
 
 | Request | Baseline source-style SQL | Local SQL Server optimisation |
 | --- | ---: | ---: |
-| `page=1&pageSize=100` | 2.57s | 2.11s |
-| `page=1&pageSize=10000` (all 7,377 rows in one response) | 2.55s | 2.11s |
+| `page=1&pageSize=100` | 2.372s | 1.977s |
+| `page=1&pageSize=50000` (all 7,425 rows in one response) | 2.430s | 1.953s |
 
 The two SQL modes returned equivalent payloads in both cases, excluding the diagnostic
-`useLocalSqlOptimisation` response field. The near-identical timings for `100` and `10000` show that
+`useLocalSqlOptimisation` response field. The near-identical timings for `100` and `50000` show that
 the query materialises and aggregates the whole result before applying `OFFSET`/`FETCH`; a smaller
 page only reduces response serialisation and transfer for that one call.
 
 This does **not** mean that retrieving all data through small pages is equivalent to one large page.
-At `pageSize=100`, 7,377 rows need 74 requests, and each request reruns the full query. Where a
+At `pageSize=100`, 7,425 rows need 75 requests, and each request reruns the full query. Where a
 consumer needs the entire result, a one-page request with a safely sufficient page size avoids those
 repeated database executions. Paging remains useful when the consumer only needs one page or should
 limit its response-body size.
 
+### Why larger schemes take disproportionately longer
+
+This is not a direct-registrant shortcut. The local query can narrow a compliance scheme's file
+metadata early by scheme ID; a direct registrant has no scheme ID in that metadata and is identified
+later by its organisation ID. Direct registrants are faster in the generated benchmark because their
+populations are much smaller and usually fit in one page.
+
+For each request, SQL finds the latest accepted events, joins metadata, organisations and POM rows,
+checks the required reporting periods, joins determination data, aggregates producer/material rows,
+counts and sorts the complete result, and only then applies `OFFSET`/`FETCH`. A larger scheme means
+more files, POM rows and producer/material groups through each of those stages. The obligations API
+then requests every page serially, repeating the full aggregation each time. Latency therefore grows
+with both input size and page count—not simply with the number of JSON records returned.
+
 ### Why optimisation stops here
 
 The local SQL Server optimisation has already introduced the submitter restriction early and uses
-local-only access projections and indexes. It improves the representative request by about 18%, but
+local-only access projections and indexes. It improves the representative request by about 17–20%, but
 it cannot make a small page an inexpensive database operation while retaining the current response
 contract. Before `OFFSET`/`FETCH` can run, the query must identify latest accepted files, pair the
 two half-year submissions, join and aggregate POM rows, apply determination data, order the final
@@ -146,3 +161,6 @@ than another index iteration:
 The last option permits an indexed page lookup rather than reconstructing the calculation on every
 request. It should be evaluated against the actual Synapse implementation as well as this local SQL
 Server representation.
+
+For default-page behaviour through both real-time obligations routes, see the
+[future-state real-time benchmark](../benchmark/README.md).

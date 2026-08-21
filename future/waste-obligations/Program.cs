@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.WebUtilities;
 
 const string recyclingDataClientName = "recycling-data";
 const string reexClientName = "reex";
+const int maximumPageConcurrency = 8;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("calculation-reference-data.json", optional: false, reloadOnChange: false);
@@ -31,16 +32,22 @@ var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok());
 
-app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async (
+app.MapGet("/organisations/{organisationId:guid}/calculate-obligations", async (
     Guid organisationId,
     int year,
+    HttpContext httpContext,
     IHttpClientFactory httpClientFactory,
     ObligationCalculator obligationCalculator,
     ILogger<Program> logger,
     CancellationToken cancellationToken,
     long? page = null,
-    long? pageSize = null) =>
+    long? pageSize = null,
+    int? maxConcurrency = null) =>
 {
+    // Calculations are read-only but depend on the latest downstream source data.
+    // Do not let browsers, proxies, or other intermediaries reuse a previous result.
+    httpContext.Response.Headers.CacheControl = "no-store";
+
     if (year is < 2024 or > 2100)
     {
         return Results.BadRequest(new { error = "year must be between 2024 and 2100." });
@@ -49,6 +56,11 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async 
     if (page is < 1 || pageSize is < 1)
     {
         return Results.BadRequest(new { error = "page and pageSize must both be positive integers when supplied." });
+    }
+
+    if (maxConcurrency is < 1 or > maximumPageConcurrency)
+    {
+        return Results.BadRequest(new { error = $"maxConcurrency must be between 1 and {maximumPageConcurrency} when supplied." });
     }
 
     IReadOnlyList<RecyclingDataRow> recyclingData;
@@ -60,6 +72,7 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async 
             year,
             page,
             pageSize,
+            maxConcurrency ?? 1,
             cancellationToken);
     }
     catch (DownstreamException exception)
@@ -109,16 +122,22 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations", async 
     }
 });
 
-app.MapPost("/organisations/{organisationId:guid}/calculate-obligations-with-prns", async (
+app.MapGet("/organisations/{organisationId:guid}/calculate-obligations-with-prns", async (
     Guid organisationId,
     int year,
+    HttpContext httpContext,
     IHttpClientFactory httpClientFactory,
     ObligationCalculator obligationCalculator,
     ILogger<Program> logger,
     CancellationToken cancellationToken,
     long? page = null,
-    long? pageSize = null) =>
+    long? pageSize = null,
+    int? maxConcurrency = null) =>
 {
+    // Calculations are read-only but depend on the latest downstream source data.
+    // Do not let browsers, proxies, or other intermediaries reuse a previous result.
+    httpContext.Response.Headers.CacheControl = "no-store";
+
     if (year is < 2024 or > 2100)
     {
         return Results.BadRequest(new { error = "year must be between 2024 and 2100." });
@@ -127,6 +146,11 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations-with-prn
     if (page is < 1 || pageSize is < 1)
     {
         return Results.BadRequest(new { error = "page and pageSize must both be positive integers when supplied." });
+    }
+
+    if (maxConcurrency is < 1 or > maximumPageConcurrency)
+    {
+        return Results.BadRequest(new { error = $"maxConcurrency must be between 1 and {maximumPageConcurrency} when supplied." });
     }
 
     IReadOnlyList<RecyclingDataRow> recyclingData;
@@ -138,6 +162,7 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations-with-prn
             year,
             page,
             pageSize,
+            maxConcurrency ?? 1,
             cancellationToken);
     }
     catch (DownstreamException exception)
@@ -177,6 +202,7 @@ app.MapPost("/organisations/{organisationId:guid}/calculate-obligations-with-prn
             organisationId,
             page,
             pageSize,
+            maxConcurrency ?? 1,
             cancellationToken);
     }
     catch (DownstreamException exception)
@@ -229,6 +255,7 @@ static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
     int year,
     long? requestedPage,
     long? requestedPageSize,
+    int maxConcurrency,
     CancellationToken cancellationToken)
 {
     var firstPage = await GetRecyclingDataPage(
@@ -251,19 +278,19 @@ static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
         pageCount++;
     }
 
-    for (var currentPage = 1L; currentPage <= pageCount; currentPage++)
-    {
-        if (!pages.ContainsKey(currentPage))
-        {
-            pages[currentPage] = await GetRecyclingDataPage(
-                recyclingDataClient,
-                organisationId,
-                year,
-                currentPage,
-                firstPage.PageSize,
-                cancellationToken);
-        }
-    }
+    await GetRemainingPages(
+        pages,
+        pageCount,
+        firstPage.Page,
+        maxConcurrency,
+        (currentPage, token) => GetRecyclingDataPage(
+            recyclingDataClient,
+            organisationId,
+            year,
+            currentPage,
+            firstPage.PageSize,
+            token),
+        cancellationToken);
 
     return pages
         .OrderBy(pair => pair.Key)
@@ -320,6 +347,7 @@ static async Task<IReadOnlyList<PrnRow>> GetAllPrns(
     Guid organisationId,
     long? requestedPage,
     long? requestedPageSize,
+    int maxConcurrency,
     CancellationToken cancellationToken)
 {
     var firstPage = await GetPrnPage(
@@ -341,23 +369,67 @@ static async Task<IReadOnlyList<PrnRow>> GetAllPrns(
         pageCount++;
     }
 
-    for (var currentPage = 1L; currentPage <= pageCount; currentPage++)
-    {
-        if (!pages.ContainsKey(currentPage))
-        {
-            pages[currentPage] = await GetPrnPage(
-                reexClient,
-                organisationId,
-                currentPage,
-                firstPage.PageSize,
-                cancellationToken);
-        }
-    }
+    await GetRemainingPages(
+        pages,
+        pageCount,
+        firstPage.Page,
+        maxConcurrency,
+        (currentPage, token) => GetPrnPage(
+            reexClient,
+            organisationId,
+            currentPage,
+            firstPage.PageSize,
+            token),
+        cancellationToken);
 
     return pages
         .OrderBy(pair => pair.Key)
         .SelectMany(pair => pair.Value.Items)
         .ToList();
+}
+
+static async Task GetRemainingPages<TPage>(
+    IDictionary<long, TPage> pages,
+    long pageCount,
+    long firstPageNumber,
+    int maxConcurrency,
+    Func<long, CancellationToken, Task<TPage>> getPage,
+    CancellationToken cancellationToken)
+{
+    var remainingPages = PageNumbers(pageCount, firstPageNumber);
+    if (maxConcurrency == 1)
+    {
+        foreach (var currentPage in remainingPages)
+        {
+            pages.Add(currentPage, await getPage(currentPage, cancellationToken));
+        }
+
+        return;
+    }
+
+    foreach (var batch in remainingPages.Chunk(maxConcurrency))
+    {
+        var downloadedPages = await Task.WhenAll(batch.Select(async currentPage =>
+            new KeyValuePair<long, TPage>(
+                currentPage,
+                await getPage(currentPage, cancellationToken))));
+
+        foreach (var downloadedPage in downloadedPages)
+        {
+            pages.Add(downloadedPage.Key, downloadedPage.Value);
+        }
+    }
+}
+
+static IEnumerable<long> PageNumbers(long pageCount, long firstPageNumber)
+{
+    for (var currentPage = 1L; currentPage <= pageCount; currentPage++)
+    {
+        if (currentPage != firstPageNumber)
+        {
+            yield return currentPage;
+        }
+    }
 }
 
 static async Task<PrnPage> GetPrnPage(

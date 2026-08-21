@@ -166,6 +166,18 @@ function createPrnCounts(submitters, total, rankedCounts, random) {
   ];
 }
 
+function rankSubmittersForPrns(submitters) {
+  // The anonymous source profile captures a deliberately concentrated PRN
+  // distribution. Apply its highest counts to the largest generated
+  // organisations, rather than their creation order, so the connected local
+  // data has the expected relationship between producer and PRN volume.
+  return [...submitters].sort((left, right) =>
+    right.producerCount - left.producerCount ||
+    left.type.localeCompare(right.type) ||
+    left.index - right.index
+  );
+}
+
 function createPrns(submitters, profile, runId, random) {
   const prns = [];
   const prnRunKey = crypto.createHash('sha1').update(runId).digest('hex').slice(0, 8);
@@ -188,8 +200,9 @@ function createPrns(submitters, profile, runId, random) {
   for (const [status, total] of Object.entries(profile.prn.statusCounts)) {
     if (total === 0) continue;
 
+    const rankedSubmitters = rankSubmittersForPrns(submitters);
     const counts = createPrnCounts(
-      submitters,
+      rankedSubmitters,
       total,
       profile.prn.rankedSubmitterCounts[status] ?? [],
       random
@@ -197,7 +210,7 @@ function createPrns(submitters, profile, runId, random) {
     const rowKeys = [];
     counts.forEach((count, submitterIndex) => {
       for (let index = 0; index < count; index += 1) {
-        rowKeys.push({ submitter: submitters[submitterIndex], index });
+        rowKeys.push({ submitter: rankedSubmitters[submitterIndex], index });
       }
     });
     const tonnes = allocateWeightedIntegers(profile.prn.statusTonnes[status], rowKeys, random);
