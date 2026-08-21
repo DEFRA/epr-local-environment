@@ -94,9 +94,9 @@ change the number of post-warm-up requests.
 
 ### Recorded local result
 
-On 19 August 2026, the largest generated compliance scheme for POM year 2025
-(14,754 generated POM rows) was measured with `pageSize=50000`. The three-run benchmark after
-warm-up measured **1.995s minimum**, **2.014s median**, **2.012s mean** and **2.026s maximum**.
+On 21 August 2026, the largest generated compliance scheme for POM year 2025
+(14,850 generated POM rows) was measured with `pageSize=50000`. The three-run benchmark after
+warm-up measured **1.965s minimum**, **1.974s median**, **1.972s mean** and **1.977s maximum**.
 The call returned seven material assessments and no awaiting-acceptance PRNs. These times include
 the full future Recycling Data, ReEx and in-process calculation path only.
 

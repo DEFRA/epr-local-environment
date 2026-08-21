@@ -11,19 +11,19 @@ Docker and database cache state affect every timing.
 
 ## What is measured
 
-The runner makes one real-time request—without a warm-up—for each selected volume band:
+The runner makes one sequence of real-time requests for each selected volume band:
 
 | Direct request | Default request | What the runner records |
 | --- | --- | --- |
-| Recycling Data | `GET /recycling-data?year={year}&submitterId={id}` | First-page latency; total recycling records and page count |
-| ReEx | `GET /organisations/{id}/prns` | First-page latency; total PRNs and page count |
-| Obligations | `GET /organisations/{id}/calculate-obligations?year={year}` | **End-to-end calculation latency** and detailed calculation count |
-| Obligations with PRNs | `GET /organisations/{id}/calculate-obligations-with-prns?year={year}` | **End-to-end calculation latency**, material assessment count and awaiting-acceptance count |
+| Recycling Data | `GET /recycling-data?year={year}&submitterId={id}` | Total recycling records and page count |
+| ReEx | `GET /organisations/{id}/prns` | Total PRNs and page count |
+| Obligations | `GET /organisations/{id}/calculate-obligations?year={year}` | **End-to-end calculation latency** |
+| Obligations with PRNs | `GET /organisations/{id}/calculate-obligations-with-prns?year={year}` | **End-to-end calculation latency** |
 
-The first two calls use their default `page=1&pageSize=100` only. Both calculation endpoints accept
-the same optional parameters, but their benchmark calls omit them: after their first downstream
-request they traverse **every** remaining page before producing their response. That distinction is
-essential to interpreting the two obligations timings.
+Unless `--page-size` is supplied, the direct calls use `page=1&pageSize=100`. Both calculation
+endpoints accept the same optional parameters, but after their first downstream request they traverse
+**every** remaining page before producing their response. That distinction is essential to
+interpreting the two obligations timings.
 
 ## Future-state service flow
 
@@ -175,21 +175,22 @@ The checked-in `preprod-complete-2025-prn-shape` profile is an anonymous aggrega
 on 20 August 2026. The table shows the unscaled 2025 local plan before a caller chooses one
 representative submitter from each band.
 
-| Submitter-volume group | Submitters | Producer associations | Eligible recycling records after H1/H2 pairing | Raw H1/H2 POM rows | Generated PRNs | PRNs per submitter |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Compliance scheme: 1–100 producers | 5 | 260 | 922 | 1,844 | 6,231 | 411–2,794 |
-| Compliance scheme: 101–500 producers | 4 | 1,307 | 4,659 | 9,318 | 1,028 | 227–297 |
-| Compliance scheme: 501–2,000 producers | 4 | 2,674 | 9,359 | 18,718 | 483 | 84–152 |
-| Compliance scheme: 2,001+ producers | 1 | 2,093 | 7,425 | 14,850 | 81 | 81 |
-| Direct registrant: 1 producer | 278 | 278 | 964 | 1,928 | 1,916 | 5–70 |
-| Direct registrant: 2–5 producers | 17 | 45 | 169 | 338 | 98 | 5–6 |
-| Direct registrant: 6–20 producers | 2 | 14 | 49 | 98 | 11 | 5–6 |
-| **Total** | **311** | **6,671** | **23,547** | **47,094** | **9,848** | — |
+| Submitter-volume group | Submitters | Producer associations | Recycling records | PRNs |
+| --- | ---: | ---: | ---: | ---: |
+| Compliance scheme: 1–100 producers | 5 | 260 | 922 | 564 |
+| Compliance scheme: 101–500 producers | 4 | 1,307 | 4,659 | 1,028 |
+| Compliance scheme: 501–2,000 producers | 4 | 2,674 | 9,359 | 3,437 |
+| Compliance scheme: 2,001+ producers | 1 | 2,093 | 7,425 | 2,794 |
+| Direct registrant: 1 producer | 278 | 278 | 964 | 1,646 |
+| Direct registrant: 2–5 producers | 17 | 45 | 169 | 242 |
+| Direct registrant: 6–20 producers | 2 | 14 | 49 | 137 |
+| **Total** | **311** | **6,671** | **23,547** | **9,848** |
 
 There are 6,670 unique producers: the extra association represents one producer linked to two
 schemes. The profile contains 9,832 accepted PRNs and 16 awaiting-acceptance PRNs. The retained PRN
-shape is deliberately concentrated: PRN count does not increase monotonically with producer count.
-The runner reports the exact ReEx total for each selected organisation.
+shape is deliberately concentrated. Its ranked PRN counts are assigned to organisations in descending
+producer-association order, so larger schemes receive the larger PRN populations while retaining the
+observed aggregate total. The runner reports the exact ReEx total for each selected organisation.
 
 ## Response contracts and sizes
 
@@ -289,52 +290,33 @@ caching; record the default-page timings first, then evaluate that next service 
 
 ## Recorded local results
 
-The following results were captured on 21 August 2026 from the fully started local obligations and
-future profiles, using the generated 2025 profile. Each table cell is one real HTTP request without
-an explicit warm-up. They are local design evidence, not a prediction of Synapse production latency.
+The following current results were captured on 21 August 2026 from the fully started local
+obligations and future profiles, after regenerating the 2025 profile with PRNs assigned by descending
+producer-association count. Each table cell is one real HTTP request. The calculation calls follow
+the direct service calls and can therefore observe their warmed local database cache. They are local
+design evidence, not a prediction of Synapse production latency.
 
-### Default downstream page size (`100`)
-
-Read the two right-most columns first: they are the primary result. Recycling and PRN page counts
-explain how much source data the real-time calculation traversed. The direct Recycling Data timing
-is only the cost of its first page, not the cost of retrieving the full input.
+Read the two right-most columns first: they are the primary result. The input columns explain how
+much source data the real-time calculation traversed. The standalone Recycling Data benchmark below
+contains the separate source-query timings.
 
 `🟠` marks a response time above the 2-second warning threshold.
 
-| Scenario | Producer associations | Recycling records (pages) | PRNs (pages) | First Recycling Data page | `calculate-obligations` | `calculate-obligations-with-prns` |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Compliance scheme: 1–100 producers | 52 | 190 (2) | 1,833 (19) | **0.249s** | **0.523s** | **0.613s** |
-| Compliance scheme: 101–500 producers | 327 | 1,181 (12) | 297 (3) | **1.281s** | 🟠 **12.836s** | 🟠 **12.307s** |
-| Compliance scheme: 501–2,000 producers | 669 | 2,363 (24) | 132 (2) | 🟠 **3.639s** | 🟠 **79.379s** | 🟠 **79.156s** |
-| Direct registrant: 1 producer | 1 | 7 (1) | 6 (1) | **0.389s** | **0.237s** | **0.205s** |
-| Direct registrant: 2–5 producers | 3 | 16 (1) | 6 (1) | **0.194s** | **0.200s** | **0.199s** |
-| Direct registrant: 6–20 producers | 7 | 25 (1) | 5 (1) | **0.398s** | **0.192s** | **0.205s** |
+| Scenario | Page size | Recycling data (pages) | PRNs (pages) | `calculate-obligations` | `calculate-obligations-with-prns` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Compliance scheme: 1–100 producers | 100 | 190 (2) | 132 (2) | **0.557s** | **0.538s** |
+| Compliance scheme: 101–500 producers | 100 | 1,181 (12) | 297 (3) | 🟠 **12.068s** | 🟠 **12.633s** |
+| Compliance scheme: 501–2,000 producers | 100 | 2,363 (24) | 599 (6) | 🟠 **77.760s** | 🟠 **77.318s** |
+| Compliance scheme: 2,001+ producers | 50,000 | 7,425 (1) | 2,794 (1) | **1.962s** | **1.974s** |
+| Direct registrant: 1 producer | 100 | 7 (1) | 6 (1) | **0.169s** | **0.175s** |
+| Direct registrant: 2–5 producers | 100 | 16 (1) | 46 (1) | **0.174s** | **0.185s** |
+| Direct registrant: 6–20 producers | 100 | 25 (1) | 67 (1) | **0.177s** | **0.182s** |
 
-> Current generator limitation: PRN counts preserve the captured overall ranked distribution, but
-> are assigned in generated-submitters creation order rather than by scheme size. The PRN column is
-> therefore useful for exercising pagination, but should not yet be interpreted as a realistic
-> relationship between a scheme's producer/recycling volume and its PRN volume.
-
-The 2,001+ producer scheme was intentionally stopped during the default-page run. Its 7,425
-recycling records require 75 pages for each calculation route. By page 29, completed Recycling Data
-page requests were taking approximately 27 seconds each, with page 30 in progress. Repeating that
-work across both calculation routes would take roughly 69 minutes on this local host. This is an
-observed operational limit of the current real-time prototype, not a failed request or a benchmark
-timeout.
-
-### Explicit one-page comparison (`pageSize=50000`)
-
-This is not a substitute for the default-page table. It shows the same largest scheme after the
-complete result is requested in one downstream page.
-
-| Scenario | Producer associations | Recycling records (pages) | PRNs (pages) | First Recycling Data page | `calculate-obligations` | `calculate-obligations-with-prns` |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Compliance scheme: 2,001+ producers | 2,093 | 7,425 (1) | 81 (1) | 🟠 **27.719s** | 🟠 **27.335s** | 🟠 **28.028s** |
-
-The near-identical direct Recycling Data and calculation times in the one-page result show that the
-source aggregation dominates latency; returning a smaller first page does not avoid constructing the
-full result. With default paging, that aggregation is repeated for every page. The small compact
-response from `calculate-obligations-with-prns` does not reduce its input retrieval cost.
+The 2,001+ scheme is shown with a one-page request because its default size would make each
+calculation replay 75 Recycling Data pages, plus 28 PRN pages for the PRN-aware route. Its result is
+not comparable with the default-page rows. The standalone Recycling Data benchmark shows that a
+larger page does not materially reduce a single query's SQL work; it avoids repeating that work for
+every page.
 
 ## Record a result
 

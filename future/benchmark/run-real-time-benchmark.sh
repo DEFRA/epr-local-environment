@@ -20,7 +20,8 @@ Options:
 Runs exactly one real-time call to each future endpoint for each selected scenario. Without
 --page-size the endpoint defaults are used: page=1 and pageSize=100. The Markdown output makes the
 two end-to-end calculation durations the primary metrics; row/page counts explain the input volume.
-It does not call the existing PRN backend.
+The calculation calls follow the direct service calls, so they may observe a warmed local database
+cache. It does not call the existing PRN backend.
 EOF
 }
 
@@ -196,19 +197,20 @@ fi
 printf '# Future-state real-time benchmark\n\n'
 printf 'POM year: %s | Compliance year: %s | Downstream paging: %s\n\n' \
     "$year" "$((year + 1))" "$page_description"
-printf 'Each value is one end-to-end HTTP call without a warm-up. `calculate-obligations` and '
+printf 'Each value is one end-to-end HTTP call. The calculation calls follow the direct service calls '
+printf 'and can observe their warmed local database cache. `calculate-obligations` and '
 printf '`calculate-obligations-with-prns` always retrieve every downstream page before responding.\n\n'
-printf 'Read the two right-most columns first: they are the real-time endpoint durations. The page counts '
+printf 'Read the two right-most columns first: they are the real-time endpoint durations. The input columns '
 printf 'show how much source data each calculation traversed.\n\n'
 printf '`🟠` marks a response time above the 2-second warning threshold.\n\n'
-printf '| Scenario | Producer associations | Recycling records (pages) | PRNs (pages) | First Recycling Data page | Calculate obligations | Calculate with PRNs |\n'
-printf '| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n'
+printf '| Scenario | Producer associations | Recycling data (pages) | PRNs (pages) | Calculate obligations | Calculate with PRNs |\n'
+printf '| --- | ---: | ---: | ---: | ---: | ---: |\n'
 
 for scenario_name in "${scenarios[@]}"; do
     scenario_details_value=$(scenario_details "$scenario_name")
     IFS='|' read -r scenario_submitter_type scenario_minimum scenario_maximum scenario_display_name <<< "$scenario_details_value"
     if ! submitter=$(select_submitter "$scenario_name"); then
-        printf '| %s | _No generated submitter in this band_ | - | - | - | - | - |\n' "$scenario_display_name"
+        printf '| %s | _No generated submitter in this band_ | - | - | - | - |\n' "$scenario_display_name"
         continue
     fi
 
@@ -241,16 +243,14 @@ for scenario_name in "${scenarios[@]}"; do
     parse_metric "$calculation_with_prns_metric"
     calculation_with_prns_seconds=$metric_seconds
 
-    recycling_duration=$(format_duration "$recycling_seconds")
     calculation_duration=$(format_duration "$calculation_seconds")
     calculation_with_prns_duration=$(format_duration "$calculation_with_prns_seconds")
 
-    printf '| %s | %s | %s (%s) | %s (%s) | %s | %s | %s |\n' \
+    printf '| %s | %s | %s (%s) | %s (%s) | %s | %s |\n' \
         "$scenario_display_name" \
         "$producer_count" \
         "$recycling_total" "$recycling_page_count" \
         "$reex_total" "$reex_page_count" \
-        "$recycling_duration" \
         "$calculation_duration" \
         "$calculation_with_prns_duration"
 done

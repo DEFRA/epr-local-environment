@@ -50,6 +50,10 @@ while its endpoint-eligible PRN distribution is taken from the completed 2025 pr
 but selecting a different profile at the command line is not implemented yet; update the default
 profile import only after completing the profile-refresh validation process.
 
+The retained ranked PRN distribution is assigned to generated organisations in descending producer-
+association order. It preserves the observed total and concentration while making a larger compliance
+scheme carry the larger PRN population in the connected local dataset.
+
 `--increase` scales the PRN totals and the ranked high-volume organisations with the POM data.
 For example, `--increase 25%` generates 12,310 eligible PRNs and a largest organisation with
 3,493 PRNs.
