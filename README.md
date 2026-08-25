@@ -349,8 +349,8 @@ Sign-in uses Azure AD B2C, then calls **epr-backend-account-microservice** (`GET
 | --- | --- |
 | waste-obligations-frontend (Docker HTTP) | http://localhost:8008 |
 | waste-obligations-frontend (HTTPS proxy) | https://localhost:8010 |
-| report-packaging-proxy-spike (HTTP) | http://localhost:8013 |
-| report-packaging-proxy-spike (HTTPS) | https://localhost:8015 |
+| packaging-waste-proxy (HTTP) | http://localhost:8013 |
+| packaging-waste-proxy (HTTPS) | https://localhost:8015 |
 | epr-backend-account-microservice | http://localhost:8003/api/ |
 | waste-organisations | http://localhost:8006 |
 | waste-obligations | http://localhost:8007 |
@@ -366,7 +366,7 @@ OAuth for the backend account API is wired in `compose.yml` to **Wiremock** (`BA
 
 Use **https://localhost:8010** (HTTPS proxy) for the packaging-linked app and B2C redirect — not port 8008. Register `https://localhost:8010/signin-oidc` and `https://localhost:8010/signed-out` on the B2C app registration if they are not already present.
 
-The `waste-obligations-frontend-isolated` variant runs only behind `report-packaging-proxy-spike` and has distinct session, CSRF and OAuth-state cookie names, so it does not interfere with the packaging-linked frontend. It has no host port mappings; access it only at **https://localhost:8015/manage-recycling-obligations**. Register `https://localhost:8015/manage-recycling-obligations/signin-oidc` with Azure AD B2C.
+The `waste-obligations-frontend-isolated` variant runs only behind `packaging-waste-proxy` and has distinct session, CSRF and OAuth-state cookie names, so it does not interfere with the packaging-linked frontend. It has no host port mappings; access it only at **https://localhost:8015/manage-recycling-obligations**. Register `https://localhost:8015/manage-recycling-obligations/signin-oidc` with Azure AD B2C.
 
 **npm run dev:** start the obligations profile, then configure [waste-obligations-frontend/.env.example](https://github.com/DEFRA/waste-obligations-frontend/blob/main/.env.example) in that repo:
 
