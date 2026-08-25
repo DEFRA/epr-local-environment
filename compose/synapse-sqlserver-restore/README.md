@@ -63,7 +63,7 @@ persisted local access projections and, by default, a small set of nonclustered 
 [`schema-map.txt`](./schema-map.txt).
 
 The projections make the wide Synapse text columns indexable in SQL Server. The embedded
-recycling-data query retains its original full-value predicates after using the projections, so the
+Record Waste Packaging query retains its original full-value predicates after using the projections, so the
 optimisation cannot broaden its result set. The physical indexes are idempotent and run after the
 required SQL elements exist.
 
@@ -76,7 +76,7 @@ EPR_LOCAL_APPLY_SYNAPSE_LOCAL_OPTIMISATION_INDEXES=false
 
 This prevents creation on future runs; it does not automatically remove indexes that already exist
 in the retained local database. Keep the setting enabled for realistic performance from local queries
-that explicitly use the access projections, including the future-state recycling-data service. Index
+that explicitly use the access projections, including the future-state Record Waste Packaging service. Index
 creation adds disk use and can noticeably extend the first restore of a full-size local seed; disable
 it when that query performance is not needed.
 

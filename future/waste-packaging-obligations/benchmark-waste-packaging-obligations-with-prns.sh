@@ -5,7 +5,7 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  benchmark-obligations-with-prns.sh [options]
+  benchmark-waste-packaging-obligations-with-prns.sh [options]
 
 Options:
   --year <year>              POM reporting year (default: 2025)
@@ -13,12 +13,12 @@ Options:
   --page-size <number>       Page size used for both downstream requests (default: 50000)
   --max-concurrency <number> Concurrent downstream page requests (1-8; default: sequential)
   --iterations <number>      Timed future-service calls after one warm-up (default: 3)
-  --obligations-url <url>    Future obligations API URL (default: http://localhost:8018)
-  --recycling-data-url <url> Recycling Data API URL used for ID discovery (default: http://localhost:8016)
+  --waste-packaging-obligations-url <url>    Future Waste Packaging Obligations API URL (default: http://localhost:8018)
+  --record-waste-packaging-url <url> Record Waste Packaging API URL used for ID discovery (default: http://localhost:8016)
   --help                     Show this help text
 
-The script measures only the future-state flow: the obligations endpoint and its calls to
-the future Recycling Data and ReEx services. It does not call the existing PRN backend.
+The script measures only the future-state flow: the Waste Packaging Obligations endpoint and its calls to
+the future Record Waste Packaging and RREPW services. It does not call the existing PRN backend.
 EOF
 }
 
@@ -27,8 +27,8 @@ organisation_id=
 page_size=50000
 max_concurrency=
 iterations=3
-obligations_url=http://localhost:8018
-recycling_data_url=http://localhost:8016
+waste_packaging_obligations_url=http://localhost:8018
+record_waste_packaging_url=http://localhost:8016
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -52,12 +52,12 @@ while [[ $# -gt 0 ]]; do
             iterations=${2:?A value is required for --iterations}
             shift 2
             ;;
-        --obligations-url)
-            obligations_url=${2:?A value is required for --obligations-url}
+        --waste-packaging-obligations-url)
+            waste_packaging_obligations_url=${2:?A value is required for --waste-packaging-obligations-url}
             shift 2
             ;;
-        --recycling-data-url)
-            recycling_data_url=${2:?A value is required for --recycling-data-url}
+        --record-waste-packaging-url)
+            record_waste_packaging_url=${2:?A value is required for --record-waste-packaging-url}
             shift 2
             ;;
         --help|-h)
@@ -104,10 +104,10 @@ discover_largest_organisation() {
         --silent \
         --show-error \
         --output "$discovery_response" \
-        "${recycling_data_url%/}/admin/submitters?year=${year}&take=1&submitterType=ComplianceScheme"
+        "${record_waste_packaging_url%/}/admin/submitters?year=${year}&take=1&submitterType=ComplianceScheme"
 
     organisation_id=$(jq -er '.items[0].submitterId' "$discovery_response") || {
-        printf 'No recycling submitter was discovered for year %s. Supply --organisation-id or generate data first.\n' "$year" >&2
+        printf 'No Record Waste Packaging submitter was discovered for year %s. Supply --organisation-id or generate data first.\n' "$year" >&2
         exit 1
     }
 
@@ -127,7 +127,7 @@ call_future_service() {
         --show-error \
         --output "$future_response" \
         --write-out '%{time_total}' \
-        "${obligations_url%/}/organisations/${organisation_id}/calculate-obligations-with-prns?year=${year}&pageSize=${page_size}${concurrency_query}"
+        "${waste_packaging_obligations_url%/}/organisations/${organisation_id}/calculate-obligations-with-prns?year=${year}&pageSize=${page_size}${concurrency_query}"
 }
 
 print_summary() {

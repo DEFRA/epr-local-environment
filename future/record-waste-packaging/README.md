@@ -1,8 +1,13 @@
-# Recycling data
+# Record Waste Packaging
 
-The first future-state service is a .NET minimal API that returns approved POM recycling data for
-one submitter and reporting year. It runs the query embedded in `Program.cs`; it does **not** call
+`record-waste-packaging` replicates the Common Data API call used to get recycling data for
+obligation calculation. It returns approved POM recycling data for one submitter and reporting year,
+using the query embedded in `Program.cs`; it does **not** call
 `dbo.sp_GetApprovedSubmissionsMyc`.
+
+The response currently includes `NumberOfDaysObligated`. That information will eventually come from
+a separate `waste-packaging-registration` service; it remains here only while this prototype
+replicates the current combined Common Data API behaviour.
 
 ## Endpoint
 
@@ -13,7 +18,7 @@ GET /recycling-data?year={year}&submitterId={guid}&page={page}&pageSize={pageSiz
 For example, after starting the future profile:
 
 ```sh
-docker compose -f compose.yml -f compose.future.yml --profile future up --build recycling-data
+docker compose -f compose.yml -f compose.future.yml --profile future up --build record-waste-packaging
 submitter_id=$(curl --silent \
   'http://localhost:8016/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
   | jq -r '.items[0].submitterId')
@@ -61,7 +66,7 @@ submissions stored procedure.
 
 ## Performance benchmark
 
-Use [`benchmark-recycling-data.sh`](benchmark-recycling-data.sh) after starting `recycling-data` to
+Use [`benchmark-record-waste-packaging.sh`](benchmark-record-waste-packaging.sh) after starting `record-waste-packaging` to
 measure equivalent requests through both SQL paths. It makes one unmeasured warm-up call for each
 path, then reports minimum, median, mean and maximum end-to-end HTTP durations. It also fails if the
 two payloads differ after omitting `useLocalSqlOptimisation`.
@@ -79,7 +84,7 @@ on an obsolete fixed ID.
 Run the normal paged request first:
 
 ```sh
-./future/recycling-data/benchmark-recycling-data.sh \
+./future/record-waste-packaging/benchmark-record-waste-packaging.sh \
   --year 2025 \
   --page-size 100
 ```
@@ -89,7 +94,7 @@ therefore drives the full result set through a single page, which tests JSON ser
 transfer as well as the database query:
 
 ```sh
-./future/recycling-data/benchmark-recycling-data.sh \
+./future/record-waste-packaging/benchmark-record-waste-packaging.sh \
   --year 2025 \
   --page-size 50000
 ```

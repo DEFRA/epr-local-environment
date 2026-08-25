@@ -2,28 +2,28 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 
-const string recyclingDataClientName = "recycling-data";
-const string reexClientName = "reex";
+const string recordWastePackagingClientName = "record-waste-packaging";
+const string rrepwClientName = "rrepw";
 const int maximumPageConcurrency = 8;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("calculation-reference-data.json", optional: false, reloadOnChange: false);
 
-var recyclingDataBaseUrl = builder.Configuration["RecyclingData:BaseUrl"]
-    ?? throw new InvalidOperationException("RecyclingData:BaseUrl must be configured.");
-var reexBaseUrl = builder.Configuration["Reex:BaseUrl"]
-    ?? throw new InvalidOperationException("Reex:BaseUrl must be configured.");
+var recordWastePackagingBaseUrl = builder.Configuration["RecordWastePackaging:BaseUrl"]
+    ?? throw new InvalidOperationException("RecordWastePackaging:BaseUrl must be configured.");
+var rrepwBaseUrl = builder.Configuration["Rrepw:BaseUrl"]
+    ?? throw new InvalidOperationException("Rrepw:BaseUrl must be configured.");
 var referenceData = builder.Configuration.GetSection("Calculation").Get<CalculationReferenceData>()
     ?? throw new InvalidOperationException("Calculation reference data must be configured.");
 
-builder.Services.AddHttpClient(recyclingDataClientName, client =>
+builder.Services.AddHttpClient(recordWastePackagingClientName, client =>
 {
-    client.BaseAddress = CreateBaseAddress(recyclingDataBaseUrl);
+    client.BaseAddress = CreateBaseAddress(recordWastePackagingBaseUrl);
     client.Timeout = TimeSpan.FromMinutes(10);
 });
-builder.Services.AddHttpClient(reexClientName, client =>
+builder.Services.AddHttpClient(rrepwClientName, client =>
 {
-    client.BaseAddress = CreateBaseAddress(reexBaseUrl);
+    client.BaseAddress = CreateBaseAddress(rrepwBaseUrl);
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 builder.Services.AddSingleton(new ObligationCalculator(referenceData));
@@ -67,7 +67,7 @@ app.MapGet("/organisations/{organisationId:guid}/calculate-obligations", async (
     try
     {
         recyclingData = await GetAllRecyclingData(
-            httpClientFactory.CreateClient(recyclingDataClientName),
+            httpClientFactory.CreateClient(recordWastePackagingClientName),
             organisationId,
             year,
             page,
@@ -157,7 +157,7 @@ app.MapGet("/organisations/{organisationId:guid}/calculate-obligations-with-prns
     try
     {
         recyclingData = await GetAllRecyclingData(
-            httpClientFactory.CreateClient(recyclingDataClientName),
+            httpClientFactory.CreateClient(recordWastePackagingClientName),
             organisationId,
             year,
             page,
@@ -198,7 +198,7 @@ app.MapGet("/organisations/{organisationId:guid}/calculate-obligations-with-prns
     try
     {
         prns = await GetAllPrns(
-            httpClientFactory.CreateClient(reexClientName),
+            httpClientFactory.CreateClient(rrepwClientName),
             organisationId,
             page,
             pageSize,
@@ -250,7 +250,7 @@ app.MapGet("/organisations/{organisationId:guid}/calculate-obligations-with-prns
 app.Run();
 
 static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
-    HttpClient recyclingDataClient,
+    HttpClient recordWastePackagingClient,
     Guid organisationId,
     int year,
     long? requestedPage,
@@ -259,7 +259,7 @@ static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
     CancellationToken cancellationToken)
 {
     var firstPage = await GetRecyclingDataPage(
-        recyclingDataClient,
+        recordWastePackagingClient,
         organisationId,
         year,
         requestedPage,
@@ -268,7 +268,7 @@ static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
 
     if (firstPage.Page < 1 || firstPage.PageSize < 1 || firstPage.TotalItems < 0)
     {
-        throw new DownstreamException("The recycling data service returned invalid pagination metadata.");
+        throw new DownstreamException("The Record Waste Packaging service returned invalid pagination metadata.");
     }
 
     var pages = new Dictionary<long, RecyclingDataPage> { [firstPage.Page] = firstPage };
@@ -284,7 +284,7 @@ static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
         firstPage.Page,
         maxConcurrency,
         (currentPage, token) => GetRecyclingDataPage(
-            recyclingDataClient,
+            recordWastePackagingClient,
             organisationId,
             year,
             currentPage,
@@ -299,7 +299,7 @@ static async Task<IReadOnlyList<RecyclingDataRow>> GetAllRecyclingData(
 }
 
 static async Task<RecyclingDataPage> GetRecyclingDataPage(
-    HttpClient recyclingDataClient,
+    HttpClient recordWastePackagingClient,
     Guid organisationId,
     int year,
     long? page,
@@ -322,28 +322,28 @@ static async Task<RecyclingDataPage> GetRecyclingDataPage(
         query["pageSize"] = pageSize.Value.ToString();
     }
 
-    using var response = await recyclingDataClient.GetAsync(
+    using var response = await recordWastePackagingClient.GetAsync(
         QueryHelpers.AddQueryString("recycling-data", query),
         cancellationToken);
     if (!response.IsSuccessStatusCode)
     {
         throw new DownstreamException(
-            $"The recycling data service returned {(int)response.StatusCode} ({response.StatusCode}).");
+            $"The Record Waste Packaging service returned {(int)response.StatusCode} ({response.StatusCode}).");
     }
 
     try
     {
         return await response.Content.ReadFromJsonAsync<RecyclingDataPage>(cancellationToken: cancellationToken)
-            ?? throw new DownstreamException("The recycling data service returned an empty response.");
+            ?? throw new DownstreamException("The Record Waste Packaging service returned an empty response.");
     }
     catch (JsonException exception)
     {
-        throw new DownstreamException("The recycling data service returned an invalid response.", exception);
+        throw new DownstreamException("The Record Waste Packaging service returned an invalid response.", exception);
     }
 }
 
 static async Task<IReadOnlyList<PrnRow>> GetAllPrns(
-    HttpClient reexClient,
+    HttpClient rrepwClient,
     Guid organisationId,
     long? requestedPage,
     long? requestedPageSize,
@@ -351,7 +351,7 @@ static async Task<IReadOnlyList<PrnRow>> GetAllPrns(
     CancellationToken cancellationToken)
 {
     var firstPage = await GetPrnPage(
-        reexClient,
+        rrepwClient,
         organisationId,
         requestedPage,
         requestedPageSize,
@@ -359,7 +359,7 @@ static async Task<IReadOnlyList<PrnRow>> GetAllPrns(
 
     if (firstPage.Page < 1 || firstPage.PageSize < 1 || firstPage.TotalItems < 0)
     {
-        throw new DownstreamException("The ReEx service returned invalid pagination metadata.");
+        throw new DownstreamException("The RREPW service returned invalid pagination metadata.");
     }
 
     var pages = new Dictionary<long, PrnPage> { [firstPage.Page] = firstPage };
@@ -375,7 +375,7 @@ static async Task<IReadOnlyList<PrnRow>> GetAllPrns(
         firstPage.Page,
         maxConcurrency,
         (currentPage, token) => GetPrnPage(
-            reexClient,
+            rrepwClient,
             organisationId,
             currentPage,
             firstPage.PageSize,
@@ -433,7 +433,7 @@ static IEnumerable<long> PageNumbers(long pageCount, long firstPageNumber)
 }
 
 static async Task<PrnPage> GetPrnPage(
-    HttpClient reexClient,
+    HttpClient rrepwClient,
     Guid organisationId,
     long? page,
     long? pageSize,
@@ -451,23 +451,23 @@ static async Task<PrnPage> GetPrnPage(
     }
 
     var path = $"organisations/{organisationId}/prns";
-    using var response = await reexClient.GetAsync(
+    using var response = await rrepwClient.GetAsync(
         QueryHelpers.AddQueryString(path, query),
         cancellationToken);
     if (!response.IsSuccessStatusCode)
     {
         throw new DownstreamException(
-            $"The ReEx service returned {(int)response.StatusCode} ({response.StatusCode}).");
+            $"The RREPW service returned {(int)response.StatusCode} ({response.StatusCode}).");
     }
 
     try
     {
         return await response.Content.ReadFromJsonAsync<PrnPage>(cancellationToken: cancellationToken)
-            ?? throw new DownstreamException("The ReEx service returned an empty response.");
+            ?? throw new DownstreamException("The RREPW service returned an empty response.");
     }
     catch (JsonException exception)
     {
-        throw new DownstreamException("The ReEx service returned an invalid response.", exception);
+        throw new DownstreamException("The RREPW service returned an invalid response.", exception);
     }
 }
 

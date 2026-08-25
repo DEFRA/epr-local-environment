@@ -2,8 +2,8 @@
 
 This guide creates a connected local POM/PRN year and measures the future-state services with the
 same generated submitters. It is deliberately an end-to-end local benchmark: timings include the
-HTTP calls made by `obligations` to its future-service dependencies and are not compared with the
-current PRN common backend.
+HTTP calls made by `waste-packaging-obligations` to its future-service dependencies and are not
+compared with the current PRN common backend.
 
 The benchmark is for design feedback, not a representation of production Synapse performance. The
 local `EprCommonData` database is a SQL Server restoration of Synapse source objects, and machine,
@@ -15,15 +15,23 @@ The runner makes one sequence of real-time requests for each selected volume ban
 
 | Direct request | Default request | What the runner records |
 | --- | --- | --- |
-| Recycling Data | `GET /recycling-data?year={year}&submitterId={id}` | Total recycling records and page count |
-| ReEx | `GET /organisations/{id}/prns` | Total PRNs and page count |
-| Obligations | `GET /organisations/{id}/calculate-obligations?year={year}` | **End-to-end calculation latency** |
-| Obligations with PRNs | `GET /organisations/{id}/calculate-obligations-with-prns?year={year}` | **End-to-end calculation latency** |
+| Record Waste Packaging | `GET /recycling-data?year={year}&submitterId={id}` | Total recycling records and page count |
+| RREPW | `GET /organisations/{id}/prns` | Total PRNs and page count |
+| Waste Packaging Obligations | `GET /organisations/{id}/calculate-obligations?year={year}` | **End-to-end calculation latency** |
+| Waste Packaging Obligations with PRNs | `GET /organisations/{id}/calculate-obligations-with-prns?year={year}` | **End-to-end calculation latency** |
 
 Unless `--page-size` is supplied, the direct calls use `page=1&pageSize=100`. Both calculation
 endpoints accept the same optional parameters, but after their first downstream request they traverse
 **every** remaining page before producing their response. That distinction is essential to
 interpreting the two obligations timings.
+
+## Future-state service overview
+
+| Service | Current prototype role | Intended direction |
+| --- | --- | --- |
+| `record-waste-packaging` | Replicates the Common Data API call that obtains recycling data for obligation calculation, including `NumberOfDaysObligated`. | Obligation-day information will eventually come from `waste-packaging-registration`; it remains combined here only to mirror the current API behaviour. |
+| `rrepw` | Represents the multiple services that comprise RREPW. It currently provides PRNs only. | Extend the represented RREPW capabilities as the future flow needs them. |
+| `waste-packaging-obligations` | Calculates obligations in-process from the two future-service sources and does not persist results. | Represents the new `waste-obligations` service currently being built in CDP, which will soon own obligation calculations. |
 
 ## Future-state service flow
 
@@ -36,31 +44,31 @@ flowchart LR
     caller[Benchmark runner or caller]
 
     subgraph future[Future-state Compose services]
-        recycling[recycling-data :8016]
-        reex[reex :8017]
-        obligations[obligations :8018]
+        recordWastePackaging[record-waste-packaging :8016]
+        rrepw[rrepw :8017]
+        wastePackagingObligations[waste-packaging-obligations :8018]
     end
 
     common[(EprCommonData local SQL Server representation of Synapse)]
     prn[(EprPrnBackend local SQL Server)]
 
-    caller -->|GET recycling data| recycling
-    caller -->|GET organisation PRNs| reex
-    caller -->|GET calculate obligations| obligations
-    caller -->|GET calculate obligations with PRNs| obligations
+    caller -->|GET recycling data| recordWastePackaging
+    caller -->|GET organisation PRNs| rrepw
+    caller -->|GET calculate obligations| wastePackagingObligations
+    caller -->|GET calculate obligations with PRNs| wastePackagingObligations
 
-    obligations -->|recycling data: first page, then all pages| recycling
-    obligations -->|organisation PRNs: first page, then all pages, PRN-aware route only| reex
-    recycling --> common
-    reex --> prn
+    wastePackagingObligations -->|recycling data: first page, then all pages| recordWastePackaging
+    wastePackagingObligations -->|organisation PRNs: first page, then all pages, PRN-aware route only| rrepw
+    recordWastePackaging --> common
+    rrepw --> prn
 ```
 
-`calculate-obligations` has one downstream dependency: Recycling Data. It returns a transient,
+`calculate-obligations` has one downstream dependency: Record Waste Packaging. It returns a transient,
 detailed calculation row for each eligible recycling row; Glass generates both Glass and Glass
 Remelt calculations. It neither reads nor stores PRNs.
 
 `calculate-obligations-with-prns` first performs that same transient calculation, then retrieves
-all ReEx PRNs. It returns a compact material assessment: accepted PRNs determine Met/NotMet and
+all RREPW PRNs. It returns a compact material assessment: accepted PRNs determine Met/NotMet and
 outstanding tonnes; awaiting-acceptance PRNs are shown separately. Paper and Fibre Composite are
 combined, and the Glass Remelt surplus rule is applied. It stores nothing.
 
@@ -71,15 +79,15 @@ that was derived from source data which may have changed since the earlier reque
 Both routes accept `maxConcurrency=1` through `8`. When omitted, page retrieval stays sequential.
 `4` is the recommended initial local comparison: after the first page determines the page count, it
 allows up to four page requests at once without creating an unbounded number of concurrent full SQL
-aggregations. The PRN-aware route completes its Recycling Data pages before it begins its ReEx pages.
+aggregations. The PRN-aware route completes its Record Waste Packaging pages before it begins its RREPW pages.
 
 ## Prepare the local environment
 
 Prerequisites are Docker Compose, `curl`, `jq`, and enough local disk for the cached Synapse source
-and database volumes. From a fresh checkout, copy `.env.example` to `.env` and set any credentials
-needed by the normal obligations profile.
+and database volumes. From a fresh checkout, copy `.env.example` to `.env` and set any required
+credentials.
 
-The obligations profile includes private Defra container images. If Docker reports an
+The future profile includes a private Defra PRN-migration container image. If Docker reports an
 `authentication required` error while it pulls from `devrwdinfac1401.azurecr.io`, sign in to the
 registry with an account that has access before starting the profile:
 
@@ -96,20 +104,23 @@ Git. The first startup is therefore slower than later starts. See the
 [Synapse restore README](../../compose/synapse-sqlserver-restore/README.md) for rebuild, schema-set
 and local-index controls.
 
-1. Start the obligations profile and future services. Wait for the restore, migrations and service
-   health checks to finish.
+1. Start the self-contained future profile. Wait for the restore, migrations and service health
+   checks to finish. It is sufficient for this benchmark; adding the existing `obligations` profile
+   is optional and starts unrelated local services.
 
    ```sh
    docker compose -f compose.yml -f compose.future.yml \
-     --profile obligations --profile future up -d --build --wait
+     --profile future up -d --build --wait
    ```
 
 2. Build the separate CLI image and generate a complete reporting year. On a new local database,
    omit `--replace-existing`.
 
    ```sh
-   docker compose -f compose.yml -f compose.cli.yml build data-generator
-   docker compose -f compose.yml -f compose.cli.yml run --rm \
+   docker compose -f compose.yml -f compose.future.yml -f compose.cli.yml \
+     --profile future build data-generator
+   docker compose -f compose.yml -f compose.future.yml -f compose.cli.yml \
+     --profile future run --rm \
      data-generator generate-year 2025
    ```
 
@@ -121,7 +132,8 @@ and local-index controls.
    run, add `--replace-existing`. Read the generator's destructive-operation warning first:
 
    ```sh
-   docker compose -f compose.yml -f compose.cli.yml run --rm \
+   docker compose -f compose.yml -f compose.future.yml -f compose.cli.yml \
+     --profile future run --rm \
      data-generator generate-year 2025 --replace-existing
    ```
 
@@ -208,11 +220,11 @@ There are 6,670 unique producers: the extra association represents one producer 
 schemes. The profile contains 9,832 accepted PRNs and 16 awaiting-acceptance PRNs. The retained PRN
 shape is deliberately concentrated. Its ranked PRN counts are assigned to organisations in descending
 producer-association order, so larger schemes receive the larger PRN populations while retaining the
-observed aggregate total. The runner reports the exact ReEx total for each selected organisation.
+observed aggregate total. The runner reports the exact RREPW total for each selected organisation.
 
 ## Response contracts and sizes
 
-### Recycling Data
+### Record Waste Packaging
 
 ```json
 {
@@ -244,12 +256,12 @@ approved-submissions behaviour but does not call `sp_GetApprovedSubmissionsMyc` 
 initial synthetic dataset has no determination records, so `numberOfDaysObligated` is normally
 `null`; this preserves the current no-data calculation behaviour.
 
-This combined shape is transitional. The intended future direction is to split recycling-data
-ingestion/querying from the source of obligation-day information. Until that work exists, this
-endpoint is the current aggregation used by both calculation routes and must be treated as the
-benchmark input contract.
+This combined shape is transitional. The intended future direction is for
+`waste-packaging-registration` to provide obligation-day information separately. Until that work
+exists, Record Waste Packaging returns the current aggregation used by both calculation routes and
+must be treated as the benchmark input contract.
 
-### ReEx PRNs
+### RREPW PRNs
 
 ```json
 {
@@ -274,7 +286,7 @@ benchmark input contract.
 }
 ```
 
-ReEx also returns at most 100 records by default. For the PRN-aware calculation route, the status,
+RREPW also returns at most 100 records by default. For the PRN-aware calculation route, the status,
 material, tonnage, obligation year, accreditation year and December-waste flag are all significant:
 the service fetches every page and applies accepted/awaiting-acceptance eligibility before assessing
 the calculated obligations.
@@ -283,21 +295,21 @@ the calculated obligations.
 
 | Route | Response shape and expected scale |
 | --- | --- |
-| `calculate-obligations` | JSON array of detailed transient calculation rows. It scales with the full Recycling Data result and adds a second row for each Glass record. The response can therefore contain thousands of records for a large scheme. |
+| `calculate-obligations` | JSON array of detailed transient calculation rows. It scales with the full Record Waste Packaging result and adds a second row for each Glass record. The response can therefore contain thousands of records for a large scheme. |
 | `calculate-obligations-with-prns` | Object containing `obligationData` and `numberOfPrnsAwaitingAcceptance`. `obligationData` has seven current material assessments: Aluminium, Glass, Glass Remelt, Plastic, Steel, Wood, and combined Paper/Fibre Composite. Its response is small even where the work to calculate it is large. |
 
 ## Interpreting the results
 
-The direct Recycling Data timing for `pageSize=100` is the cost of a **single page request**, not
+The direct Record Waste Packaging timing for `pageSize=100` is the cost of a **single page request**, not
 the cost of retrieving the complete data set. The current query materialises the full approved,
 aggregated result and `totalItems` before `OFFSET`/`FETCH` selects the page. A request for one large
 page therefore has broadly similar execution time to a request for 100 items; it mostly changes
 serialisation and transfer.
 
 That becomes critical for the real-time calculation routes. They require the complete input on every
-call, so with default paging a 7,425-record scheme makes roughly 75 Recycling Data requests. Each
+call, so with default paging a 7,425-record scheme makes roughly 75 Record Waste Packaging requests. Each
 request repeats the current aggregation work. The PRN-aware route additionally retrieves all PRN
-pages, although ReEx is normally much cheaper than Recycling Data. The overall calculation-call latency—not the
+pages, although RREPW is normally much cheaper than Record Waste Packaging. The overall calculation-call latency—not the
 time for an individual first page—is the principal benchmark result.
 
 This behaviour is intentional for the present prototype: the calculation is real-time and reads the
@@ -369,6 +381,6 @@ Keep each benchmark result with the local details needed to repeat it:
 
 The older focused benchmarks remain useful for their specific questions:
 
-- [Recycling Data SQL-path benchmark](../recycling-data/README.md#performance-benchmark)
-- [Obligations-with-PRNs repeated large-page benchmark](../waste-obligations/README.md#performance-benchmark-and-result-discussion)
+- [Record Waste Packaging SQL-path benchmark](../record-waste-packaging/README.md#performance-benchmark)
+- [Waste Packaging Obligations repeated large-page benchmark](../waste-packaging-obligations/README.md#performance-benchmark-and-result-discussion)
 - [Data-generator profile and validation workflow](../../tools/data-generator/README.md)

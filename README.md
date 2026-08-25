@@ -445,19 +445,27 @@ known limits.
 ### Future-state obligations prototype
 
 `compose.future.yml` adds three local minimal APIs for exploring a future obligations flow against
-the same restored Common Data and PRN databases. Start it with the obligations profile so its
-existing dependencies, migrations and calculation backend are also available:
+the same restored Common Data and PRN databases. The `future` profile includes the Common Data
+restore and PRN migration dependencies it needs, so it can be started independently:
 
 ```sh
 docker compose -f compose.yml -f compose.future.yml \
-  --profile obligations --profile future up -d --build --wait
+  --profile future up -d --build --wait
 ```
 
-- `recycling-data` — `http://localhost:8016`, approved POM recycling data for a submitter/year.
-- `reex` — `http://localhost:8017`, PRNs for an organisation.
-- `obligations` — `http://localhost:8018`, transient in-process obligation calculations and a
-  PRN-assessed calculation endpoint. Its [service README](./future/waste-obligations/README.md)
-  includes endpoint details and future-state latency benchmarks.
+To run the prototype alongside the existing obligations journey, add `--profile obligations` to
+the same command. That profile is not required for the future APIs or their benchmark workflow.
+
+- `record-waste-packaging` — `http://localhost:8016`, replicates the Common Data API call that
+  retrieves recycling data for obligation calculation. It currently includes number of days
+  obligated; that will eventually be supplied by `waste-packaging-registration`.
+- `rrepw` — `http://localhost:8017`, represents the multiple services that comprise RREPW. It
+  currently provides PRNs for an organisation.
+- `waste-packaging-obligations` — `http://localhost:8018`, represents the new
+  `waste-obligations` service currently being built in CDP. It will soon own obligation
+  calculations; the prototype currently exposes transient calculation and PRN-assessment
+  endpoints. Its [service README](./future/waste-packaging-obligations/README.md) includes endpoint
+  details and future-state latency benchmarks.
 
 After generating a year of synthetic data, each service exposes local discovery endpoints so callers
 can find the newly generated IDs rather than relying on fixed examples. The complete workflow—from

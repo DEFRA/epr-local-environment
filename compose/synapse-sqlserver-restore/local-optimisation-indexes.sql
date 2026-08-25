@@ -3,7 +3,7 @@
 
    These nonclustered indexes are not part of epr-data-sqldb and must never be
    treated as a Synapse schema change. They make the SQL Server representation
-   practical for the future-state recycling-data query and other local queries
+   practical for the future-state Record Waste Packaging query and other local queries
    that explicitly use the local access projections. The restore script runs
    this file only when
    APPLY_LOCAL_OPTIMISATION_INDEXES=true.

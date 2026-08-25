@@ -1,7 +1,8 @@
-# Reex
+# RREPW
 
-`reex` is a future-state .NET minimal API for an organisation's PRNs. It reads the existing
-`EprPrnBackend` database directly and does not call `epr-prn-common-backend`.
+`rrepw` represents the multiple services that comprise RREPW. At this stage it provides an
+organisation's PRNs only. It reads the existing `EprPrnBackend` database directly and does not call
+`epr-prn-common-backend`.
 
 ## Endpoint
 
@@ -41,12 +42,12 @@ data rather than a business-facing API.
 Start it from the future profile:
 
 ```sh
-docker compose -f compose.yml -f compose.future.yml --profile future up --build reex
+docker compose -f compose.yml -f compose.future.yml --profile future up --build rrepw
 organisation_id=$(curl --silent \
   'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=1' \
   | jq -r '.items[0].organisationId')
 curl "http://localhost:8017/organisations/${organisation_id}/prns?page=1&pageSize=100"
 ```
 
-For ReEx behaviour as part of the two real-time obligation-calculation routes, see the
+For RREPW behaviour as part of the two real-time obligation-calculation routes, see the
 [future-state real-time benchmark](../benchmark/README.md).

@@ -13,9 +13,9 @@ Options:
                              scheme-very-large, direct-one, direct-small, or direct-large
   --page-size <number>       Override the downstream default page size for every call
   --max-concurrency <number> Concurrent downstream page requests for calculation calls (1-8)
-  --recycling-data-url <url> Recycling Data API URL (default: http://localhost:8016)
-  --reex-url <url>           ReEx API URL (default: http://localhost:8017)
-  --obligations-url <url>    Obligations API URL (default: http://localhost:8018)
+  --record-waste-packaging-url <url>       Record Waste Packaging API URL (default: http://localhost:8016)
+  --rrepw-url <url>                        RREPW API URL (default: http://localhost:8017)
+  --waste-packaging-obligations-url <url>  Waste Packaging Obligations API URL (default: http://localhost:8018)
   --help                     Show this help text
 
 Runs exactly one real-time call to each future endpoint for each selected scenario. Without
@@ -31,9 +31,9 @@ year=2025
 scenario=all
 page_size=
 max_concurrency=
-recycling_data_url=http://localhost:8016
-reex_url=http://localhost:8017
-obligations_url=http://localhost:8018
+record_waste_packaging_url=http://localhost:8016
+rrepw_url=http://localhost:8017
+waste_packaging_obligations_url=http://localhost:8018
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -53,16 +53,16 @@ while [[ $# -gt 0 ]]; do
             max_concurrency=${2:?A value is required for --max-concurrency}
             shift 2
             ;;
-        --recycling-data-url)
-            recycling_data_url=${2:?A value is required for --recycling-data-url}
+        --record-waste-packaging-url)
+            record_waste_packaging_url=${2:?A value is required for --record-waste-packaging-url}
             shift 2
             ;;
-        --reex-url)
-            reex_url=${2:?A value is required for --reex-url}
+        --rrepw-url)
+            rrepw_url=${2:?A value is required for --rrepw-url}
             shift 2
             ;;
-        --obligations-url)
-            obligations_url=${2:?A value is required for --obligations-url}
+        --waste-packaging-obligations-url)
+            waste_packaging_obligations_url=${2:?A value is required for --waste-packaging-obligations-url}
             shift 2
             ;;
         --help|-h)
@@ -125,22 +125,22 @@ fi
 scheme_discovery=$(mktemp)
 direct_discovery=$(mktemp)
 recycling_response=$(mktemp)
-reex_response=$(mktemp)
+rrepw_response=$(mktemp)
 calculation_response=$(mktemp)
 calculation_with_prns_response=$(mktemp)
-trap 'rm -f "$scheme_discovery" "$direct_discovery" "$recycling_response" "$reex_response" "$calculation_response" "$calculation_with_prns_response"' EXIT
+trap 'rm -f "$scheme_discovery" "$direct_discovery" "$recycling_response" "$rrepw_response" "$calculation_response" "$calculation_with_prns_response"' EXIT
 
 check_health() {
-    curl --fail --silent --show-error --output /dev/null "${recycling_data_url%/}/health"
-    curl --fail --silent --show-error --output /dev/null "${reex_url%/}/health"
-    curl --fail --silent --show-error --output /dev/null "${obligations_url%/}/health"
+    curl --fail --silent --show-error --output /dev/null "${record_waste_packaging_url%/}/health"
+    curl --fail --silent --show-error --output /dev/null "${rrepw_url%/}/health"
+    curl --fail --silent --show-error --output /dev/null "${waste_packaging_obligations_url%/}/health"
 }
 
 discover_submitters() {
     curl --fail --silent --show-error --output "$scheme_discovery" \
-        "${recycling_data_url%/}/admin/submitters?year=${year}&take=1000&submitterType=ComplianceScheme"
+        "${record_waste_packaging_url%/}/admin/submitters?year=${year}&take=1000&submitterType=ComplianceScheme"
     curl --fail --silent --show-error --output "$direct_discovery" \
-        "${recycling_data_url%/}/admin/submitters?year=${year}&take=1000&submitterType=DirectRegistrant"
+        "${record_waste_packaging_url%/}/admin/submitters?year=${year}&take=1000&submitterType=DirectRegistrant"
 }
 
 select_submitter() {
@@ -192,7 +192,7 @@ page_query() {
     fi
 }
 
-reex_page_query() {
+rrepw_page_query() {
     if [[ -n "$page_size" ]]; then
         printf '?pageSize=%s' "$page_size"
     fi
@@ -226,7 +226,7 @@ printf '`calculate-obligations-with-prns` always retrieve every downstream page 
 printf 'Read the two right-most columns first: they are the real-time endpoint durations. The input columns '
 printf 'show how much source data each calculation traversed.\n\n'
 printf '`🟠` marks a response time above the 2-second warning threshold.\n\n'
-printf '| Scenario | Producer associations | Recycling data (pages) | PRNs (pages) | Calculate obligations | Calculate with PRNs |\n'
+printf '| Scenario | Producer associations | Record Waste Packaging (pages) | PRNs (pages) | Calculate obligations | Calculate with PRNs |\n'
 printf '| --- | ---: | ---: | ---: | ---: | ---: |\n'
 
 for scenario_name in "${scenarios[@]}"; do
@@ -242,27 +242,27 @@ for scenario_name in "${scenarios[@]}"; do
     generated_pom_rows=$(jq -r '.generatedPomRowCount' <<< "$submitter")
 
     recycling_metric=$(call_json "$recycling_response" \
-        "${recycling_data_url%/}/recycling-data?year=${year}&submitterId=${submitter_id}$(page_query)")
+        "${record_waste_packaging_url%/}/recycling-data?year=${year}&submitterId=${submitter_id}$(page_query)")
     parse_metric "$recycling_metric"
     recycling_seconds=$metric_seconds
     recycling_total=$(jq -r '.totalItems' "$recycling_response")
     recycling_page_size=$(jq -r '.pageSize' "$recycling_response")
     recycling_page_count=$(( (recycling_total + recycling_page_size - 1) / recycling_page_size ))
 
-    reex_metric=$(call_json "$reex_response" \
-        "${reex_url%/}/organisations/${submitter_id}/prns$(reex_page_query)")
-    parse_metric "$reex_metric"
-    reex_total=$(jq -r '.totalItems' "$reex_response")
-    reex_page_size=$(jq -r '.pageSize' "$reex_response")
-    reex_page_count=$(( (reex_total + reex_page_size - 1) / reex_page_size ))
+    rrepw_metric=$(call_json "$rrepw_response" \
+        "${rrepw_url%/}/organisations/${submitter_id}/prns$(rrepw_page_query)")
+    parse_metric "$rrepw_metric"
+    rrepw_total=$(jq -r '.totalItems' "$rrepw_response")
+    rrepw_page_size=$(jq -r '.pageSize' "$rrepw_response")
+    rrepw_page_count=$(( (rrepw_total + rrepw_page_size - 1) / rrepw_page_size ))
 
     calculation_metric=$(call_json "$calculation_response" \
-        "${obligations_url%/}/organisations/${submitter_id}/calculate-obligations?year=${year}$(page_query)$(concurrency_query)")
+        "${waste_packaging_obligations_url%/}/organisations/${submitter_id}/calculate-obligations?year=${year}$(page_query)$(concurrency_query)")
     parse_metric "$calculation_metric"
     calculation_seconds=$metric_seconds
 
     calculation_with_prns_metric=$(call_json "$calculation_with_prns_response" \
-        "${obligations_url%/}/organisations/${submitter_id}/calculate-obligations-with-prns?year=${year}$(page_query)$(concurrency_query)")
+        "${waste_packaging_obligations_url%/}/organisations/${submitter_id}/calculate-obligations-with-prns?year=${year}$(page_query)$(concurrency_query)")
     parse_metric "$calculation_with_prns_metric"
     calculation_with_prns_seconds=$metric_seconds
 
@@ -273,7 +273,7 @@ for scenario_name in "${scenarios[@]}"; do
         "$scenario_display_name" \
         "$producer_count" \
         "$recycling_total" "$recycling_page_count" \
-        "$reex_total" "$reex_page_count" \
+        "$rrepw_total" "$rrepw_page_count" \
         "$calculation_duration" \
         "$calculation_with_prns_duration"
 done
