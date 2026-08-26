@@ -5,28 +5,30 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  benchmark-obligations-with-prns.sh [options]
+  benchmark-waste-packaging-obligations-with-prns.sh [options]
 
 Options:
   --year <year>              POM reporting year (default: 2025)
   --organisation-id <guid>   Optional organisation ID; defaults to the largest discovered compliance scheme
   --page-size <number>       Page size used for both downstream requests (default: 50000)
+  --max-concurrency <number> Concurrent downstream page requests (1-8; default: sequential)
   --iterations <number>      Timed future-service calls after one warm-up (default: 3)
-  --obligations-url <url>    Future obligations API URL (default: http://localhost:8014)
-  --recycling-data-url <url> Recycling Data API URL used for ID discovery (default: http://localhost:8012)
+  --waste-packaging-obligations-url <url>    Future Waste Packaging Obligations API URL (default: http://localhost:8018)
+  --record-waste-packaging-url <url> Record Waste Packaging API URL used for ID discovery (default: http://localhost:8016)
   --help                     Show this help text
 
-The script measures only the future-state flow: the obligations endpoint and its calls to
-the future Recycling Data and ReEx services. It does not call the existing PRN backend.
+The script measures only the future-state flow: the Waste Packaging Obligations endpoint and its calls to
+the future Record Waste Packaging and RREPW services. It does not call the existing PRN backend.
 EOF
 }
 
 year=2025
 organisation_id=
 page_size=50000
+max_concurrency=
 iterations=3
-obligations_url=http://localhost:8014
-recycling_data_url=http://localhost:8012
+waste_packaging_obligations_url=http://localhost:8018
+record_waste_packaging_url=http://localhost:8016
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -42,16 +44,20 @@ while [[ $# -gt 0 ]]; do
             page_size=${2:?A value is required for --page-size}
             shift 2
             ;;
+        --max-concurrency)
+            max_concurrency=${2:?A value is required for --max-concurrency}
+            shift 2
+            ;;
         --iterations)
             iterations=${2:?A value is required for --iterations}
             shift 2
             ;;
-        --obligations-url)
-            obligations_url=${2:?A value is required for --obligations-url}
+        --waste-packaging-obligations-url)
+            waste_packaging_obligations_url=${2:?A value is required for --waste-packaging-obligations-url}
             shift 2
             ;;
-        --recycling-data-url)
-            recycling_data_url=${2:?A value is required for --recycling-data-url}
+        --record-waste-packaging-url)
+            record_waste_packaging_url=${2:?A value is required for --record-waste-packaging-url}
             shift 2
             ;;
         --help|-h)
@@ -83,6 +89,11 @@ if [[ ! "$page_size" =~ ^[1-9][0-9]*$ ]] || [[ ! "$iterations" =~ ^[1-9][0-9]*$ 
     exit 2
 fi
 
+if [[ -n "$max_concurrency" && ( ! "$max_concurrency" =~ ^[1-9][0-9]*$ || "$max_concurrency" -gt 8 ) ]]; then
+    printf 'max-concurrency must be an integer from 1 to 8 when supplied.\n' >&2
+    exit 2
+fi
+
 future_response=$(mktemp)
 discovery_response=$(mktemp)
 trap 'rm -f "$future_response" "$discovery_response"' EXIT
@@ -93,10 +104,10 @@ discover_largest_organisation() {
         --silent \
         --show-error \
         --output "$discovery_response" \
-        "${recycling_data_url%/}/admin/submitters?year=${year}&take=1&submitterType=ComplianceScheme"
+        "${record_waste_packaging_url%/}/admin/submitters?year=${year}&take=1&submitterType=ComplianceScheme"
 
     organisation_id=$(jq -er '.items[0].submitterId' "$discovery_response") || {
-        printf 'No recycling submitter was discovered for year %s. Supply --organisation-id or generate data first.\n' "$year" >&2
+        printf 'No Record Waste Packaging submitter was discovered for year %s. Supply --organisation-id or generate data first.\n' "$year" >&2
         exit 1
     }
 
@@ -105,14 +116,18 @@ discover_largest_organisation() {
 }
 
 call_future_service() {
+    local concurrency_query=
+    if [[ -n "$max_concurrency" ]]; then
+        concurrency_query="&maxConcurrency=${max_concurrency}"
+    fi
+
     curl \
         --fail \
         --silent \
         --show-error \
-        --request POST \
         --output "$future_response" \
         --write-out '%{time_total}' \
-        "${obligations_url%/}/organisations/${organisation_id}/calculate-obligations-with-prns?year=${year}&pageSize=${page_size}"
+        "${waste_packaging_obligations_url%/}/organisations/${organisation_id}/calculate-obligations-with-prns?year=${year}&pageSize=${page_size}${concurrency_query}"
 }
 
 print_summary() {
@@ -142,8 +157,13 @@ if [[ -z "$organisation_id" ]]; then
     discover_largest_organisation
 fi
 
-printf 'Benchmark: POM year=%s compliance year=%s organisation=%s pageSize=%s iterations=%s\n' \
-    "$year" "$((year + 1))" "$organisation_id" "$page_size" "$iterations"
+concurrency_description='1 (sequential default)'
+if [[ -n "$max_concurrency" ]]; then
+    concurrency_description=$max_concurrency
+fi
+
+printf 'Benchmark: POM year=%s compliance year=%s organisation=%s pageSize=%s pageConcurrency=%s iterations=%s\n' \
+    "$year" "$((year + 1))" "$organisation_id" "$page_size" "$concurrency_description" "$iterations"
 printf 'A warm-up request is excluded. Durations cover only the future-state service flow.\n\n'
 
 call_future_service >/dev/null

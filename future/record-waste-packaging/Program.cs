@@ -66,13 +66,13 @@ app.MapGet("/recycling-data", async (
         await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken);
         if (!await reader.ReadAsync(cancellationToken))
         {
-            throw new DataException("The recycling data query did not return a total count.");
+            throw new DataException("The Record Waste Packaging query did not return a total count.");
         }
 
         var totalItems = reader.GetInt64(reader.GetOrdinal("TotalItems"));
         if (!await reader.NextResultAsync(cancellationToken))
         {
-            throw new DataException("The recycling data query did not return page data.");
+            throw new DataException("The Record Waste Packaging query did not return page data.");
         }
 
         var submissionPeriodOrdinal = reader.GetOrdinal("SubmissionPeriod");
@@ -101,13 +101,13 @@ app.MapGet("/recycling-data", async (
     }
     catch (SqlException exception)
     {
-        logger.LogError(exception, "Unable to retrieve recycling data for year {Year} and submitter {SubmitterId}", year, submitterId);
-        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Unable to retrieve recycling data.");
+        logger.LogError(exception, "Unable to retrieve record waste packaging data for year {Year} and submitter {SubmitterId}", year, submitterId);
+        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Unable to retrieve record waste packaging data.");
     }
     catch (Exception exception)
     {
-        logger.LogError(exception, "Unexpected error retrieving recycling data for year {Year} and submitter {SubmitterId}", year, submitterId);
-        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Unable to retrieve recycling data.");
+        logger.LogError(exception, "Unexpected error retrieving record waste packaging data for year {Year} and submitter {SubmitterId}", year, submitterId);
+        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Unable to retrieve record waste packaging data.");
     }
 });
 

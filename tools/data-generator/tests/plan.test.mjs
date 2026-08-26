@@ -23,6 +23,25 @@ test('normal-volume 2025 plan reproduces the completed 2025 PRN shape', () => {
     2794, 1833, 599, 594, 411, 297, 255, 249, 227, 152,
     132, 115, 84, 81, 70, 67, 49, 46, 42, 28
   ]);
+  const prnCountBySubmitter = new Map(
+    Map.groupBy(plan.prns, (prn) => prn.submitterId)
+      .entries()
+      .map(([submitterId, prns]) => [submitterId, prns.length])
+  );
+  const schemesByProducerCount = plan.submitters
+    .filter((submitter) => submitter.type === 'ComplianceScheme')
+    .sort((left, right) => right.producerCount - left.producerCount || left.index - right.index);
+  assert.deepEqual(
+    schemesByProducerCount.map((submitter) => prnCountBySubmitter.get(submitter.submitterId)),
+    [2794, 1833, 599, 594, 411, 297, 255, 249, 227, 152, 132, 115, 84, 81]
+  );
+  const largeDirectRegistrants = plan.submitters
+    .filter((submitter) => submitter.type === 'DirectRegistrant' && submitter.producerCount >= 6)
+    .sort((left, right) => right.producerCount - left.producerCount || left.index - right.index);
+  assert.deepEqual(
+    largeDirectRegistrants.map((submitter) => prnCountBySubmitter.get(submitter.submitterId)),
+    [70, 67]
+  );
   assert.equal(plan.associations.filter((association) => association.materials.has('GL')).length, 1068);
   for (const type of ['ComplianceScheme', 'DirectRegistrant']) {
     for (const [material, targetTonnes] of Object.entries(profile.pom.annualTonnes[type])) {

@@ -20,7 +20,7 @@ stored procedure's natural null/no-data behaviour. The default command reproduce
 about that year's production volume. `--increase` scales connected entities and their data
 proportionally rather than merely increasing weights.
 
-The generator runs against an already running local stack from the CLI-only [`compose.cli.yml`](../../compose.cli.yml). It connects through the existing Compose network and database service names; it does not need a separate Docker project name or bespoke network.
+The generator runs against an already running local stack from the CLI-only [`compose.cli.yml`](../../compose.cli.yml). It connects through the existing Compose network and database service names; it does not need a separate Docker project name or bespoke network. When using the future-state workflow below, include `compose.future.yml` in the CLI command as shown so Compose recognises the running future services as part of the same project.
 
 ## First-iteration outcome
 
@@ -49,6 +49,10 @@ while its endpoint-eligible PRN distribution is taken from the completed 2025 pr
 9,848 PRNs, with the largest organisation holding 2,794. Adding a newly collected profile is a versioned data change,
 but selecting a different profile at the command line is not implemented yet; update the default
 profile import only after completing the profile-refresh validation process.
+
+The retained ranked PRN distribution is assigned to generated organisations in descending producer-
+association order. It preserves the observed total and concentration while making a larger compliance
+scheme carry the larger PRN population in the connected local dataset.
 
 `--increase` scales the PRN totals and the ranked high-volume organisations with the POM data.
 For example, `--increase 25%` generates 12,310 eligible PRNs and a largest organisation with
@@ -84,30 +88,32 @@ This is the repeatable local workflow for generating a year, finding the newly c
 calling the future-state APIs and assessing their latency. It deliberately discovers IDs after each
 run: generated identifiers are not stable and should never be copied into scripts or documentation.
 
-1. Start the obligations journey plus the future-state services. Wait for Compose to report that the
-   restore and migrations have completed.
+1. Start the self-contained future-state profile. Wait for Compose to report that the restore and
+   migrations have completed. The existing `obligations` profile is optional for this workflow and
+   starts unrelated local services.
 
    ```sh
    docker compose -f compose.yml -f compose.future.yml \
-     --profile obligations --profile future up -d --build --wait
+     --profile future up -d --build --wait
    ```
 
 2. Generate the POM year. Use `--replace-existing` only when intentionally replacing that local
    year's generated data.
 
    ```sh
-   docker compose -f compose.yml -f compose.cli.yml run --rm \
+   docker compose -f compose.yml -f compose.future.yml -f compose.cli.yml \
+     --profile future run --rm \
      data-generator generate-year 2025 --replace-existing
    ```
 
-3. Discover usable IDs. Recycling Data ranks generated POM-row volume, so the first compliance
+3. Discover usable IDs. Record Waste Packaging ranks generated POM-row volume, so the first compliance
    scheme is a realistic largest-scheme target; the benchmark reports its exact recycling result
-   count. ReEx ranks organisations by PRN count. For POM year `2025`, the matching PRN obligation
+   count. RREPW ranks organisations by PRN count. For POM year `2025`, the matching PRN obligation
    year is `2026`.
 
    ```sh
-   curl 'http://localhost:8012/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme' | jq
-   curl 'http://localhost:8013/admin/organisations/prns?obligationYear=2026&take=10' | jq
+   curl 'http://localhost:8016/admin/submitters?year=2025&take=10&submitterType=ComplianceScheme' | jq
+   curl 'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=10' | jq
    ```
 
 4. Call the APIs with IDs returned by those commands. The first `jq` expression below selects the
@@ -115,16 +121,16 @@ run: generated identifiers are not stable and should never be copied into script
 
    ```sh
    submitter_id=$(curl --silent \
-     'http://localhost:8012/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
+     'http://localhost:8016/admin/submitters?year=2025&take=1&submitterType=ComplianceScheme' \
      | jq -r '.items[0].submitterId')
    prn_organisation_id=$(curl --silent \
-     'http://localhost:8013/admin/organisations/prns?obligationYear=2026&take=1' \
+     'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=1' \
      | jq -r '.items[0].organisationId')
 
-   curl "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
-   curl "http://localhost:8013/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
-   curl -X POST "http://localhost:8014/organisations/${submitter_id}/calculate-obligations?year=2025"
-   curl -X POST "http://localhost:8014/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025"
+   curl "http://localhost:8016/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
+   curl "http://localhost:8017/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
+   curl "http://localhost:8018/organisations/${submitter_id}/calculate-obligations?year=2025"
+   curl "http://localhost:8018/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025"
    ```
 
    To capture an end-to-end HTTP duration without printing the response body, use the same IDs with
@@ -132,27 +138,27 @@ run: generated identifiers are not stable and should never be copied into script
 
    ```sh
    curl --fail --silent --output /dev/null \
-     --write-out 'recycling-data: %{http_code} %{time_total}s\n' \
-     "http://localhost:8012/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
+     --write-out 'record-waste-packaging: %{http_code} %{time_total}s\n' \
+     "http://localhost:8016/recycling-data?year=2025&submitterId=${submitter_id}&page=1&pageSize=100"
    curl --fail --silent --output /dev/null \
-     --write-out 'reex: %{http_code} %{time_total}s\n' \
-     "http://localhost:8013/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
-   curl --fail --silent --output /dev/null -X POST \
-     --write-out 'obligations: %{http_code} %{time_total}s\n' \
-     "http://localhost:8014/organisations/${submitter_id}/calculate-obligations?year=2025"
-   curl --fail --silent --output /dev/null -X POST \
-     --write-out 'obligations with PRNs: %{http_code} %{time_total}s\n' \
-     "http://localhost:8014/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025&pageSize=50000"
+     --write-out 'rrepw: %{http_code} %{time_total}s\n' \
+     "http://localhost:8017/organisations/${prn_organisation_id}/prns?page=1&pageSize=100"
+   curl --fail --silent --output /dev/null \
+     --write-out 'waste-packaging-obligations: %{http_code} %{time_total}s\n' \
+     "http://localhost:8018/organisations/${submitter_id}/calculate-obligations?year=2025"
+   curl --fail --silent --output /dev/null \
+     --write-out 'waste-packaging-obligations with PRNs: %{http_code} %{time_total}s\n' \
+     "http://localhost:8018/organisations/${submitter_id}/calculate-obligations-with-prns?year=2025&pageSize=50000"
    ```
 
-5. Benchmark Recycling Data using the same generated largest compliance scheme. The first command
+5. Benchmark Record Waste Packaging using the same generated largest compliance scheme. The first command
    assesses normal paging. The second uses a sufficiently large page for the current 2025 profile to
    return all results in one page; after changing the profile, use a value greater than the reported
    `totalItems`.
 
    ```sh
-   ./future/recycling-data/benchmark-recycling-data.sh --year 2025 --page-size 100
-   ./future/recycling-data/benchmark-recycling-data.sh --year 2025 --page-size 50000
+   ./future/record-waste-packaging/benchmark-record-waste-packaging.sh --year 2025 --page-size 100
+   ./future/record-waste-packaging/benchmark-record-waste-packaging.sh --year 2025 --page-size 50000
    ```
 
    Each command warms both SQL paths, verifies that their payloads are equivalent and reports
@@ -160,25 +166,31 @@ run: generated identifiers are not stable and should never be copied into script
    source-query baseline on local SQL Server; `true` is the local-only indexed optimisation. It is a
    comparative local measurement, not a benchmark of an actual Synapse dedicated SQL pool. The
    recorded local result and the important distinction between one small-page call and retrieving
-   all small pages are in the [Recycling Data benchmark results](../../future/recycling-data/README.md#recorded-local-result).
+   all small pages are in the [Record Waste Packaging benchmark results](../../future/record-waste-packaging/README.md#recorded-local-result).
 
-6. Benchmark the complete future-state calculation with PRNs. This measures only the `obligations`
-   endpoint and its calls to the future Recycling Data and ReEx services; it does not call or time
+6. Benchmark the complete future-state calculation with PRNs. This measures only the
+   `waste-packaging-obligations` endpoint and its calls to the future Record Waste Packaging and
+   RREPW services; it does not call or time
    the existing PRN backend.
 
    ```sh
-   ./future/waste-obligations/benchmark-obligations-with-prns.sh \
+   ./future/waste-packaging-obligations/benchmark-waste-packaging-obligations-with-prns.sh \
      --year 2025 \
      --page-size 50000
    ```
 
    The script discovers the largest generated compliance scheme unless `--organisation-id` is
-   supplied. See the [Obligations benchmark results](../../future/waste-obligations/README.md#recorded-local-result)
+   supplied. See the [Waste Packaging Obligations benchmark results](../../future/waste-packaging-obligations/README.md#recorded-local-result)
    for the recorded result and the rationale for using a page size that covers the full dataset.
 
+7. Run the [cross-service real-time benchmark](../../future/benchmark/README.md) to exercise both
+   obligations routes with their default downstream page size across compliance-scheme and
+   direct-registrant producer bands. It makes the two end-to-end calculation latencies prominent and
+   uses row/PRN page counts to explain the input volume.
+
 The endpoint-specific fields and response shapes are documented in
-[Recycling Data](../../future/recycling-data/README.md), [ReEx](../../future/reex/README.md) and
-[Obligations](../../future/waste-obligations/README.md).
+[Record Waste Packaging](../../future/record-waste-packaging/README.md), [RREPW](../../future/rrepw/README.md) and
+[Waste Packaging Obligations](../../future/waste-packaging-obligations/README.md).
 
 ## Directory layout
 

@@ -34,10 +34,10 @@ services:
       - regulator
       - future
 
-  recycling-data:
+  record-waste-packaging:
     build:
-      context: ./future/recycling-data
-    image: epr-recycling-data:local
+      context: ./future/record-waste-packaging
+    image: epr-record-waste-packaging:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
@@ -48,7 +48,8 @@ services:
       synapse-sqlserver-restore:
         condition: service_completed_successfully
     ports:
-      - "8012:8080"
+      # 8012-8015 are occupied by services in the obligations profile.
+      - "8016:8080"
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 5s
@@ -59,10 +60,10 @@ services:
     profiles:
       - future
 
-  reex:
+  rrepw:
     build:
-      context: ./future/reex
-    image: epr-reex:local
+      context: ./future/rrepw
+    image: epr-rrepw:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
@@ -73,7 +74,7 @@ services:
       epr-prn-common-backend-migrations:
         condition: service_completed_successfully
     ports:
-      - "8013:8080"
+      - "8017:8080"
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 5s
@@ -84,22 +85,22 @@ services:
     profiles:
       - future
 
-  obligations:
+  waste-packaging-obligations:
     build:
-      context: ./future/waste-obligations
-    image: epr-waste-obligations:local
+      context: ./future/waste-packaging-obligations
+    image: epr-waste-packaging-obligations:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      RecyclingData__BaseUrl: http://recycling-data:8080
-      Reex__BaseUrl: http://reex:8080
+      RecordWastePackaging__BaseUrl: http://record-waste-packaging:8080
+      Rrepw__BaseUrl: http://rrepw:8080
     depends_on:
-      recycling-data:
+      record-waste-packaging:
         condition: service_healthy
-      reex:
+      rrepw:
         condition: service_healthy
     ports:
-      - "8014:8080"
+      - "8018:8080"
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 5s

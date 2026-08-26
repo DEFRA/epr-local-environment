@@ -1,7 +1,8 @@
-# Reex
+# RREPW
 
-`reex` is a future-state .NET minimal API for an organisation's PRNs. It reads the existing
-`EprPrnBackend` database directly and does not call `epr-prn-common-backend`.
+`rrepw` represents the multiple services that comprise RREPW. At this stage it provides an
+organisation's PRNs only. It reads the existing `EprPrnBackend` database directly and does not call
+`epr-prn-common-backend`.
 
 ## Endpoint
 
@@ -31,7 +32,7 @@ For example, to find the ten largest PRN holders for the PRN obligation year cor
 POM run (2026):
 
 ```sh
-curl 'http://localhost:8013/admin/organisations/prns?obligationYear=2026&take=10'
+curl 'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=10'
 ```
 
 The result is ordered by PRN count, then tonnage. `obligationYear` is optional and `take` defaults to
@@ -41,9 +42,12 @@ data rather than a business-facing API.
 Start it from the future profile:
 
 ```sh
-docker compose -f compose.yml -f compose.future.yml --profile future up --build reex
+docker compose -f compose.yml -f compose.future.yml --profile future up --build rrepw
 organisation_id=$(curl --silent \
-  'http://localhost:8013/admin/organisations/prns?obligationYear=2026&take=1' \
+  'http://localhost:8017/admin/organisations/prns?obligationYear=2026&take=1' \
   | jq -r '.items[0].organisationId')
-curl "http://localhost:8013/organisations/${organisation_id}/prns?page=1&pageSize=100"
+curl "http://localhost:8017/organisations/${organisation_id}/prns?page=1&pageSize=100"
 ```
+
+For RREPW behaviour as part of the two real-time obligation-calculation routes, see the
+[future-state real-time benchmark](../benchmark/README.md).

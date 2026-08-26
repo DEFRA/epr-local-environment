@@ -4,7 +4,7 @@
    epr-data-sqldb models several Synapse text fields as nvarchar(4000). Those
    fields exceed SQL Server's nonclustered-index key limit. These bounded,
    persisted projections are a local SQL Server access layer for the embedded
-   recycling-data query; they do not belong in epr-data-sqldb or Synapse.
+   Record Waste Packaging query; they do not belong in epr-data-sqldb or Synapse.
 
    The query retains its original full-value comparisons after using these
    projections, so a value longer than the local projection cannot change the

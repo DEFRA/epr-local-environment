@@ -5,14 +5,14 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  benchmark-recycling-data.sh [options]
+  benchmark-record-waste-packaging.sh [options]
 
 Options:
   --year <year>          Reporting year (default: 2025)
   --submitter-id <guid>  Optional submitter ID; defaults to the largest discovered submitter
   --page-size <number>   Requested page size (default: 100)
   --iterations <number>  Timed calls per SQL mode, after one warm-up (default: 3)
-  --base-url <url>       Recycling Data API URL (default: http://localhost:8012)
+  --base-url <url>       Record Waste Packaging API URL (default: http://localhost:8016)
   --help                 Show this help text
 
 The script runs the same request through both paths:
@@ -25,7 +25,7 @@ year=2025
 submitter_id=
 page_size=100
 iterations=3
-base_url=http://localhost:8012
+base_url=http://localhost:8016
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -80,7 +80,7 @@ discover_largest_submitter() {
         "${base_url%/}/admin/submitters?year=${year}&take=1&submitterType=ComplianceScheme"
 
     submitter_id=$(jq -er '.items[0].submitterId' "$temporary_response") || {
-        printf 'No recycling submitter was discovered for year %s. Supply --submitter-id or generate data first.\n' "$year" >&2
+        printf 'No Record Waste Packaging submitter was discovered for year %s. Supply --submitter-id or generate data first.\n' "$year" >&2
         exit 1
     }
 
