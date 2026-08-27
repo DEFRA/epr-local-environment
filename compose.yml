@@ -1719,7 +1719,7 @@ services:
       WasteOrganisations__ClientSecret: waste-obligations-pwd
       # The initial refresh can run before the seed container completes. Retry refresh and reference failures quickly in local use.
       OrganisationEligibility__RefreshPollingEnabled: true
-      OrganisationEligibility__RefreshPollIntervalMinutes: 1
+      OrganisationEligibility__RefreshPollIntervalSeconds: 60
       OrganisationEligibility__ReferenceNumberRetryDelay: 00:01:00
       AccountBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       AccountBackend__ClientId: waste-obligations
