@@ -7,21 +7,21 @@ The scenarios below deliberately have no such directory.
 
 ## Expected unsubmitted results
 
-Once Waste Obligations has completed an organisation refresh and its reference
-number hydration, a request for a year seeded by this script should include
-these declaration-free organisations:
+The obligations profile enables both the organisation-eligibility refresh and
+the obligation-hydration worker. Once they have completed, a request for a year
+seeded by this script should include these declaration-free organisations:
 
-| Request | Organisation | Reference number | Why it is present |
-| --- | --- | --- | --- |
-| `registrationType=DirectProducer` | BRAMBLEWOOD PACKAGING LTD | `110001` | Its organisation id is an Account service external id. |
-| `registrationType=DirectProducer` | SILVERDALE FOODS LTD | `110002` | Its organisation id is an Account service external id. |
-| `registrationType=ComplianceScheme` | Northbridge Compliance Solutions Ltd | `110000` | Its Companies House number is an Account service lookup key. |
+| Request | Organisation | Organisation ID | Reference number | Why it is present |
+| --- | --- | --- | --- | --- |
+| `registrationType=DirectProducer` | BRAMBLEWOOD PACKAGING LTD | `3151dbe5-a8ad-4d82-9471-1c469fa13918` | `110001` | Its organisation id is an Account service external id. |
+| `registrationType=DirectProducer` | SILVERDALE FOODS LTD | `4bdf517c-6270-4660-8b5e-97add9379a2a` | `110002` | Its organisation id is an Account service external id. |
+| `registrationType=ComplianceScheme` | Northbridge Compliance Solutions Ltd | `cac58048-62a1-4419-9bee-4b386454d776` | `110000` | Its id is the Account compliance-scheme external id; its Companies House number resolves the registration reference. |
 
 BRAMBLEWOOD PACKAGING LTD also has 2026 PRN Common Backend seed data. Once the
-obligation-hydration worker has completed its first read, it has 75 accepted
-tonnes against 300 obligated tonnes and is not meeting its recycling
-obligations. Other unsubmitted rows remain at the public contract's default
-values until their own hydration read completes.
+obligation-hydration worker has completed its first read, the local endpoint
+reports 8% coverage and that it is not meeting its recycling obligations.
+Other unsubmitted rows remain at the public contract's default values until
+their own hydration read completes.
 
 For example, the two producer rows have the following response shape. They
 will appear alongside any other seeded unsubmitted producers:
@@ -34,7 +34,7 @@ will appear alongside any other seeded unsubmitted producers:
     "organisationName": "BRAMBLEWOOD PACKAGING LTD",
     "organisationReferenceNumber": "110001",
     "recyclingObligationsMet": false,
-    "obligationCoveragePercentage": 25
+    "obligationCoveragePercentage": 8
   },
   {
     "organisationId": "4bdf517c-6270-4660-8b5e-97add9379a2a",
