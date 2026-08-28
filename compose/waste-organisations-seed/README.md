@@ -17,7 +17,13 @@ these declaration-free organisations:
 | `registrationType=DirectProducer` | SILVERDALE FOODS LTD | `110002` | Its organisation id is an Account service external id. |
 | `registrationType=ComplianceScheme` | Northbridge Compliance Solutions Ltd | `110000` | Its Companies House number is an Account service lookup key. |
 
-For example, the two new producer rows have the following response shape. They
+BRAMBLEWOOD PACKAGING LTD also has 2026 PRN Common Backend seed data. Once the
+obligation-hydration worker has completed its first read, it has 75 accepted
+tonnes against 300 obligated tonnes and is not meeting its recycling
+obligations. Other unsubmitted rows remain at the public contract's default
+values until their own hydration read completes.
+
+For example, the two producer rows have the following response shape. They
 will appear alongside any other seeded unsubmitted producers:
 
 ```json
@@ -27,10 +33,8 @@ will appear alongside any other seeded unsubmitted producers:
     "registrationType": "DirectProducer",
     "organisationName": "BRAMBLEWOOD PACKAGING LTD",
     "organisationReferenceNumber": "110001",
-    "recyclingObligationsMet": null,
-    "obligationCoveragePercentage": 0,
-    "obligationDataState": "Pending",
-    "obligationsAsOf": null
+    "recyclingObligationsMet": false,
+    "obligationCoveragePercentage": 25
   },
   {
     "organisationId": "4bdf517c-6270-4660-8b5e-97add9379a2a",
@@ -38,9 +42,7 @@ will appear alongside any other seeded unsubmitted producers:
     "organisationName": "SILVERDALE FOODS LTD",
     "organisationReferenceNumber": "110002",
     "recyclingObligationsMet": null,
-    "obligationCoveragePercentage": 0,
-    "obligationDataState": "Pending",
-    "obligationsAsOf": null
+    "obligationCoveragePercentage": 0
   }
 ]
 ```
