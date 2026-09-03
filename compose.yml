@@ -1717,6 +1717,15 @@ services:
       WasteOrganisations__BaseAddress: ${WasteObligations__WasteOrganisations__BaseAddress:-http://waste-organisations:8080/}
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
+      # The initial refresh can run before the seed container completes. Retry refresh and reference failures quickly in local use.
+      OrganisationEligibility__RefreshPollingEnabled: true
+      OrganisationEligibility__RefreshPollIntervalSeconds: 60
+      OrganisationEligibility__ReferenceNumberRetryDelay: 00:01:00
+      # Keep the full projection current in the local obligations profile. The request rate is
+      # sufficient for 500 organisations within the 30-minute freshness window (17 requests/minute).
+      OrganisationObligationHydration__PollingEnabled: true
+      OrganisationObligationHydration__PollIntervalSeconds: 5
+      OrganisationObligationHydration__MaxDownstreamRequestsPerMinute: 17
       AccountBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       AccountBackend__ClientId: waste-obligations
       AccountBackend__BaseAddress: http://epr-backend-account-microservice:8080/

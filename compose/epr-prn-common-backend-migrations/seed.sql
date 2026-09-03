@@ -124,3 +124,17 @@ where p.PrnNumber in (
     'DP-PRN-006-OLD',
     'DP-PRN-007-OLD-DEC'
 )
+
+-- =====================================================
+-- Unsubmitted direct producer seed data: BRAMBLEWOOD PACKAGING LTD
+-- =====================================================
+-- This organisation is intentionally declaration-free in waste-obligations-seed.
+-- It proves the obligation-hydration worker can enrich a returned unsubmitted row.
+declare @bramblewoodExternalId uniqueidentifier
+set @bramblewoodExternalId = '3151dbe5-a8ad-4d82-9471-1c469fa13918'
+
+insert into ObligationCalculations (OrganisationId, MaterialObligationValue, Year, CalculatedOn, Tonnage, MaterialId, SubmitterId, SubmitterTypeId) values (@bramblewoodExternalId, 100, 2026, '2026-03-01', 100, 3, @bramblewoodExternalId, 1)
+insert into ObligationCalculations (OrganisationId, MaterialObligationValue, Year, CalculatedOn, Tonnage, MaterialId, SubmitterId, SubmitterTypeId) values (@bramblewoodExternalId, 200, 2026, '2026-03-01', 200, 6, @bramblewoodExternalId, 1)
+
+insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('BRAMBLEWOOD-PRN-001', @bramblewoodExternalId, 'BRAMBLEWOOD PACKAGING LTD', 'Producer Agency', 'Reprocessor Exporter Agency', 1, 25, 'Glass Other', 'Issuer Reference', '2026-03-01T00:00:00+00:00', 0, 'Issued By Org', 'Accred Num', '2026', '2026', 'Packaging Producer', '2026-03-01', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2026-03-01', 'RREPW')
+insert into Prn (PrnNumber, OrganisationId, OrganisationName, ProducerAgency, ReprocessorExporterAgency, PrnStatusId, TonnageValue, MaterialName, IssuerReference, IssueDate, DecemberWaste, IssuedByOrg, AccreditationNumber, AccreditationYear, ObligationYear, PackagingProducer, CreatedOn, LastUpdatedBy, ExternalId, IsExport, LastUpdatedDate, SourceSystemId) values ('BRAMBLEWOOD-PRN-002', @bramblewoodExternalId, 'BRAMBLEWOOD PACKAGING LTD', 'Producer Agency', 'Reprocessor Exporter Agency', 1, 50, 'Paper/board', 'Issuer Reference', '2026-03-01T00:00:00+00:00', 0, 'Issued By Org', 'Accred Num', '2026', '2026', 'Packaging Producer', '2026-03-01', '00000000-0000-0000-0000-000000000000', NEWID(), 0, '2026-03-01', 'RREPW')

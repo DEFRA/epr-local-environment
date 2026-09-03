@@ -1,0 +1,11 @@
+{
+  "name": "Scheme With Unknown Companies House Number Ltd",
+  "tradingName": "",
+  "companiesHouseNumber": "99999999",
+  "address": {},
+  "registration": {
+    "status": "REGISTERED",
+    "type": "COMPLIANCE_SCHEME",
+    "registrationYear": 2025
+  }
+}
