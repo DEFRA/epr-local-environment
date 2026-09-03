@@ -17,9 +17,9 @@
 @unavailable=dbo.sp_IsPOMResubmissionSynchronised
 
 # Complete static schema dependency closure for every currently exposed
-# Common Data API database operation used by the local stack. It contains 43
-# upstream source scripts: rpd/apps schemas, 24 tables, one function, one
-# view and 15 procedures (including two private helper procedures).
+# Common Data API database operation used by the local stack. It contains 45
+# upstream source scripts: rpd/apps schemas, 25 tables, one function, two
+# views and 15 procedures (including two private helper procedures).
 [common-data-api]
 @seed=baseline
 @unavailable=dbo.sp_IsPOMResubmissionSynchronised
@@ -27,6 +27,7 @@ Security/rpd.sql
 Security/apps.sql
 apps/Tables/OrgRegistrationsSummaries.sql
 apps/Tables/RegistrationsSummaries.sql
+apps/Tables/SubmissionEvents.sql
 apps/Tables/Submissions.sql
 apps/Tables/SubmissionsSummaries.sql
 dbo/Tables/batch_log.sql
@@ -51,6 +52,7 @@ rpd/Tables/Submissions.sql
 rpd/Tables/Users.sql
 dbo/Functions/udf_DQ_SubmissionPeriod.sql
 dbo/Views/v_submitted_pom_org_file_status.sql
+dbo/Views/v_CSO_Pom_Resubmitted_ByCSID.sql
 apps/Stored Procedures/sp_FilterAndPaginateRegistrationsSummaries.sql
 apps/Stored Procedures/sp_FilterAndPaginateSubmissionsSummaries_resub.sql
 apps/Stored Procedures/sp_GetActualSubmissionPeriod.sql

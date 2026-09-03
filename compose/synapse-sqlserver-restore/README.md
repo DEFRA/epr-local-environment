@@ -87,7 +87,7 @@ Set `EPR_LOCAL_SYNAPSE_SCHEMA_SET` in `.env` to choose a set in
 
 | Set | Purpose | Seed |
 | --- | --- | --- |
-| `common-data-api` | Default. Static dependency closure for every current Common Data API database operation used by the local stack: 2 schemas, 24 tables, 1 function, 1 view and 15 procedures. | Baseline |
+| `common-data-api` | Default. Static dependency closure for every current Common Data API database operation used by the local stack: 2 schemas, 25 tables, 1 function, 2 views and 15 procedures. | Baseline |
 | `full` | Every supported object from `epr-data-sqldb`. | Baseline |
 
 Changing this setting requires a rebuild because a smaller set is not interchangeable with a full

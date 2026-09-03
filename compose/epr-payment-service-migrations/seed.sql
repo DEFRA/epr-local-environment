@@ -3,12 +3,22 @@
 -- (compose/synapse-sqlserver-restore/seed/baseline.sql, mocks/CosmosDbInit/Program.cs).
 -- SubmissionId values here MUST match those seed files exactly - this is what backs the
 -- 'View registration fee' screen (fee-calculation-details lookup by SubmissionId).
+--
+-- RegistrationBlobName MUST additionally be lower case and match the BlobName on the
+-- corresponding antivirus events in mocks/CosmosDbInit/Program.cs, which writes every BlobName
+-- through ToLowerInvariant(). The frontend fetches the fee snapshot from PayCal and then compares
+-- its RegistrationBlobName against LastUploadedValidFiles.CompanyDetailsBlobName from the
+-- submission API, which is that lower-cased Cosmos value. The comparison is ordinal and
+-- case-sensitive (RegistrationApplicationService.SnapshotIsForExpectedBlob in
+-- epr-packaging-frontend), so an upper-case value here is silently discarded as a "stale fee
+-- snapshot", the session never gets ReadyToCalculateFees, and 'View registration fee' redirects
+-- to the error page.
 
 -- 2026 Large (SubmissionId 601A176C-B17B-4B6B-B672-D0C61A44E733)
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'601A176C-B17B-4B6B-B672-D0C61A44E733')
 begin
     -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'601A176C-B17B-4B6B-B672-D0C61A44E733', N'7113CC97-A799-48E4-8A5E-F214532C32E4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-08T09:05:00', SYSDATETIMEOFFSET(), 3, N'GB-ENG', N'NBCS-2026-L-APP-0001');
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'601A176C-B17B-4B6B-B672-D0C61A44E733', N'7113cc97-a799-48e4-8a5e-f214532c32e4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-08T09:05:00', SYSDATETIMEOFFSET(), 3, N'GB-ENG', N'PEPR11000007226P1');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'77715EDE-B8E2-41CE-A1E6-CA866CA5D62D', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'110001', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'4F90C091-F140-435C-9765-B590ACD3A809', N'77715EDE-B8E2-41CE-A1E6-CA866CA5D62D', N'110011', 0, 0, 0, SYSDATETIMEOFFSET());
@@ -25,7 +35,7 @@ end
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'ECE0880A-B713-42D4-A018-92FD3D8053C6')
 begin
     -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'18AD383A-558B-4135-B628-37B67E890BB2', N'ECE0880A-B713-42D4-A018-92FD3D8053C6', N'NB1DF2A8B-5435-47D8-946A-07B5155B3CA4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-09T09:35:00', SYSDATETIMEOFFSET(), 4, N'GB-ENG', N'NBCS-2026-S-APP-0001');
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'18AD383A-558B-4135-B628-37B67E890BB2', N'ECE0880A-B713-42D4-A018-92FD3D8053C6', N'b1df2a8b-5435-47d8-946a-07b5155b3ca4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-09T09:35:00', SYSDATETIMEOFFSET(), 4, N'GB-ENG', N'PEPR11000007226P1S');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'43905980-340B-4710-942A-7ACF0009FB82', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110006', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'75493BE3-A34F-4E7F-AD02-0587BAD62D6E', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110007', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
@@ -48,7 +58,7 @@ end
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89')
 begin
     -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89', N'E7F8A9B0-C1D2-4E3F-8A4B-5C6D7E8F9A01', null, N'2026-04-01T09:20:00', SYSDATETIMEOFFSET(), 5, N'GB-ENG', N'PQL-2026-APP-0001');
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89', N'e7f8a9b0-c1d2-4e3f-8a4b-5c6d7e8f9a01', null, N'2026-04-01T09:20:00', SYSDATETIMEOFFSET(), 5, N'GB-ENG', N'PEPR16528226P1');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'165282', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'6A7B3C9D-1E8F-4A5C-9BD7-2A346E8F70C9', N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'165283', 0, 0, 0, SYSDATETIMEOFFSET());
@@ -84,22 +94,61 @@ begin
 end
 
 -- Northbridge 2026 Large (matches SubmissionId 601A176C-B17B-4B6B-B672-D0C61A44E733)
-if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2026-L-APP-0001')
+if not exists (select 1 from dbo.Payment where Reference = N'PEPR11000007226P1')
 begin
     insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
-    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2026-L-APP-0001', 100000.0000, N'Registration Fee', N'2026-04-08T09:05:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-04-08T09:05:00');
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'PEPR11000007226P1', 100000.0000, N'Registration Fee', N'2026-04-08T09:05:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-04-08T09:05:00');
 end
 
 -- Northbridge 2026 Small (matches SubmissionId ECE0880A-B713-42D4-A018-92FD3D8053C6)
-if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2026-S-APP-0001')
+if not exists (select 1 from dbo.Payment where Reference = N'PEPR11000007226P1S')
 begin
     insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
-    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2026-S-APP-0001', 100000.0000, N'Registration Fee', N'2026-04-09T09:35:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-04-09T09:35:00');
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'PEPR11000007226P1S', 100000.0000, N'Registration Fee', N'2026-04-09T09:35:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-04-09T09:35:00');
 end
 
 -- PopQuest 2026 (Direct Producer, matches SubmissionId C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89)
-if not exists (select 1 from dbo.Payment where Reference = N'PQL-2026-APP-0001')
+if not exists (select 1 from dbo.Payment where Reference = N'PEPR16528226P1')
 begin
     insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
-    values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PQL-2026-APP-0001', 100000.0000, N'Registration Fee', N'2026-04-01T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2026-04-01T09:20:00');
+    values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PEPR16528226P1', 100000.0000, N'Registration Fee', N'2026-04-01T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2026-04-01T09:20:00');
+end
+
+-- Packaging data resubmission fees for the two completed 2026 H1 resubmission cycles. These mirror
+-- the PackagingDataResubmissionFeePayment events in mocks/CosmosDbInit/Program.cs and
+-- compose/synapse-sqlserver-restore/seed/baseline.sql; Reference is the cycle's resubmission
+-- reference number, not the registration ApplicationReferenceNumber used by the blocks above.
+--
+-- Amounts come from Lookup.RegistrationFees for 2026/GB-ENG rather than being invented:
+--   ComplianceSchemeResubmission base 51200 x 5 changed members = 256000 (Northbridge is a CS, and
+--   ComplianceSchemeResubmissionService computes baseFee * MemberCount).
+--   ProducerResubmission base 80700 for POP QUEST - ProducerResubmissionService only multiplies by
+--   MemberCount when EnableResubmissionProducerMemberCountBaseFeeMultiplication is on, and it is not
+--   enabled in this stack.
+if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2026H1-POM-RESUB-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2026H1-POM-RESUB-0001', 256000.0000, N'Packaging Data Resubmission Fee', N'2026-07-07T09:20:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2026-07-07T09:20:00');
+end
+
+if not exists (select 1 from dbo.Payment where Reference = N'PQL-2026H1-POM-RESUB-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PQL-2026H1-POM-RESUB-0001', 80700.0000, N'Packaging Data Resubmission Fee', N'2026-07-07T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2026-07-07T09:20:00');
+end
+
+-- Packaging data resubmission fees for the two completed 2024-P1 resubmission cycles.
+-- Amounts use the 2024-2025 band in Lookup.RegistrationFees for GB-ENG:
+--   ComplianceSchemeResubmission base 43000 x 5 changed Large members = 215000 (Northbridge).
+--   ProducerResubmission base 71400 for POP QUEST (the member-count multiplier feature is off).
+if not exists (select 1 from dbo.Payment where Reference = N'NBCS-2024P1-POM-RESUB-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'94BFD894-8F64-4F8D-9975-259D08786C2B', 2, 'GB-ENG', N'NBCS-2024P1-POM-RESUB-0001', 215000.0000, N'Packaging Data Resubmission Fee', N'2024-09-10T09:20:00', N'94BFD894-8F64-4F8D-9975-259D08786C2B', N'2024-09-10T09:20:00');
+end
+
+if not exists (select 1 from dbo.Payment where Reference = N'PQL-2024P1-POM-RESUB-0001')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PQL-2024P1-POM-RESUB-0001', 71400.0000, N'Packaging Data Resubmission Fee', N'2024-09-10T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2024-09-10T09:20:00');
 end
