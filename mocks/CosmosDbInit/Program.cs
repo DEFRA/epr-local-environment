@@ -105,7 +105,7 @@ static async Task SeedNorthbridgeRegistrationsAsync(Database database)
             SubmissionPeriod: "January to December 2026",
             RegistrationJourney: null,
             MemberCount: 9,
-            AppReferenceNumber: "NBCS-2026-L-APP-0001",
+            AppReferenceNumber: "PEPR11000007226P1",
             RegistrationReferenceNumber: "NBCS-2026-L-REG-0001",
             PaidAmount: "8925.00",
             AntivirusCheckCreated: "2026-04-08T09:00:00.0000000Z",
@@ -130,7 +130,7 @@ static async Task SeedNorthbridgeRegistrationsAsync(Database database)
             SubmissionPeriod: "January to December 2026",
             RegistrationJourney: "CsoSmallProducer",
             MemberCount: 5,
-            AppReferenceNumber: "NBCS-2026-S-APP-0001",
+            AppReferenceNumber: "PEPR11000007226P1S",
             RegistrationReferenceNumber: "NBCS-2026-S-REG-0001",
             PaidAmount: "2625.00",
             AntivirusCheckCreated: "2026-04-09T09:30:00.0000000Z",
@@ -509,10 +509,13 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
     // history contains at least one Accepted decision - a submission that has only ever been
     // Rejected, with no prior Accepted cycle, instead falls through to the plain first-time
     // upload flow (FileUploadController), which is the wrong page for a rejected resubmission.
-    // Deliberately no PackagingResubmissionReferenceNumberCreatedEvent here yet, for either cycle -
-    // that only gets created once the user actually starts the newer fee-based resubmission
-    // journey; its absence is what keeps this submission routed to UploadNewFileToSubmitController
-    // instead of being skipped straight to PackagingDataResubmissionController.ResubmissionTaskList.
+    // The second cycle is modelled as a COMPLETED fee-based resubmission: reference number, corrected
+    // file, fee viewed, fee paid and the declaration, followed by the regulator's Rejected decision.
+    // Note the routing consequence - because the declaration sets ResubmissionApplicationSubmitted,
+    // FileUploadSubLandingController.HandleSubmissionBasedOnStatus now sends this submission to
+    // PackagingDataResubmissionController.ResubmissionTaskList rather than to
+    // UploadNewFileToSubmitController. That is the correct destination for a resubmission that has
+    // already been declared; the 2025 H2 submissions remain the in-progress example.
     const string h1_2026SubmissionId = "84FA8B3B-ACF0-4FAE-8B70-27137AF5F24C";
 
     // Cycle A: original file, Accepted.
@@ -525,7 +528,7 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
     const string h1_2026FileIdB = "559469D2-FBEB-4DC6-B670-CA2AC9E2F319";
     const string h1_2026BlobNameB = "B52AAEE6-5C64-4C55-B194-6140488F6063";
 
-    await UpsertSubmission(h1_2026SubmissionId, "January to June 2026", isResubmission: false, created: "2026-01-08T09:00:00.0000000Z");
+    await UpsertSubmission(h1_2026SubmissionId, "January to June 2026", isResubmission: true, created: "2026-01-08T09:00:00.0000000Z");
 
     await UpsertEvent(h1_2026SubmissionId, "B7997346-D063-4E51-8244-E9904D608ED0", "AntivirusCheck", "2026-01-08T09:00:00.0000000Z", new()
     {
@@ -575,6 +578,13 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
         ["UserId"] = regulatorUserId.ToLowerInvariant(),
     });
 
+    // The fee-based resubmission cycle. The reference number has to predate the corrected file:
+    // GetPackagingResubmissionApplicationDetailsQueryHandler treats an upload older than the cycle's
+    // reference number as belonging to the previous cycle and reports the cycle as NotStarted.
+    await UpsertEvent(h1_2026SubmissionId, "E9175738-3FAA-4832-A66A-2BEB9147CFDA", "PackagingResubmissionReferenceNumberCreated", "2026-07-06T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "NBCS-2026H1-POM-RESUB-0001",
+    });
     await UpsertEvent(h1_2026SubmissionId, "E2AC17CC-1EE2-47B9-B5AC-49AAC2284FE4", "AntivirusCheck", "2026-07-07T09:00:00.0000000Z", new()
     {
         ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
@@ -609,8 +619,38 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
     {
         ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
         ["SubmittedBy"] = "Olivia Bennett",
-        ["IsResubmission"] = false,
+        ["IsResubmission"] = true,
         ["SubmissionPeriod"] = "January to June 2026",
+    });
+    // Fee viewed, paid and declared. All three must postdate the Submitted event above: the handler
+    // only reports the fee and declaration fields when their events are newer than the last submit.
+    await UpsertEvent(h1_2026SubmissionId, "8604F180-B5E6-49BE-B942-93DB6BA86DB1", "PackagingResubmissionFeeViewed", "2026-07-07T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    // PaymentMethod drives the frontend's ResubmissionFeePaid check, which accepts only
+    // PayByPhone/PayOnline/PayByBankTransfer; the handler additionally ignores "Offline" outright.
+    // 2560.00 = the 2026 compliance-scheme resubmission base fee (512.00) x 5 changed members,
+    // matching ComplianceSchemeResubmissionService (baseFee * MemberCount) against the member count
+    // dbo.v_CSO_Pom_Resubmitted_ByCSID computes for this cycle.
+    await UpsertEvent(h1_2026SubmissionId, "AC6BE508-09A0-48E0-81EE-64ADA2056D07", "PackagingDataResubmissionFeePayment", "2026-07-07T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["ReferenceNumber"] = "NBCS-2026H1-POM-RESUB-0001",
+        ["PaymentMethod"] = "PayByBankTransfer",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = "2560.00",
+    });
+    // The declaration closes the cycle: with no later reference number the handler stops reporting
+    // an open cycle, which is what makes this a completed resubmission rather than one in progress.
+    await UpsertEvent(h1_2026SubmissionId, "B49F4888-47DA-4D84-940C-E06B0AF3ADC4", "PackagingResubmissionApplicationSubmitted", "2026-07-07T09:25:00.0000000Z", new()
+    {
+        ["FileId"] = h1_2026FileIdB.ToLowerInvariant(),
+        ["IsResubmitted"] = true,
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["SubmissionDate"] = "2026-07-07T09:25:00.0000000Z",
+        ["Comments"] = "Corrected packaging data resubmitted for January to June 2026",
     });
     await UpsertEvent(h1_2026SubmissionId, "FAD8ABE3-72C1-46AA-9CD1-2BD513672EDB", "RegulatorPoMDecision", "2026-07-21T10:15:00.0000000Z", new()
     {
@@ -623,6 +663,176 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
         ["UserId"] = regulatorUserId.ToLowerInvariant(),
     });
     Console.WriteLine($"Seeded packaging data submission {h1_2026SubmissionId} (2026 H1, Accepted then Rejected on resubmission)");
+
+    // ---- 2024-P1 (January to June 2024): Large producers only. First submission Accepted, then a resubmission that was also Accepted. ----
+    const string nb2024p1SubmissionId = "D5D5D5D5-5555-4555-8555-000000000001";
+    await UpsertSubmission(nb2024p1SubmissionId, "January to June 2024", isResubmission: true, created: "2024-08-05T09:00:00.0000000Z");
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2024-08-05T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2024P1.csv",
+        ["RegistrationSetId"] = null,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2024-08-05T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "d5d5d5d5-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2024-08-05T09:03:00.0000000Z", new()
+    {
+        ["BlobName"] = "d5d5d5d5-bbbb-4bbb-8bbb-000000000001",
+        ["DataCount"] = 1,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2024-08-05T09:03:40.0000000Z", new()
+    {
+        ["BlobName"] = "d5d5d5d5-bbbb-4bbb-8bbb-000000000001",
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000005", "Submitted", "2024-08-05T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000001",
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "January to June 2024",
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000006", "RegulatorPoMDecision", "2024-08-19T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000001",
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "NBCS-2024P1-POM-DEC-0001",
+        ["DecisionDate"] = "2024-08-19T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000007", "PackagingResubmissionReferenceNumberCreated", "2024-09-09T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "NBCS-2024P1-POM-RESUB-0001",
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000008", "AntivirusCheck", "2024-09-10T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2024P1_Resubmission.csv",
+        ["RegistrationSetId"] = null,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000009", "AntivirusResult", "2024-09-10T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["BlobName"] = "d5d5d5d5-bbbb-4bbb-8bbb-000000000002",
+        ["AntivirusScanResult"] = "Success",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000010", "CheckSplitter", "2024-09-10T09:03:00.0000000Z", new()
+    {
+        ["BlobName"] = "d5d5d5d5-bbbb-4bbb-8bbb-000000000002",
+        ["DataCount"] = 1,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000011", "ProducerValidation", "2024-09-10T09:03:40.0000000Z", new()
+    {
+        ["BlobName"] = "d5d5d5d5-bbbb-4bbb-8bbb-000000000002",
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000012", "Submitted", "2024-09-10T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = true,
+        ["SubmissionPeriod"] = "January to June 2024",
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000013", "RegulatorPoMDecision", "2024-09-24T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "NBCS-2024P1-POM-DEC-0002",
+        ["DecisionDate"] = "2024-09-24T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000014", "PackagingResubmissionFeeViewed", "2024-09-10T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000015", "PackagingDataResubmissionFeePayment", "2024-09-10T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["ReferenceNumber"] = "NBCS-2024P1-POM-RESUB-0001",
+        ["PaymentMethod"] = "PayByBankTransfer",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = "2150.00",
+    });
+    await UpsertEvent(nb2024p1SubmissionId, "D5D5D5D5-DDDD-4DDD-8DDD-000000000016", "PackagingResubmissionApplicationSubmitted", "2024-09-10T09:25:00.0000000Z", new()
+    {
+        ["FileId"] = "d5d5d5d5-aaaa-4aaa-8aaa-000000000002",
+        ["IsResubmitted"] = true,
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["SubmissionDate"] = "2024-09-10T09:25:00.0000000Z",
+        ["Comments"] = "Corrected packaging data resubmitted for January to June 2024",
+    });
+    Console.WriteLine($"Seeded packaging data submission {nb2024p1SubmissionId} (2024-P1, Accepted, then resubmission Accepted)");
+
+    // ---- 2024-P4 (July to December 2024): Large producers only. First submission Rejected; no resubmission cycle. ----
+    const string nb2024p4SubmissionId = "D6D6D6D6-5555-4555-8555-000000000001";
+    await UpsertSubmission(nb2024p4SubmissionId, "July to December 2024", isResubmission: false, created: "2025-02-10T09:00:00.0000000Z");
+    await UpsertEvent(nb2024p4SubmissionId, "D6D6D6D6-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2025-02-10T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = "d6d6d6d6-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2024P4.csv",
+        ["RegistrationSetId"] = null,
+    });
+    await UpsertEvent(nb2024p4SubmissionId, "D6D6D6D6-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2025-02-10T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = "d6d6d6d6-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "d6d6d6d6-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(nb2024p4SubmissionId, "D6D6D6D6-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2025-02-10T09:03:00.0000000Z", new()
+    {
+        ["BlobName"] = "d6d6d6d6-bbbb-4bbb-8bbb-000000000001",
+        ["DataCount"] = 1,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(nb2024p4SubmissionId, "D6D6D6D6-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2025-02-10T09:03:40.0000000Z", new()
+    {
+        ["BlobName"] = "d6d6d6d6-bbbb-4bbb-8bbb-000000000001",
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(nb2024p4SubmissionId, "D6D6D6D6-DDDD-4DDD-8DDD-000000000005", "Submitted", "2025-02-10T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "d6d6d6d6-aaaa-4aaa-8aaa-000000000001",
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "July to December 2024",
+    });
+    await UpsertEvent(nb2024p4SubmissionId, "D6D6D6D6-DDDD-4DDD-8DDD-000000000006", "RegulatorPoMDecision", "2025-02-24T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = "d6d6d6d6-aaaa-4aaa-8aaa-000000000001",
+        ["Decision"] = "Rejected",
+        ["RegistrationReferenceNumber"] = "NBCS-2024P4-POM-DEC-0001",
+        ["DecisionDate"] = "2025-02-24T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data rejected: the reported tonnages could not be reconciled with the supporting evidence for this period",
+        ["IsResubmissionRequired"] = true,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded packaging data submission {nb2024p4SubmissionId} (2024-P4, Rejected)");
 }
 
 // POP QUEST LTD (CHN 17121895): the Direct Producer equivalent of the Northbridge seeds above.
@@ -661,7 +871,7 @@ static async Task SeedPopQuestRegistrationsAsync(Database database)
             BlobName: "E7F8A9B0-C1D2-4E3F-8A4B-5C6D7E8F9A01",
             FileName: "PopQuest_CompanyDetails_2026.csv",
             SubmissionPeriod: "January to December 2026",
-            AppReferenceNumber: "PQL-2026-APP-0001",
+            AppReferenceNumber: "PEPR16528226P1",
             RegistrationReferenceNumber: "PQL-2026-REG-0001",
             PaidAmount: "2750.00",
             EventIdPrefix: "D4D4D4D4-DDDD-4DDD-8DDD",
@@ -972,7 +1182,7 @@ static async Task SeedPopQuestPackagingDataAsync(Database database)
     const string y26BlobNameB = "2B3C4D5E-6F7A-4B8C-9D0E-1F2A3B4C5D6F";
     const string y26Prefix = "D2D2D2D2-DDDD-4DDD-8DDD";
 
-    await UpsertSubmission(y26SubmissionId, "January to June 2026", isResubmission: false, created: "2026-01-08T09:00:00.0000000Z");
+    await UpsertSubmission(y26SubmissionId, "January to June 2026", isResubmission: true, created: "2026-01-08T09:00:00.0000000Z");
     await UpsertFileCycle(y26SubmissionId,
         [$"{y26Prefix}-{1:D12}", $"{y26Prefix}-{2:D12}", $"{y26Prefix}-{3:D12}", $"{y26Prefix}-{4:D12}", $"{y26Prefix}-{5:D12}"],
         y26FileIdA, y26BlobNameA,
@@ -987,10 +1197,41 @@ static async Task SeedPopQuestPackagingDataAsync(Database database)
         ["IsResubmissionRequired"] = false,
         ["UserId"] = regulatorUserId.ToLowerInvariant(),
     });
+    // The fee-based resubmission cycle. The reference number has to predate the corrected file - see
+    // the equivalent Northbridge block above for why - and the corrected file's Submitted event is
+    // itself the resubmission, hence isResubmission: true.
+    await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{13:D12}", "PackagingResubmissionReferenceNumberCreated", "2026-07-06T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "PQL-2026H1-POM-RESUB-0001",
+    });
     await UpsertFileCycle(y26SubmissionId,
         [$"{y26Prefix}-{7:D12}", $"{y26Prefix}-{8:D12}", $"{y26Prefix}-{9:D12}", $"{y26Prefix}-{10:D12}", $"{y26Prefix}-{11:D12}"],
         y26FileIdB, y26BlobNameB,
-        "PopQuest_Pom_2026H1_Corrected.csv", "January to June 2026", "2026-07-07", isResubmission: false);
+        "PopQuest_Pom_2026H1_Corrected.csv", "January to June 2026", "2026-07-07", isResubmission: true);
+    await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{14:D12}", "PackagingResubmissionFeeViewed", "2026-07-07T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = y26FileIdB.ToLowerInvariant(),
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    // 807.00 = the 2026 direct-producer resubmission base fee. ProducerResubmissionService only
+    // multiplies that by MemberCount when EnableResubmissionProducerMemberCountBaseFeeMultiplication
+    // is on, and it is not enabled in this local stack, so the base fee is what gets paid.
+    await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{15:D12}", "PackagingDataResubmissionFeePayment", "2026-07-07T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = y26FileIdB.ToLowerInvariant(),
+        ["ReferenceNumber"] = "PQL-2026H1-POM-RESUB-0001",
+        ["PaymentMethod"] = "PayByBankTransfer",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = "807.00",
+    });
+    await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{16:D12}", "PackagingResubmissionApplicationSubmitted", "2026-07-07T09:25:00.0000000Z", new()
+    {
+        ["FileId"] = y26FileIdB.ToLowerInvariant(),
+        ["IsResubmitted"] = true,
+        ["SubmittedBy"] = "Olivia Reed",
+        ["SubmissionDate"] = "2026-07-07T09:25:00.0000000Z",
+        ["Comments"] = "Corrected packaging data resubmitted for January to June 2026",
+    });
     await UpsertEvent(y26SubmissionId, $"{y26Prefix}-{12:D12}", "RegulatorPoMDecision", "2026-07-21T10:15:00.0000000Z", new()
     {
         ["FileId"] = y26FileIdB.ToLowerInvariant(),
@@ -1002,6 +1243,176 @@ static async Task SeedPopQuestPackagingDataAsync(Database database)
         ["UserId"] = regulatorUserId.ToLowerInvariant(),
     });
     Console.WriteLine($"Seeded POP QUEST packaging data submission {y26SubmissionId} (2026 H1, Accepted then Rejected on resubmission)");
+
+    // ---- 2024-P1 (January to June 2024): Large producers only. First submission Accepted, then a resubmission that was also Accepted. ----
+    const string pq2024p1SubmissionId = "D7D7D7D7-5555-4555-8555-000000000001";
+    await UpsertSubmission(pq2024p1SubmissionId, "January to June 2024", isResubmission: true, created: "2024-08-05T09:00:00.0000000Z");
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2024-08-05T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "PopQuest_Pom_2024P1.csv",
+        ["RegistrationSetId"] = null,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2024-08-05T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "d7d7d7d7-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2024-08-05T09:03:00.0000000Z", new()
+    {
+        ["BlobName"] = "d7d7d7d7-bbbb-4bbb-8bbb-000000000001",
+        ["DataCount"] = 1,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2024-08-05T09:03:40.0000000Z", new()
+    {
+        ["BlobName"] = "d7d7d7d7-bbbb-4bbb-8bbb-000000000001",
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000005", "Submitted", "2024-08-05T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000001",
+        ["SubmittedBy"] = "Olivia Reed",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "January to June 2024",
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000006", "RegulatorPoMDecision", "2024-08-19T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000001",
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "PQL-2024P1-POM-DEC-0001",
+        ["DecisionDate"] = "2024-08-19T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000007", "PackagingResubmissionReferenceNumberCreated", "2024-09-09T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "PQL-2024P1-POM-RESUB-0001",
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000008", "AntivirusCheck", "2024-09-10T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["FileType"] = "Pom",
+        ["FileName"] = "PopQuest_Pom_2024P1_Resubmission.csv",
+        ["RegistrationSetId"] = null,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000009", "AntivirusResult", "2024-09-10T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["BlobName"] = "d7d7d7d7-bbbb-4bbb-8bbb-000000000002",
+        ["AntivirusScanResult"] = "Success",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000010", "CheckSplitter", "2024-09-10T09:03:00.0000000Z", new()
+    {
+        ["BlobName"] = "d7d7d7d7-bbbb-4bbb-8bbb-000000000002",
+        ["DataCount"] = 1,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000011", "ProducerValidation", "2024-09-10T09:03:40.0000000Z", new()
+    {
+        ["BlobName"] = "d7d7d7d7-bbbb-4bbb-8bbb-000000000002",
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000012", "Submitted", "2024-09-10T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["SubmittedBy"] = "Olivia Reed",
+        ["IsResubmission"] = true,
+        ["SubmissionPeriod"] = "January to June 2024",
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000013", "RegulatorPoMDecision", "2024-09-24T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "PQL-2024P1-POM-DEC-0002",
+        ["DecisionDate"] = "2024-09-24T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000014", "PackagingResubmissionFeeViewed", "2024-09-10T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000015", "PackagingDataResubmissionFeePayment", "2024-09-10T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["ReferenceNumber"] = "PQL-2024P1-POM-RESUB-0001",
+        ["PaymentMethod"] = "PayByBankTransfer",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = "714.00",
+    });
+    await UpsertEvent(pq2024p1SubmissionId, "D7D7D7D7-DDDD-4DDD-8DDD-000000000016", "PackagingResubmissionApplicationSubmitted", "2024-09-10T09:25:00.0000000Z", new()
+    {
+        ["FileId"] = "d7d7d7d7-aaaa-4aaa-8aaa-000000000002",
+        ["IsResubmitted"] = true,
+        ["SubmittedBy"] = "Olivia Reed",
+        ["SubmissionDate"] = "2024-09-10T09:25:00.0000000Z",
+        ["Comments"] = "Corrected packaging data resubmitted for January to June 2024",
+    });
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {pq2024p1SubmissionId} (2024-P1, Accepted, then resubmission Accepted)");
+
+    // ---- 2024-P4 (July to December 2024): Large producers only. First submission Rejected; no resubmission cycle. ----
+    const string pq2024p4SubmissionId = "D8D8D8D8-5555-4555-8555-000000000001";
+    await UpsertSubmission(pq2024p4SubmissionId, "July to December 2024", isResubmission: false, created: "2025-02-10T09:00:00.0000000Z");
+    await UpsertEvent(pq2024p4SubmissionId, "D8D8D8D8-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2025-02-10T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = "d8d8d8d8-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "PopQuest_Pom_2024P4.csv",
+        ["RegistrationSetId"] = null,
+    });
+    await UpsertEvent(pq2024p4SubmissionId, "D8D8D8D8-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2025-02-10T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = "d8d8d8d8-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "d8d8d8d8-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(pq2024p4SubmissionId, "D8D8D8D8-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2025-02-10T09:03:00.0000000Z", new()
+    {
+        ["BlobName"] = "d8d8d8d8-bbbb-4bbb-8bbb-000000000001",
+        ["DataCount"] = 1,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(pq2024p4SubmissionId, "D8D8D8D8-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2025-02-10T09:03:40.0000000Z", new()
+    {
+        ["BlobName"] = "d8d8d8d8-bbbb-4bbb-8bbb-000000000001",
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+    });
+    await UpsertEvent(pq2024p4SubmissionId, "D8D8D8D8-DDDD-4DDD-8DDD-000000000005", "Submitted", "2025-02-10T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "d8d8d8d8-aaaa-4aaa-8aaa-000000000001",
+        ["SubmittedBy"] = "Olivia Reed",
+        ["IsResubmission"] = false,
+        ["SubmissionPeriod"] = "July to December 2024",
+    });
+    await UpsertEvent(pq2024p4SubmissionId, "D8D8D8D8-DDDD-4DDD-8DDD-000000000006", "RegulatorPoMDecision", "2025-02-24T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = "d8d8d8d8-aaaa-4aaa-8aaa-000000000001",
+        ["Decision"] = "Rejected",
+        ["RegistrationReferenceNumber"] = "PQL-2024P4-POM-DEC-0001",
+        ["DecisionDate"] = "2025-02-24T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data rejected: the reported tonnages could not be reconciled with the supporting evidence for this period",
+        ["IsResubmissionRequired"] = true,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {pq2024p4SubmissionId} (2024-P4, Rejected)");
 }
 
 record PopQuestRegistrationSeed(
