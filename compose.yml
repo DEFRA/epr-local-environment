@@ -1705,6 +1705,7 @@ services:
       Acl__Clients__Developer__Secret: developer-pwd
       Acl__Clients__Developer__Scopes__0: read
       Acl__Clients__Developer__Scopes__1: write
+      Acl__Clients__Developer__Scopes__2: admin
       Acl__Clients__waste-obligations-frontend__Type: ApiKey
       Acl__Clients__waste-obligations-frontend__Secret: waste-obligations-frontend-pwd
       Acl__Clients__waste-obligations-frontend__Scopes__0: read
@@ -1717,15 +1718,17 @@ services:
       WasteOrganisations__BaseAddress: ${WasteObligations__WasteOrganisations__BaseAddress:-http://waste-organisations:8080/}
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
-      # The initial refresh can run before the seed container completes. Retry refresh and reference failures quickly in local use.
+      # The initial refresh can run before the seed container completes. Refresh quickly in local use.
       OrganisationEligibility__RefreshPollingEnabled: true
       OrganisationEligibility__RefreshPollIntervalSeconds: 60
-      OrganisationEligibility__ReferenceNumberRetryDelay: 00:01:00
-      # Keep the full projection current in the local obligations profile. The request rate is
-      # sufficient for 500 organisations within the 30-minute freshness window (17 requests/minute).
+      # Keep the full projection current in the local obligations profile. The two-minute target
+      # accelerates local refreshes; the 100-RPM ceiling remains the safety limit for large volumes.
+      # Disable normal hydration polling before calling the historical-backfill admin endpoint.
       OrganisationObligationHydration__PollingEnabled: true
       OrganisationObligationHydration__PollIntervalSeconds: 5
-      OrganisationObligationHydration__MaxDownstreamRequestsPerMinute: 17
+      OrganisationObligationHydration__MaxDownstreamRequestsPerMinute: 100
+      OrganisationObligationHydration__RefreshInterval: 00:02:00
+      OrganisationObligationHydration__MaximumSummaryStaleness: 00:10:00
       AccountBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       AccountBackend__ClientId: waste-obligations
       AccountBackend__BaseAddress: http://epr-backend-account-microservice:8080/
@@ -1864,6 +1867,7 @@ services:
       - "8015:8081"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      AWS_EMF_ENABLED: false
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
