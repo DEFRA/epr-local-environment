@@ -273,8 +273,9 @@ static async Task SeedNorthbridgeRegistrationsAsync(Database database)
 // Northbridge Compliance Solutions Ltd (CHN 11000000): Packaging Data (POM) submissions - a
 // distinct data source/journey from Registration above (SubmissionType "Producer", half-year
 // SubmissionPeriod, no RegistrationJourney field). 3 submissions: 2025 H1 (Large only, Accepted),
-// 2025 H2 (mixed Large+Small, Accepted, then a resubmission already in progress - new file
-// uploaded and fee viewed, but not yet paid or finally submitted), 2026 H1 (Large only, Rejected).
+// 2025 H2 (mixed Large+Small, Accepted, then a first resubmission that was also Accepted, then a
+// second resubmission already in progress - new file uploaded and fee viewed, but not yet paid or
+// finally submitted), 2026 H1 (Large only, Rejected).
 // Each submission's shape genuinely differs (decision outcome, resubmission tail on 2025 H2 only),
 // so the event chains are written out explicitly per submission rather than forced through a
 // shared record shape. Mirrors the same GUIDs/values seeded into the Synapse mirror in
@@ -447,11 +448,161 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
         ["UserId"] = regulatorUserId.ToLowerInvariant(),
     });
 
-    // Resubmission in progress: reference number issued, corrected file uploaded and validated,
-    // fee viewed but deliberately not yet paid and not yet finally submitted to the regulator.
-    await UpsertEvent(h2SubmissionId, "94DDEB72-0233-45DA-8A1B-BB6E826AC618", "PackagingResubmissionReferenceNumberCreated", "2026-01-15T09:00:00.0000000Z", new()
+    // First resubmission: reference number, corrected file uploaded/validated/submitted, fee
+    // viewed, fee paid and declared, closed by a second Accepted decision. This is a genuinely
+    // completed past cycle - it must predate the currently-in-progress resubmission below, both in
+    // its own event chain and in its RegulatorPoMDecision, so it reads as history rather than the
+    // submission's current state.
+    const string h2Resub1FileId = "E7E7E7E7-AAAA-4AAA-8AAA-000000000001";
+    const string h2Resub1BlobName = "E7E7E7E7-BBBB-4BBB-8BBB-000000000001";
+
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000001", "PackagingResubmissionReferenceNumberCreated", "2025-11-03T09:00:00.0000000Z", new()
     {
         ["PackagingResubmissionReferenceNumber"] = "NBCS-2025H2-POM-RESUB-0001",
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000002", "AntivirusCheck", "2025-11-04T09:00:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2025H2_Resubmission1.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000003", "AntivirusResult", "2025-11-04T09:02:10.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["BlobName"] = h2Resub1BlobName.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000004", "CheckSplitter", "2025-11-04T09:03:00.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = h2Resub1BlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000005", "ProducerValidation", "2025-11-04T09:03:40.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["BlobName"] = h2Resub1BlobName.ToLowerInvariant(),
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000006", "Submitted", "2025-11-04T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["IsResubmission"] = true,
+        ["SubmissionPeriod"] = "July to December 2025",
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000007", "PackagingResubmissionFeeViewed", "2025-11-04T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000008", "PackagingDataResubmissionFeePayment", "2025-11-04T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["ReferenceNumber"] = "NBCS-2025H2-POM-RESUB-0001",
+        ["PaymentMethod"] = "PayByBankTransfer",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = "2560.00",
+    });
+    // The declaration closes this cycle: with no later reference number until the one created
+    // below, the handler stops reporting an open cycle here, which is what makes this a completed
+    // resubmission rather than one in progress.
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000009", "PackagingResubmissionApplicationSubmitted", "2025-11-04T09:25:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["IsResubmitted"] = true,
+        ["SubmittedBy"] = "Olivia Bennett",
+        ["SubmissionDate"] = "2025-11-04T09:25:00.0000000Z",
+        ["Comments"] = "Corrected packaging data resubmitted for July to December 2025",
+    });
+    await UpsertEvent(h2SubmissionId, "E7E7E7E7-DDDD-4DDD-8DDD-000000000010", "RegulatorPoMDecision", "2025-11-18T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "NBCS-2025H2-POM-DEC-0002",
+        ["DecisionDate"] = "2025-11-18T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded packaging data submission {h2SubmissionId} first resubmission (2025 H2, Accepted)");
+
+    // Second resubmission, currently in progress: reference number issued, corrected file
+    // uploaded and validated, fee viewed but deliberately not yet paid and not yet finally
+    // submitted to the regulator. This is the submission's current/latest state.
+    await UpsertEvent(h2SubmissionId, "94DDEB72-0233-45DA-8A1B-BB6E826AC618", "PackagingResubmissionReferenceNumberCreated", "2026-01-15T09:00:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "NBCS-2025H2-POM-RESUB-0002",
+    });
+
+    // Two failed upload attempts before the successful one below: the file passes the antivirus
+    // scan both times but fails data validation, so the user has to correct it and re-upload.
+    // Neither attempt reaches Submitted - only the third, valid upload does.
+    await UpsertEvent(h2SubmissionId, "F1F1F1F1-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2026-01-15T09:05:00.0000000Z", new()
+    {
+        ["FileId"] = "f1f1f1f1-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2025H2_Resubmission_Attempt1.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "F1F1F1F1-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2026-01-15T09:07:00.0000000Z", new()
+    {
+        ["FileId"] = "f1f1f1f1-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "f1f1f1f1-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "F1F1F1F1-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2026-01-15T09:08:00.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 2,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = "f1f1f1f1-bbbb-4bbb-8bbb-000000000001",
+    });
+    await UpsertEvent(h2SubmissionId, "F1F1F1F1-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2026-01-15T09:08:30.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 2,
+        ["WarningCount"] = 0,
+        ["BlobName"] = "f1f1f1f1-bbbb-4bbb-8bbb-000000000001",
+    });
+    await UpsertEvent(h2SubmissionId, "F2F2F2F2-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2026-01-15T09:12:00.0000000Z", new()
+    {
+        ["FileId"] = "f2f2f2f2-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "Northbridge_Pom_2025H2_Resubmission_Attempt2.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "F2F2F2F2-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2026-01-15T09:14:00.0000000Z", new()
+    {
+        ["FileId"] = "f2f2f2f2-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "f2f2f2f2-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "F2F2F2F2-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2026-01-15T09:15:00.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 1,
+        ["WarningCount"] = 1,
+        ["DataCount"] = 1,
+        ["BlobName"] = "f2f2f2f2-bbbb-4bbb-8bbb-000000000001",
+    });
+    await UpsertEvent(h2SubmissionId, "F2F2F2F2-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2026-01-15T09:15:30.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 1,
+        ["WarningCount"] = 1,
+        ["BlobName"] = "f2f2f2f2-bbbb-4bbb-8bbb-000000000001",
     });
     await UpsertEvent(h2SubmissionId, "EF82DC4E-3812-4EDB-9A7E-1F020B267D05", "AntivirusCheck", "2026-01-15T09:30:00.0000000Z", new()
     {
@@ -498,7 +649,7 @@ static async Task SeedNorthbridgePackagingDataAsync(Database database)
         ["FileId"] = h2ResubFileId.ToLowerInvariant(),
         ["IsPackagingResubmissionFeeViewed"] = true,
     });
-    Console.WriteLine($"Seeded packaging data submission {h2SubmissionId} (2025 H2, Accepted + resubmission in progress)");
+    Console.WriteLine($"Seeded packaging data submission {h2SubmissionId} (2025 H2, Accepted + first resubmission Accepted + second resubmission in progress)");
 
     // ---- 2026 H1: Large only. Two cycles under the same SubmissionId: an original file that
     // was Accepted, then - months later - a corrected file the compliance scheme resubmitted
@@ -997,10 +1148,11 @@ static async Task SeedPopQuestRegistrationsAsync(Database database)
 }
 
 // POP QUEST LTD Packaging Data (POM) submissions: 2025 H1 (Accepted), 2025 H2 (Accepted then a
-// resubmission already in progress - new file uploaded and fee viewed, but not paid or finally
-// submitted), 2026 H1 (Accepted then a corrected file Rejected). The 2025 H1/H2 Synapse rows
-// already existed in seed.sql before this was added; these documents give them their missing
-// Cosmos counterpart so they actually surface in the frontend.
+// first resubmission that was also Accepted, then a second resubmission already in progress - new
+// file uploaded and fee viewed, but not paid or finally submitted), 2026 H1 (Accepted then a
+// corrected file Rejected). The 2025 H1/H2 Synapse rows already existed in seed.sql before this
+// was added; these documents give them their missing Cosmos counterpart so they actually surface
+// in the frontend.
 static async Task SeedPopQuestPackagingDataAsync(Database database)
 {
     const string approvedPersonUserId = "79D0DEAB-C22D-4C30-8082-508FF8DC1BD7";
@@ -1155,13 +1307,133 @@ static async Task SeedPopQuestPackagingDataAsync(Database database)
         ["UserId"] = regulatorUserId.ToLowerInvariant(),
     });
 
-    // The resubmission tail. Deliberately no PackagingDataResubmissionFeePayment or
-    // PackagingResubmissionApplicationSubmitted event - the fee is ready to view but not yet paid
-    // or finally submitted, which is the state under test. The reference number here must match
-    // the one the sp_PomResubmissionPaycalParameters stub returns for this SubmissionId.
-    await UpsertEvent(h2SubmissionId, $"{h2Prefix}-{1:D12}", "PackagingResubmissionReferenceNumberCreated", "2026-01-20T09:00:00.0000000Z", new()
+    // First resubmission (already Accepted): reference number, corrected file uploaded/validated/
+    // submitted, fee viewed, fee paid and declared, closed by a second Accepted decision. Predates
+    // the currently-in-progress resubmission below, both in its own event chain and in its
+    // RegulatorPoMDecision, so it reads as history rather than the submission's current state.
+    const string h2Resub1FileId = "E8E8E8E8-AAAA-4AAA-8AAA-000000000001";
+    const string h2Resub1BlobName = "E8E8E8E8-BBBB-4BBB-8BBB-000000000001";
+    const string h2Resub1Prefix = "E8E8E8E8-DDDD-4DDD-8DDD";
+
+    await UpsertEvent(h2SubmissionId, $"{h2Resub1Prefix}-{1:D12}", "PackagingResubmissionReferenceNumberCreated", "2025-11-07T09:00:00.0000000Z", new()
     {
         ["PackagingResubmissionReferenceNumber"] = "PQL-2025H2-POM-RESUB-0001",
+    });
+    await UpsertFileCycle(h2SubmissionId,
+        [$"{h2Resub1Prefix}-{2:D12}", $"{h2Resub1Prefix}-{3:D12}", $"{h2Resub1Prefix}-{4:D12}", $"{h2Resub1Prefix}-{5:D12}", $"{h2Resub1Prefix}-{6:D12}"],
+        h2Resub1FileId, h2Resub1BlobName,
+        "PopQuest_Pom_2025H2_Resubmission1.csv", "July to December 2025", "2025-11-10", isResubmission: true);
+    await UpsertEvent(h2SubmissionId, $"{h2Resub1Prefix}-{7:D12}", "PackagingResubmissionFeeViewed", "2025-11-10T09:10:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["IsPackagingResubmissionFeeViewed"] = true,
+    });
+    await UpsertEvent(h2SubmissionId, $"{h2Resub1Prefix}-{8:D12}", "PackagingDataResubmissionFeePayment", "2025-11-10T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["ReferenceNumber"] = "PQL-2025H2-POM-RESUB-0001",
+        ["PaymentMethod"] = "PayByBankTransfer",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = "540.00",
+    });
+    // The declaration closes this cycle: with no later reference number until the one created
+    // below, the handler stops reporting an open cycle here, which is what makes this a completed
+    // resubmission rather than one in progress.
+    await UpsertEvent(h2SubmissionId, $"{h2Resub1Prefix}-{9:D12}", "PackagingResubmissionApplicationSubmitted", "2025-11-10T09:25:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["IsResubmitted"] = true,
+        ["SubmittedBy"] = "Olivia Reed",
+        ["SubmissionDate"] = "2025-11-10T09:25:00.0000000Z",
+        ["Comments"] = "Corrected packaging data resubmitted for July to December 2025",
+    });
+    await UpsertEvent(h2SubmissionId, $"{h2Resub1Prefix}-{10:D12}", "RegulatorPoMDecision", "2025-11-24T10:30:00.0000000Z", new()
+    {
+        ["FileId"] = h2Resub1FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = "PQL-2025H2-POM-DEC-0002",
+        ["DecisionDate"] = "2025-11-24T10:30:00.0000000Z",
+        ["Comments"] = "Packaging data accepted",
+        ["IsResubmissionRequired"] = false,
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {h2SubmissionId} first resubmission (2025 H2, Accepted)");
+
+    // Second resubmission, currently in progress. Deliberately no PackagingDataResubmissionFeePayment
+    // or PackagingResubmissionApplicationSubmitted event - the fee is ready to view but not yet paid
+    // or finally submitted, which is the state under test. The reference number here must match
+    // the one the sp_PomResubmissionPaycalParameters stub returns for this SubmissionId. Brought
+    // forward to 08:45 (from 09:00) to leave room for the two failed upload attempts below, which
+    // must sit after the reference number but before the successful upload at 09:00 - the AV-check
+    // event closest to "now" is what GetPackagingResubmissionApplicationDetailsQueryHandler treats
+    // as the current upload, so the failed attempts must not be the most recent one.
+    await UpsertEvent(h2SubmissionId, $"{h2Prefix}-{1:D12}", "PackagingResubmissionReferenceNumberCreated", "2026-01-20T08:45:00.0000000Z", new()
+    {
+        ["PackagingResubmissionReferenceNumber"] = "PQL-2025H2-POM-RESUB-0002",
+    });
+
+    // Two failed upload attempts before the successful one below: the file passes the antivirus
+    // scan both times but fails data validation, so the user has to correct it and re-upload.
+    // Neither attempt reaches Submitted - only the third, valid upload (via UpsertFileCycle) does.
+    await UpsertEvent(h2SubmissionId, "F3F3F3F3-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2026-01-20T08:48:00.0000000Z", new()
+    {
+        ["FileId"] = "f3f3f3f3-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "PopQuest_Pom_2025H2_Resubmission_Attempt1.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "F3F3F3F3-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2026-01-20T08:50:00.0000000Z", new()
+    {
+        ["FileId"] = "f3f3f3f3-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "f3f3f3f3-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "F3F3F3F3-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2026-01-20T08:51:00.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 2,
+        ["WarningCount"] = 0,
+        ["DataCount"] = 1,
+        ["BlobName"] = "f3f3f3f3-bbbb-4bbb-8bbb-000000000001",
+    });
+    await UpsertEvent(h2SubmissionId, "F3F3F3F3-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2026-01-20T08:51:30.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 2,
+        ["WarningCount"] = 0,
+        ["BlobName"] = "f3f3f3f3-bbbb-4bbb-8bbb-000000000001",
+    });
+    await UpsertEvent(h2SubmissionId, "F4F4F4F4-DDDD-4DDD-8DDD-000000000001", "AntivirusCheck", "2026-01-20T08:54:00.0000000Z", new()
+    {
+        ["FileId"] = "f4f4f4f4-aaaa-4aaa-8aaa-000000000001",
+        ["FileType"] = "Pom",
+        ["FileName"] = "PopQuest_Pom_2025H2_Resubmission_Attempt2.csv",
+        ["BlobContainerName"] = uploadContainerName,
+    });
+    await UpsertEvent(h2SubmissionId, "F4F4F4F4-DDDD-4DDD-8DDD-000000000002", "AntivirusResult", "2026-01-20T08:56:00.0000000Z", new()
+    {
+        ["FileId"] = "f4f4f4f4-aaaa-4aaa-8aaa-000000000001",
+        ["BlobName"] = "f4f4f4f4-bbbb-4bbb-8bbb-000000000001",
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+    await UpsertEvent(h2SubmissionId, "F4F4F4F4-DDDD-4DDD-8DDD-000000000003", "CheckSplitter", "2026-01-20T08:57:00.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 1,
+        ["WarningCount"] = 1,
+        ["DataCount"] = 1,
+        ["BlobName"] = "f4f4f4f4-bbbb-4bbb-8bbb-000000000001",
+    });
+    await UpsertEvent(h2SubmissionId, "F4F4F4F4-DDDD-4DDD-8DDD-000000000004", "ProducerValidation", "2026-01-20T08:57:30.0000000Z", new()
+    {
+        ["IsValid"] = false,
+        ["ErrorCount"] = 1,
+        ["WarningCount"] = 1,
+        ["BlobName"] = "f4f4f4f4-bbbb-4bbb-8bbb-000000000001",
     });
     await UpsertFileCycle(h2SubmissionId,
         [$"{h2Prefix}-{2:D12}", $"{h2Prefix}-{3:D12}", $"{h2Prefix}-{4:D12}", $"{h2Prefix}-{5:D12}", $"{h2Prefix}-{6:D12}"],
@@ -1172,7 +1444,7 @@ static async Task SeedPopQuestPackagingDataAsync(Database database)
         ["FileId"] = h2ResubFileId.ToLowerInvariant(),
         ["IsPackagingResubmissionFeeViewed"] = true,
     });
-    Console.WriteLine($"Seeded POP QUEST packaging data submission {h2SubmissionId} (2025 H2, Accepted + resubmission in progress)");
+    Console.WriteLine($"Seeded POP QUEST packaging data submission {h2SubmissionId} (2025 H2, Accepted + first resubmission Accepted + second resubmission in progress)");
 
     // ---- 2026 H1: Accepted, then a corrected file Rejected ----
     const string y26SubmissionId = "C9D0E1F2-A3B4-4C5D-8E6F-7A8B9C0D1E23";
