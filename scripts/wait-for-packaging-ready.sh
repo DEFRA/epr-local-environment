@@ -5,7 +5,7 @@
 #
 #   ./scripts/wait-for-packaging-ready.sh [--timeout SECONDS] [--start]
 #
-#     --start    run `docker compose --profile packaging up -d --wait` first
+#     --start    run `docker compose --profile packaging up -d --build --wait` first
 #     --timeout  overall budget, default 600s (cold start measured ~97s)
 #
 # Why this exists rather than just `docker compose up -d --wait`:
@@ -92,7 +92,7 @@ if [ "$DO_START" = "1" ]; then
   # Deliberately not `|| true`. If `up` cannot start the stack - most commonly an expired
   # container-registry token, since every service is pull_policy: always - the later stages would
   # otherwise sit and time out with a misleading "not healthy" message instead of the real cause.
-  if ! $COMPOSE up -d >"$up_log" 2>&1; then
+  if ! $COMPOSE up -d --build >"$up_log" 2>&1; then
     echo "--- docker compose up output (last 15 lines) ---" >&2
     tail -15 "$up_log" >&2
     if grep -qiE "authentication required|unauthorized|denied" "$up_log"; then
@@ -122,6 +122,23 @@ if command -v jq >/dev/null 2>&1; then
 fi
 [ "${#ONE_SHOT[@]}" -eq 0 ] && \
   echo "note: could not read one-shot services from compose (is jq installed?) - falling back to name patterns" >&2
+
+# Containers from other profiles (e.g. left over from a `--profile regulator up -d` run) share
+# this compose project name and so show up in `docker ps -a` alongside packaging's own
+# containers. Left unfiltered, stage 1/2 wait forever on services this run never started and
+# has no way to fix. `config --services` needs no jq - it is the plain list of service names
+# that belong to the currently active profile(s).
+declare -A PROFILE_SERVICES=()
+while read -r svc; do
+  [ -n "$svc" ] && PROFILE_SERVICES["$svc"]=1
+done < <($COMPOSE config --services 2>/dev/null)
+[ "${#PROFILE_SERVICES[@]}" -eq 0 ] && \
+  echo "warning: could not read the packaging profile's service list from compose - falling back to checking every container in the project" >&2
+
+in_profile() { # compose service name
+  [ "${#PROFILE_SERVICES[@]}" -eq 0 ] && return 0
+  [ -n "${PROFILE_SERVICES[$1]+x}" ]
+}
 
 is_one_shot() { # compose service name
   [ -n "${ONE_SHOT[$1]+x}" ] && return 0
@@ -155,7 +172,9 @@ while :; do
   not_ready=""
   while IFS='|' read -r name label; do
     [ -z "$name" ] && continue
-    is_one_shot "$(service_of "$name" "$label")" && continue
+    svc="$(service_of "$name" "$label")"
+    in_profile "$svc" || continue
+    is_one_shot "$svc" && continue
     read -r status health <<<"$(docker inspect -f \
       '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$name" 2>/dev/null)"
     case "$status:$health" in
@@ -187,6 +206,7 @@ while :; do
   while IFS='|' read -r name label; do
     [ -z "$name" ] && continue
     svc=$(service_of "$name" "$label")
+    in_profile "$svc" || continue
     is_one_shot "$svc" || continue
     read -r status code <<<"$(docker inspect -f '{{.State.Status}} {{.State.ExitCode}}' "$name" 2>/dev/null)"
     if [ "$status" != "exited" ]; then
@@ -272,7 +292,7 @@ while :; do
   if [ "$(budget_left)" -le 0 ]; then
     hint="often a stale cert - see the note at the top of this script"
     [ -n "$dns_failed" ] && hint="looks like Docker's embedded DNS lost these - see bullet 4 at the top; fix with:$(
-      for n in $dns_failed; do printf ' docker compose --profile packaging up -d --force-recreate %s;' "$n"; done
+      for n in $dns_failed; do printf ' docker compose --profile packaging up -d --build --force-recreate %s;' "$n"; done
     )"
     fail "frontend cannot reach:$unreachable ($hint)"
   fi
