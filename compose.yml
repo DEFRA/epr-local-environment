@@ -268,7 +268,7 @@ services:
     ports:
       - 4566:4566
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -654,6 +654,7 @@ services:
       HttpClient__AppServiceUrl: https://epr-pom-api-web:8081
       WebAPI__BaseEndpoint: https://epr-pom-api-web:8081
       FeatureManagement__CsocEnabled: true
+      FeatureManagement__ShowPrnsOnCdp: false
       FeatureManagement__EnableCsvDownload: "true"
       FeatureManagement__EnableRecyclabilityRatingColumn: "true"
       FeatureManagement__EnableSubsidiaryJoinerAndLeaverColumns: "true"
