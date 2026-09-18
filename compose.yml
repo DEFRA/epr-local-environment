@@ -671,9 +671,7 @@ services:
       FeatureManagement__ShowSubsidiariesRemoveLink: "true"
       FeatureManagement__ShowSubsidiariesSingleUploadJourney: "true"
       FeatureManagement__ShowSubsidiaryJoinerAndLeaverColumns: "false"
-      Csoc__WasteObligationsBaseAddress: https://localhost:8010
-      # Use this instead when testing through packaging-waste-proxy.
-      # Csoc__WasteObligationsBaseAddress: https://localhost:8015/manage-recycling-obligations
+      Csoc__WasteObligationsBaseAddress: https://localhost:8015/manage-recycling-obligations
       Health__All__Token: THISISTHETOKEN
     ports:
       - "5145:8080" # taken from launch settings in epr-packaging-frontend
