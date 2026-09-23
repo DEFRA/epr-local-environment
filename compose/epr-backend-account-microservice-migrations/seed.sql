@@ -191,6 +191,95 @@ if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpS
     insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
     values (@dpSub2OrgId, (select ReferenceNumber from Organisations where Id = @dpSub2OrgId))
 
+-- ============================================================
+-- 3 more subsidiary companies attached to POP QUEST LTD, added via the same three-table shape
+-- as above (Organisations + OrganisationRelationships + SubsidiaryOrganisations) but deliberately
+-- NOT mirrored into synapse-sqlserver-restore/seed/baseline.sql, mocks/CosmosDbInit/Program.cs or
+-- epr-payment-service-migrations/seed.sql. That mirroring is what represents a subsidiary's data
+-- having gone through registration - omitting it here mimics a subsidiary bulk upload (like
+-- BulkUploadController -> OrganisationService.AddOrganisationAndOrganisationRelationshipsAsync)
+-- that has completed but never been registered.
+-- ============================================================
+
+-- DP Subsidiary 3: POP QUEST (EAST) LTD - uploaded, not registered
+declare @dpSub3ExternalId uniqueidentifier
+set @dpSub3ExternalId = 'B2AA24B1-F73D-4C8D-861C-BADC387D14BC'
+
+if not exists (select 1 from Organisations where ExternalId = @dpSub3ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121898', 'POP QUEST (EAST) LTD', '', '165285', 1, 0, 1, @dpSub3ExternalId)
+
+declare @dpSub3OrgId int
+set @dpSub3OrgId = (select Id from Organisations where ExternalId = @dpSub3ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @dpOrgId and SecondOrganisationId = @dpSub3OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@dpOrgId, @dpSub3OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpSub3OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@dpSub3OrgId, (select ReferenceNumber from Organisations where Id = @dpSub3OrgId))
+
+-- DP Subsidiary 4: POP QUEST (WEST) LTD - uploaded, not registered
+declare @dpSub4ExternalId uniqueidentifier
+set @dpSub4ExternalId = 'C084FCF9-C9AA-4891-9E33-124ED8E1E5BD'
+
+if not exists (select 1 from Organisations where ExternalId = @dpSub4ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121899', 'POP QUEST (WEST) LTD', '', '165286', 1, 0, 1, @dpSub4ExternalId)
+
+declare @dpSub4OrgId int
+set @dpSub4OrgId = (select Id from Organisations where ExternalId = @dpSub4ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @dpOrgId and SecondOrganisationId = @dpSub4OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@dpOrgId, @dpSub4OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpSub4OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@dpSub4OrgId, (select ReferenceNumber from Organisations where Id = @dpSub4OrgId))
+
+-- DP Subsidiary 5: POP QUEST (CENTRAL) LTD - uploaded, not registered
+declare @dpSub5ExternalId uniqueidentifier
+set @dpSub5ExternalId = '829C82DA-D126-47E8-B262-53BC71D36D86'
+
+if not exists (select 1 from Organisations where ExternalId = @dpSub5ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121900', 'POP QUEST (CENTRAL) LTD', '', '165287', 1, 0, 1, @dpSub5ExternalId)
+
+declare @dpSub5OrgId int
+set @dpSub5OrgId = (select Id from Organisations where ExternalId = @dpSub5ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @dpOrgId and SecondOrganisationId = @dpSub5OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@dpOrgId, @dpSub5OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpSub5OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@dpSub5OrgId, (select ReferenceNumber from Organisations where Id = @dpSub5OrgId))
+
+-- DP Subsidiary 6: POP QUEST (SOUTH EAST) LTD - uploaded, not registered. A second spare for POP
+-- QUEST (Subsidiary 5/165287 above is the first) - the "queried, then resubmitted with one existing
+-- plus one genuinely new subsidiary" devlocal scenario needs a subsidiary that was never present in
+-- any prior cycle at all, distinct from 165287.
+declare @dpSub6ExternalId uniqueidentifier
+set @dpSub6ExternalId = '9A82091C-E636-4BD2-8147-AFA27FB681CF'
+
+if not exists (select 1 from Organisations where ExternalId = @dpSub6ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '17121901', 'POP QUEST (SOUTH EAST) LTD', '', '165288', 1, 0, 1, @dpSub6ExternalId)
+
+declare @dpSub6OrgId int
+set @dpSub6OrgId = (select Id from Organisations where ExternalId = @dpSub6ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @dpOrgId and SecondOrganisationId = @dpSub6OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@dpOrgId, @dpSub6OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpSub6OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@dpSub6OrgId, (select ReferenceNumber from Organisations where Id = @dpSub6OrgId))
+
 -- Delegated user for Compliance Scheme org
 declare @csDelegatedUserId uniqueidentifier
 declare @csDelegatedEmail nvarchar(255)
@@ -889,6 +978,35 @@ if not exists (select 1 from SelectedSchemes where OrganisationConnectionId = @m
     values (@m10OrgConnectionId, @csNewSchemeId)
 
 -- ============================================================
+-- Member organisation 11: HARROGATE PRINTWORKS LTD - "uploaded, not registered" for the scheme
+-- (Organisations + OrganisationsConnections + SelectedSchemes only, no Users/Persons/Enrolments -
+-- unlike members 1-10, nobody needs to log in as this org) - a spare member reserved for devlocal
+-- scenarios testing IsNewJoiner (RegistrationSubmissionProducer.IsNewJoiner in epr-payment-service,
+-- set from the registration CSV's joiner_date column): a compliance scheme member appearing for the
+-- first time in a resubmission, with joiner_date filled in on their own CSV row.
+-- ============================================================
+declare @m11OrgExternalId uniqueidentifier
+set @m11OrgExternalId = 'C9C53071-A269-405B-833C-D0C5D7D4CCC9'
+
+if not exists (select 1 from Organisations where ExternalId = @m11OrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000027', 'HARROGATE PRINTWORKS LTD', '', '110021', 1, 0, 1, @m11OrgExternalId)
+
+declare @m11OrgId int
+set @m11OrgId = (select Id from Organisations where ExternalId = @m11OrgExternalId)
+
+if not exists (select 1 from OrganisationsConnections where FromOrganisationId = @m11OrgId and ToOrganisationId = @csNewOrgId)
+    insert into OrganisationsConnections (FromOrganisationId, FromOrganisationRoleId, ToOrganisationId, ToOrganisationRoleId)
+    values (@m11OrgId, 1, @csNewOrgId, 2)
+
+declare @m11OrgConnectionId int
+set @m11OrgConnectionId = (select top 1 Id from OrganisationsConnections where FromOrganisationId = @m11OrgId and ToOrganisationId = @csNewOrgId)
+
+if not exists (select 1 from SelectedSchemes where OrganisationConnectionId = @m11OrgConnectionId and ComplianceSchemeId = @csNewSchemeId)
+    insert into SelectedSchemes (OrganisationConnectionId, ComplianceSchemeId)
+    values (@m11OrgConnectionId, @csNewSchemeId)
+
+-- ============================================================
 -- 4 subsidiary companies: 2 attached to BRAMBLEWOOD PACKAGING LTD (member 1),
 -- 2 attached to SILVERDALE FOODS LTD (member 2)
 -- ============================================================
@@ -968,6 +1086,136 @@ if not exists (select 1 from OrganisationRelationships where FirstOrganisationId
 if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub4OrgId)
     insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
     values (@sub4OrgId, (select ReferenceNumber from Organisations where Id = @sub4OrgId))
+
+-- ============================================================
+-- 4 more subsidiary companies attached to BRAMBLEWOOD PACKAGING LTD (member 1), added via the
+-- same three-table shape as the 4 above but deliberately NOT mirrored into
+-- synapse-sqlserver-restore/seed/baseline.sql, mocks/CosmosDbInit/Program.cs or
+-- epr-payment-service-migrations/seed.sql. That mirroring is what represents a subsidiary's data
+-- having gone through registration - omitting it here mimics a subsidiary bulk upload (like
+-- BulkUploadController -> OrganisationService.AddOrganisationAndOrganisationRelationshipsAsync)
+-- that has completed but never been registered.
+-- ============================================================
+
+-- Subsidiary 5: BRAMBLEWOOD PACKAGING (EAST) LTD, subsidiary of BRAMBLEWOOD PACKAGING LTD - uploaded, not registered
+declare @sub5ExternalId uniqueidentifier
+set @sub5ExternalId = '2821BFE6-F647-4A48-B646-58A75347386F'
+
+if not exists (select 1 from Organisations where ExternalId = @sub5ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000021', 'BRAMBLEWOOD PACKAGING (EAST) LTD', '', '110015', 1, 0, 1, @sub5ExternalId)
+
+declare @sub5OrgId int
+set @sub5OrgId = (select Id from Organisations where ExternalId = @sub5ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @m1OrgId and SecondOrganisationId = @sub5OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@m1OrgId, @sub5OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub5OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@sub5OrgId, (select ReferenceNumber from Organisations where Id = @sub5OrgId))
+
+-- Subsidiary 6: BRAMBLEWOOD PACKAGING (WEST) LTD, subsidiary of BRAMBLEWOOD PACKAGING LTD - uploaded, not registered
+declare @sub6ExternalId uniqueidentifier
+set @sub6ExternalId = '9DD03934-7A6A-4131-990F-86AB8320DDF0'
+
+if not exists (select 1 from Organisations where ExternalId = @sub6ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000022', 'BRAMBLEWOOD PACKAGING (WEST) LTD', '', '110016', 1, 0, 1, @sub6ExternalId)
+
+declare @sub6OrgId int
+set @sub6OrgId = (select Id from Organisations where ExternalId = @sub6ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @m1OrgId and SecondOrganisationId = @sub6OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@m1OrgId, @sub6OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub6OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@sub6OrgId, (select ReferenceNumber from Organisations where Id = @sub6OrgId))
+
+-- Subsidiary 7: BRAMBLEWOOD PACKAGING (CENTRAL) LTD, subsidiary of BRAMBLEWOOD PACKAGING LTD - uploaded, not registered
+declare @sub7ExternalId uniqueidentifier
+set @sub7ExternalId = '2196A8FA-5054-44EB-88B4-D119F8ADE1E1'
+
+if not exists (select 1 from Organisations where ExternalId = @sub7ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000023', 'BRAMBLEWOOD PACKAGING (CENTRAL) LTD', '', '110017', 1, 0, 1, @sub7ExternalId)
+
+declare @sub7OrgId int
+set @sub7OrgId = (select Id from Organisations where ExternalId = @sub7ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @m1OrgId and SecondOrganisationId = @sub7OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@m1OrgId, @sub7OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub7OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@sub7OrgId, (select ReferenceNumber from Organisations where Id = @sub7OrgId))
+
+-- Subsidiary 8: BRAMBLEWOOD PACKAGING (HIGHLAND) LTD, subsidiary of BRAMBLEWOOD PACKAGING LTD - uploaded, not registered
+declare @sub8ExternalId uniqueidentifier
+set @sub8ExternalId = 'F979D14A-472C-4E16-A674-18EAB0967199'
+
+if not exists (select 1 from Organisations where ExternalId = @sub8ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000024', 'BRAMBLEWOOD PACKAGING (HIGHLAND) LTD', '', '110018', 1, 0, 1, @sub8ExternalId)
+
+declare @sub8OrgId int
+set @sub8OrgId = (select Id from Organisations where ExternalId = @sub8ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @m1OrgId and SecondOrganisationId = @sub8OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@m1OrgId, @sub8OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub8OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@sub8OrgId, (select ReferenceNumber from Organisations where Id = @sub8OrgId))
+
+-- Subsidiary 9: QUARRYSTONE HARDWARE (EAST) LTD, subsidiary of QUARRYSTONE HARDWARE LTD - uploaded, not registered
+-- Same "bulk upload done, registration not done" shape as the BRAMBLEWOOD/POP QUEST subsidiaries
+-- above: not mirrored into synapse-sqlserver-restore/seed/baseline.sql, mocks/CosmosDbInit/Program.cs
+-- or epr-payment-service-migrations/seed.sql.
+declare @sub9ExternalId uniqueidentifier
+set @sub9ExternalId = '95D397D5-8C3A-4B2A-A55B-AF3EAFAD51DF'
+
+if not exists (select 1 from Organisations where ExternalId = @sub9ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000025', 'QUARRYSTONE HARDWARE (EAST) LTD', '', '110019', 1, 0, 1, @sub9ExternalId)
+
+declare @sub9OrgId int
+set @sub9OrgId = (select Id from Organisations where ExternalId = @sub9ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @m6OrgId and SecondOrganisationId = @sub9OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@m6OrgId, @sub9OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub9OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@sub9OrgId, (select ReferenceNumber from Organisations where Id = @sub9OrgId))
+
+-- Subsidiary 10: QUARRYSTONE HARDWARE (WEST) LTD, subsidiary of QUARRYSTONE HARDWARE LTD - uploaded,
+-- not registered. A second spare for member 6 (Subsidiary 9/110019 above is the first) - the
+-- "queried, then resubmitted with one existing plus one genuinely new subsidiary" devlocal scenario
+-- needs a subsidiary that was never present in any prior cycle at all, distinct from 110019.
+declare @sub10ExternalId uniqueidentifier
+set @sub10ExternalId = '553095D2-7417-42F0-9230-B3219C10B5A7'
+
+if not exists (select 1 from Organisations where ExternalId = @sub10ExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName, ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '11000026', 'QUARRYSTONE HARDWARE (WEST) LTD', '', '110020', 1, 0, 1, @sub10ExternalId)
+
+declare @sub10OrgId int
+set @sub10OrgId = (select Id from Organisations where ExternalId = @sub10ExternalId)
+
+if not exists (select 1 from OrganisationRelationships where FirstOrganisationId = @m6OrgId and SecondOrganisationId = @sub10OrgId)
+    insert into OrganisationRelationships (FirstOrganisationId, SecondOrganisationId, OrganisationRelationshipTypeId, LastUpdatedById, LastUpdatedByOrganisationId)
+    values (@m6OrgId, @sub10OrgId, 1, (select Id from Users where Email = 'system@dummy.com'), 1)
+
+if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @sub10OrgId)
+    insert into SubsidiaryOrganisations (OrganisationId, SubsidiaryId)
+    values (@sub10OrgId, (select ReferenceNumber from Organisations where Id = @sub10OrgId))
 
 -- Regulator organisations (OrganisationTypeId 6 = "Regulators"), one per nation. Needed by
 -- FacadeAccountCreation's RegulatorController/OrganisationService.GetRegulatorOrganisationByNationAsync,
