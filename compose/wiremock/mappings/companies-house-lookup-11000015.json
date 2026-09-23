@@ -1,0 +1,32 @@
+{
+  "Priority": 1,
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/company/11000015"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "BodyAsJson": {
+      "company_name": "EURO PACKAGING (EAST) LTD",
+      "company_number": "11000015",
+      "company_status": "active",
+      "type": "ltd",
+      "registered_office_address": {
+        "address_line_1": "1 Stub Street",
+        "address_line_2": "Stub District",
+        "locality": "Stub County",
+        "country": "United Kingdom",
+        "postal_code": "AB1 2CD"
+      }
+    }
+  }
+}

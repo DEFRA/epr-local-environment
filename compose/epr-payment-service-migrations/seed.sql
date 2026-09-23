@@ -18,7 +18,7 @@
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'601A176C-B17B-4B6B-B672-D0C61A44E733')
 begin
     -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'601A176C-B17B-4B6B-B672-D0C61A44E733', N'7113cc97-a799-48e4-8a5e-f214532c32e4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-08T09:05:00', SYSDATETIMEOFFSET(), 3, N'GB-ENG', N'PEPR11000007226P1');
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'601A176C-B17B-4B6B-B672-D0C61A44E733', N'7113cc97-a799-48e4-8a5e-f214532c32e4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-01-01T09:05:00', SYSDATETIMEOFFSET(), 3, N'GB-ENG', N'PEPR11000007226P1');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'77715EDE-B8E2-41CE-A1E6-CA866CA5D62D', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'110001', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'4F90C091-F140-435C-9765-B590ACD3A809', N'77715EDE-B8E2-41CE-A1E6-CA866CA5D62D', N'110011', 0, 0, 0, SYSDATETIMEOFFSET());
@@ -29,19 +29,31 @@ begin
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'FB22B24E-7FF1-4AFF-955E-950B99C7056F', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'110003', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'E25A4363-918F-465A-B185-60A8B17BF9DD', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'110004', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'A1B4EC5F-A9C1-4E96-9B0F-B84092DCE265', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'110005', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
+
+    -- This registration is seeded as already-granted, so give it the lifecycle events
+    -- SubmissionLifecycleAnalyser/RegistrationFeeSnapshotHandler expect - dated at the
+    -- registration's own SubmissionDate, same as a real submission would record them.
+    -- Deliberately no RegistrationFeeSnapshot/RegistrationFeeLineItem rows here yet.
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'4C74D5AC-6AFF-4AA7-B7B7-C4E9D2D9A1B6', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'SubmittedForRegulatorApproval', N'2026-01-01T09:06:00', SYSDATETIMEOFFSET());
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'F72C8A28-6D93-49CB-8CE2-A4A53A3E7770', N'16F8D0A5-535B-43D9-8A47-5F0D9FAD8922', N'AcceptedByRegulator', N'2026-01-02T09:05:00', SYSDATETIMEOFFSET());
 end
 
 -- 2026 Small (SubmissionId ECE0880A-B713-42D4-A018-92FD3D8053C6)
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'ECE0880A-B713-42D4-A018-92FD3D8053C6')
 begin
     -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'18AD383A-558B-4135-B628-37B67E890BB2', N'ECE0880A-B713-42D4-A018-92FD3D8053C6', N'b1df2a8b-5435-47d8-946a-07b5155b3ca4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-04-09T09:35:00', SYSDATETIMEOFFSET(), 4, N'GB-ENG', N'PEPR11000007226P1S');
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'18AD383A-558B-4135-B628-37B67E890BB2', N'ECE0880A-B713-42D4-A018-92FD3D8053C6', N'b1df2a8b-5435-47d8-946a-07b5155b3ca4', N'CAC58048-62A1-4419-9BEE-4B386454D776', N'2026-03-31T09:35:00', SYSDATETIMEOFFSET(), 4, N'GB-ENG', N'PEPR11000007226P1S');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'43905980-340B-4710-942A-7ACF0009FB82', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110006', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'75493BE3-A34F-4E7F-AD02-0587BAD62D6E', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110007', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'02CC5754-3D99-4F07-8492-333483FCDABA', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110008', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'5DEFB9E4-DD42-489B-AC87-60AB01D42E41', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110009', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'139B8D57-BEEC-4BDF-ABCB-7926939EA6EB', N'18AD383A-558B-4135-B628-37B67E890BB2', N'110010', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
+
+    -- See the 601A176C block above for why these two events are seeded (already-granted lifecycle,
+    -- no snapshot yet).
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'CFB9DAD5-9A7A-46C5-B2C7-6278F6D1077A', N'18AD383A-558B-4135-B628-37B67E890BB2', N'SubmittedForRegulatorApproval', N'2026-03-31T09:36:00', SYSDATETIMEOFFSET());
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'1581097E-800C-4107-9CCA-F98081FF55F0', N'18AD383A-558B-4135-B628-37B67E890BB2', N'AcceptedByRegulator', N'2026-04-01T09:35:00', SYSDATETIMEOFFSET());
 end
 
 -- POP QUEST LTD (Direct Producer, CHN 17121895): PayCal registration fee calculation data for its
@@ -58,11 +70,16 @@ end
 if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89')
 begin
     -- AppReferenceNumber must match the Cosmos seed for this SubmissionId (mocks/CosmosDbInit/Program.cs).
-    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89', N'e7f8a9b0-c1d2-4e3f-8a4b-5c6d7e8f9a01', null, N'2026-04-01T09:20:00', SYSDATETIMEOFFSET(), 5, N'GB-ENG', N'PEPR16528226P1');
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'C5D6E7F8-A9B0-4C1D-8E2F-3A4B5C6D7E89', N'e7f8a9b0-c1d2-4e3f-8a4b-5c6d7e8f9a01', null, N'2026-01-01T09:20:00', SYSDATETIMEOFFSET(), 5, N'GB-ENG', N'PEPR16528226P1');
 
     insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'165282', N'Large', 1, 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'6A7B3C9D-1E8F-4A5C-9BD7-2A346E8F70C9', N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'165283', 0, 0, 0, SYSDATETIMEOFFSET());
     insert into registration.RegistrationSubmissionSubsidiary (Id, RegistrationSubmissionProducerId, SubsidiaryId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'7B8C4D0E-2F9A-4B6D-8CE8-3B457F9A81DA', N'5F6A2B8C-0D7E-4F4B-8AC6-19235D7E6FB8', N'165284', 0, 0, 0, SYSDATETIMEOFFSET());
+
+    -- See the 601A176C block above for why these two events are seeded (already-granted lifecycle,
+    -- no snapshot yet).
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'4C7390C6-2482-403B-A7C2-10EAFEE42B8D', N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'SubmittedForRegulatorApproval', N'2026-01-01T09:21:00', SYSDATETIMEOFFSET());
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'11126CE3-5642-4C43-B042-59901AD69E38', N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'AcceptedByRegulator', N'2026-01-02T09:20:00', SYSDATETIMEOFFSET());
 end
 
 -- PayCal Payment records: one per accepted registration above, both Compliance Scheme

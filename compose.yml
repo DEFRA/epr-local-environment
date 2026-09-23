@@ -107,6 +107,7 @@ services:
       az storage container create --name 'epr-antivirus-registration' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage container create --name 'epr-antivirus-subsidiary' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage container create --name 'epr-antivirus-accreditation' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      az storage container create --name 'subsidiary-companies-house-upload-container' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       echo 'containers created successfully' &&
       az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name '6688ed9b-ac4c-4550-b834-5698f3523597' --file '/seed-data/northbridge/Northbridge_CompanyDetails_2025.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name '7113cc97-a799-48e4-8a5e-f214532c32e4' --file '/seed-data/northbridge/Northbridge_CompanyDetails_2026_Large.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
@@ -265,6 +266,7 @@ services:
 
   floci:
     image: floci/floci:latest
+    pull_policy: always
     ports:
       - 4566:4566
     healthcheck:
@@ -1420,6 +1422,80 @@ services:
     healthcheck:
       # Same caveat as epr-anti-virus-function-app: confirms the host is up and
       # responding, not that its Service Bus consumer has finished starting.
+      test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+      start_interval: 1s
+    profiles:
+      - packaging
+
+  # Consumer for subsidiary bulk-upload CSVs. epr-anti-virus-function-app deliberately does not
+  # publish a Service Bus message for SubmissionType.Subsidiary (see AntiVirusService.ProcessFileAsync
+  # in that repo) - instead it uploads the clean file straight to blob storage, and this function's
+  # BulkUploadFunction picks it up via a BlobTrigger on BlobStorage__SubsidiaryContainerName. Without
+  # this service, subsidiary uploads pass antivirus but the frontend polls forever because nothing
+  # ever advances the "Subsidiary bulk upload progress" Redis key past "Uploading".
+  epr-subsidiary-func-bulk-upload:
+    pull_policy: always
+    image: devrwdinfac1401.azurecr.io/subsidiaryuploadrepository:${EPR_SUBSIDIARY_BULK_UPLOAD_FUNCTION:-main-latest}
+    user: "0" # needed to elevate root user so cert can be trusted
+    depends_on:
+      azurite:
+        condition: service_healthy
+      azurite-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      epr-pom-api-submission-status:
+        condition: service_healthy
+      epr-backend-account-microservice:
+        condition: service_healthy
+      trade-antivirus-mock:
+        condition: service_started
+      wiremock:
+        condition: service_started
+    volumes:
+      - ./compose/azure-functions/host.fake:/azure-functions-host/Secrets/host.json
+      - ./compose/certs/https:/https:ro
+      - ./compose/certs/init-container.sh:/init-container.sh:ro
+    entrypoint: [ "/init-container.sh" ]
+    command: [ "/opt/startup/start_nonappservice.sh" ]
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      BlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      BlobStorage__SubsidiaryContainerName: epr-antivirus-subsidiary
+      BlobStorage__CompaniesHouseContainerName: subsidiary-companies-house-upload-container
+      TableStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      TableStorage__CompaniesHouseOfflineDataTableName: CompaniesHouseData
+      Redis__ConnectionString: redis:6379
+      Redis__TimeToLiveInMinutes: "720"
+      SubmissionApi__BaseUrl: https://epr-pom-api-submission-status:8081
+      ApiConfig__SubsidiaryServiceBaseUrl: https://epr-backend-account-microservice:8081/
+      ApiConfig__UseDirectCompaniesHouseLookup: "true"
+      # Pointed at wiremock instead of the real Companies House API - no live CH credentials
+      # are available locally, so CompaniesHouseDataProvider.SetCompaniesHouseData would otherwise
+      # fail every row with "Unexpected error when retrieving data from Companies House". The
+      # compose/wiremock/mappings/companies-house-lookup.json stub matches any GET /company/{number}
+      # and always returns a synthetic-but-valid company record, echoing back the requested number.
+      ApiConfig__CompaniesHouseDirectBaseUri: http://wiremock/
+      ApiConfig__CompaniesHouseDirectApiKey: not-used-locally
+      ApiConfig__Timeout: "30"
+      ApiConfig__RetryPolicyMaxRetries: "3"
+      ApiConfig__RetryPolicyInitialWaitTime: "1"
+      ApiConfig__RetryPolicyTooManyAttemptsMaxRetries: "3"
+      ApiConfig__RetryPolicyTooManyAttemptsWaitTime: "10"
+      AntivirusApi__BaseUrl: http://trade-antivirus-mock:8080
+      AntivirusApi__TenantId: not-used-locally
+      AntivirusApi__ClientId: not-used-locally
+      AntivirusApi__ClientSecret: not-used-locally
+      AntivirusApi__Scope: not-used-locally
+      AntivirusApi__SubscriptionKey: not-used-locally
+      FeatureManagement__EnableSubsidiaryUploadJoinerColumns: "false"
+      FeatureManagement__EnableSubsidiaryNationColumn: "true"
+    healthcheck:
       test: [ "CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:80/admin/host/status" ]
       interval: 5s
       timeout: 5s
