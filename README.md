@@ -4,6 +4,10 @@ You will need to authenticate against Azure via the command line.
 
 Select the `AZD-RWD-DEV1` subscription.
 
+```
+az account set --subscription "AZD-RWD-DEV1"
+```
+
 Then log into the container registry via:
 
 ```
@@ -31,7 +35,7 @@ To run services that have time shift capability, you can include an additional p
 docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift-packaging up -d --build
 ```
 
-See your .env file for TIMESHIFT_DATETIME and the default value applicable service(s) will be started at.
+See your .env file for `TIMESHIFT_DATETIME` and the default value applicable service(s) will be started at.
 
 Note the inclusion of `--build` with the above command to force use of the correct container if the tag version is being overridden.
 
