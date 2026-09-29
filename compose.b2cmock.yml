@@ -1,6 +1,6 @@
 # Replaces Azure AD B2C with a local mock identity provider (mocks/B2CMock).
 #
-# Use it with any profile that needs sign-in, on its own or alongside compose.timeshift.yml:
+# Use it with the packaging or obligations profile, on its own or alongside compose.timeshift.yml:
 #
 #   docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
 #
@@ -11,6 +11,10 @@
 # Only AzureADB2C__Instance is repointed. Domain, SignUpSignInPolicyId and the ClientIds stay as
 # they are, because the mock answers on the real tenant's path shape and issues the audiences the
 # real ClientIds expect. Sign-in resolves against the real seeded accounts database as usual.
+#
+# Not supported with the regulator profile: the regulator frontends still sign in with real B2C,
+# and epr-payment-facade (shared with that profile) would then reject their tokens because it is
+# repointed here. b2c-mock-regulator-unsupported stops `up` with an explanation instead.
 
 services:
   b2c-mock:
@@ -81,3 +85,14 @@ services:
     environment:
       AzureADB2C__Instance: https://b2c-mock:8443
       AzureADB2C__TokenValidationParameters__ValidateIssuer: "false"
+
+  b2c-mock-regulator-unsupported:
+    image: busybox:1.37
+    command: ["sh", "-c", "echo 'compose.b2cmock.yml does not support the regulator profile: epr-payment-facade would reject real B2C tokens from the regulator frontends. Drop -f compose.b2cmock.yml.' >&2; exit 1"]
+    profiles:
+      - regulator
+
+  epr-regulator-service:
+    depends_on:
+      b2c-mock-regulator-unsupported:
+        condition: service_completed_successfully

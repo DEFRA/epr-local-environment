@@ -53,7 +53,7 @@ Without it you get `NotTimeValid` and `IDX20803: Unable to obtain configuration 
 
 ## Mock B2C
 
-[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with any profile, with or without time shift:
+[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging` or `obligations` profile, with or without time shift:
 
 ```
 docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
@@ -63,6 +63,7 @@ docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d -
 - Signing in shows a picker at `https://localhost:8443` listing every seeded account. Set `B2CMOCK_AUTO_SELECT_USER_ID` in your `.env` to a `userId` from [`mocks/B2CMock/users.json`](mocks/B2CMock/users.json) to skip the picker and sign straight in as that user.
 - Tokens are really RS256-signed and carry a seeded account's `UserId` as `oid`/`sub`, so `epr-facade-account-microservice` and the other APIs go on validating them for real against the real seeded organisations — see [Seeded users](#seeded-users-packaging-profile). Nothing downstream is stubbed.
 - Only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are.
+- It does not support the `regulator` profile. The regulator frontends still sign in with real B2C, and `epr-payment-facade`, which that profile shares, would reject their tokens. `up` stops with an error if you combine them.
 
 To edit the list of users offered, change `mocks/B2CMock/users.json` and restart `b2c-mock` — it is mounted, not baked into the image.
 
