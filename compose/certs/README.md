@@ -4,15 +4,23 @@ If a new service is added that uses a different host name ie. the service name i
 
 1. Add the new hostname to [`cert.conf`](cert.conf) as another `DNS.N` entry under `[alt_names]`.
 
-2. Regenerate the `epr-local-root-ca.{key,crt}` trust anchor and `aspnetapp.{key,crt,pfx,cer}` service certificate with [`regenerate.sh`](regenerate.sh) — it prints the service SAN list at the end, check your hostname is there:
+2. Regenerate the `aspnetapp.{key,crt,pfx,cer}` service certificate with [`regenerate.sh`](regenerate.sh) — it prints the service SAN list at the end, check your hostname is there:
 
    ```sh
    ./regenerate.sh
    ```
 
+   It needs OpenSSL 3.4 or later (`brew install openssl`); the LibreSSL in `/usr/bin` is refused.
+
+   Both certificates are backdated to 2020 and run to 2039, so they stay valid at any `TIMESHIFT_DATETIME`. Time-shifted containers check the chain against their fake clock, and a certificate that is not valid yet fails with `NotTimeValid`.
+
+   The existing `epr-local-root-ca.{key,crt}` trust anchor is reused, so nobody has to redo the trust steps below. Pass `--new-ca` to replace the trust anchor too — everyone then has to re-trust it.
+
+   Do this with the stack stopped. If the certificates change while containers are running, services end up on different certificate generations and every inter-service HTTPS call fails with `PartialChain` while every container still reports healthy.
+
    The `password` baked in matches `ASPNETCORE_Kestrel__Certificates__Default__Password` in `compose.yml`.
 
-3. Commit all six regenerated certificate files alongside `cert.conf`.
+3. Commit the four regenerated `aspnetapp.*` files alongside `cert.conf` — plus the two `epr-local-root-ca.*` files if you used `--new-ca`.
 
 ## Trusting the certificate
 

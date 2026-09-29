@@ -1,0 +1,154 @@
+[
+  {
+    "userId": "579c319d-d552-47a2-bf4c-5a125a3183bc",
+    "email": "test+17122025143216@ee.com",
+    "givenName": "First name",
+    "familyName": "Last Name",
+    "organisation": "Organisation Name (100002)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "ef2fd2a5-24bf-4b22-89a0-17a0367aee1c",
+    "email": "francis.chelladurai+07042026@equalexperts.com",
+    "givenName": "Francis",
+    "familyName": "Delegated",
+    "organisation": "Organisation Name (100002)",
+    "role": "Delegated Person"
+  },
+  {
+    "userId": "13e26b8a-e2b2-4870-b040-d6bdf5d689fa",
+    "email": "francis.chelladurai+260407@equalexperts.com",
+    "givenName": "Francis",
+    "familyName": "Basic",
+    "organisation": "Organisation Name (100002)",
+    "role": "Basic User"
+  },
+  {
+    "userId": "94bfd894-8f64-4f8d-9975-259d08786c2b",
+    "email": "ahmed.hussein+dev9+1784615966009+09640-DONT_USE@equalexperts.com",
+    "givenName": "Olivia",
+    "familyName": "Bennett",
+    "organisation": "Northbridge Compliance Solutions Ltd (110000)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "f0ca633f-c62f-4ddb-8009-893c1df9ebc3",
+    "email": "ahmed.hussein+dev9+1784616197060+61532-DONT_USE@equalexperts.com",
+    "givenName": "Thomas",
+    "familyName": "Wright",
+    "organisation": "Northbridge Compliance Solutions Ltd (110000)",
+    "role": "Delegated Person"
+  },
+  {
+    "userId": "637b0dea-83fa-49ce-afd9-c5527a820ce1",
+    "email": "ahmed.hussein+dev9+1784616229626+56548-DONT_USE@equalexperts.com",
+    "givenName": "Grace",
+    "familyName": "Mitchell",
+    "organisation": "Northbridge Compliance Solutions Ltd (110000)",
+    "role": "Basic User"
+  },
+  {
+    "userId": "a16ae06c-3629-4f04-89a6-b8d1912c99fe",
+    "email": "ahmed.hussein+dev9+1782714701839+98807-DONT_USE@equalexperts.com",
+    "givenName": "James",
+    "familyName": "Carter",
+    "organisation": "BRAMBLEWOOD PACKAGING LTD (110001)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "972111c5-42d1-4aaa-a076-bd61098a75c7",
+    "email": "ahmed.hussein+dev9+1782714726947+48306-DONT_USE@equalexperts.com",
+    "givenName": "Sophie",
+    "familyName": "Turner",
+    "organisation": "SILVERDALE FOODS LTD (110002)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "8ce8a6c7-16e6-412f-abbe-036c2dd7e11a",
+    "email": "ahmed.hussein+dev9+1782714740443+61628-DONT_USE@equalexperts.com",
+    "givenName": "Daniel",
+    "familyName": "Clarke",
+    "organisation": "TIDELINE BEVERAGES LTD (110003)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "410953e4-5d24-4a3c-95f6-e38e8e6802a1",
+    "email": "ahmed.hussein+dev9+1782714811219+93870-DONT_USE@equalexperts.com",
+    "givenName": "Emily",
+    "familyName": "Foster",
+    "organisation": "COPPERGATE HOMEWARES LTD (110004)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "575067a3-f25e-4b5a-91bc-5bc763bf7556",
+    "email": "ahmed.hussein+dev9+1782714821734+90170-DONT_USE@equalexperts.com",
+    "givenName": "Michael",
+    "familyName": "Reid",
+    "organisation": "FERNLEIGH COSMETICS LTD (110005)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "9ecc9140-47e7-4e5e-9b71-1ff3129c5eb5",
+    "email": "ahmed.hussein+dev9+1782714833475+55076-DONT_USE@equalexperts.com",
+    "givenName": "Charlotte",
+    "familyName": "Hughes",
+    "organisation": "QUARRYSTONE HARDWARE LTD (110006)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "103b8411-58f4-4b71-b985-b3a4450b32b3",
+    "email": "ahmed.hussein+dev9+1782714878221+10813-DONT_USE@equalexperts.com",
+    "givenName": "Benjamin",
+    "familyName": "Cole",
+    "organisation": "MAPLECROFT STATIONERY LTD (110007)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "ffd8a042-7bfb-4ce6-bc3a-3bd2e6cdefe9",
+    "email": "ahmed.hussein+dev9+1782714888354+70374-DONT_USE@equalexperts.com",
+    "givenName": "Isabella",
+    "familyName": "Grant",
+    "organisation": "HARBOURVIEW TEXTILES LTD (110008)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "296c40cc-6694-4e42-95c3-dfd1c0f9692c",
+    "email": "ahmed.hussein+dev9+1782714921449+05316-DONT_USE@equalexperts.com",
+    "givenName": "Oliver",
+    "familyName": "Marsh",
+    "organisation": "GREENFIELD DAIRY LTD (110009)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "f3f0c069-b981-44ce-946c-484b943b763a",
+    "email": "ahmed.hussein+dev9+1782715019923+87659-DONT_USE@equalexperts.com",
+    "givenName": "Amelia",
+    "familyName": "Doyle",
+    "organisation": "STONEBRIDGE ELECTRONICS LTD (110010)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "79d0deab-c22d-4c30-8082-508ff8dc1bd7",
+    "email": "test+directproducer@ee.com",
+    "givenName": "Direct",
+    "familyName": "Producer",
+    "organisation": "POP QUEST LTD (165282)",
+    "role": "Approved Person"
+  },
+  {
+    "userId": "513a78ee-d5bf-4fa4-9d8f-136550ea6072",
+    "email": "bmmmdmgz@sharklasers.com",
+    "givenName": "SB FirstName",
+    "familyName": "SB LastName",
+    "organisation": "POP QUEST LTD (165282)",
+    "role": "Delegated Person"
+  },
+  {
+    "userId": "d062d4fe-34f8-468e-ada8-d950cc9a3c2a",
+    "email": "francis.chelladurai+31032026@equalexperts.com",
+    "givenName": "Francis",
+    "familyName": "Chelladurai",
+    "organisation": "POP QUEST LTD (165282)",
+    "role": "Basic User"
+  }
+]
