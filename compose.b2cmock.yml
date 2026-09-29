@@ -1,0 +1,83 @@
+# Replaces Azure AD B2C with a local mock identity provider (mocks/B2CMock).
+#
+# Use it with any profile that needs sign-in, on its own or alongside compose.timeshift.yml:
+#
+#   docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
+#
+# The time-shift profile needs it because the real b2clogin.com certificate is only valid for a
+# ~3 month window around the real date, so OIDC discovery fails with NotTimeValid at any other
+# TIMESHIFT_DATETIME. It also removes the Azure VPN requirement for signing in.
+#
+# Only AzureADB2C__Instance is repointed. Domain, SignUpSignInPolicyId and the ClientIds stay as
+# they are, because the mock answers on the real tenant's path shape and issues the audiences the
+# real ClientIds expect. Sign-in resolves against the real seeded accounts database as usual.
+
+services:
+  b2c-mock:
+    pull_policy: never
+    build:
+      context: ./mocks/B2CMock
+    environment:
+      ASPNETCORE_URLS: http://+:8080;https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      # Containers reach the mock by service name; the browser reaches the published port. The
+      # discovery document advertises whichever of the two each endpoint's caller can resolve.
+      B2CMock__InternalOrigin: https://b2c-mock:8443
+      B2CMock__BrowserOrigin: https://localhost:8443
+      B2CMock__TenantId: 8a3f509a-c892-4bec-bfe9-d5f5cf251813
+      B2CMock__Policy: B2C_1A_EPR_SignUpSignIn
+      # Set to a userId from mocks/B2CMock/users.json to skip the sign-in picker entirely.
+      B2CMock__AutoSelectUserId: ${B2CMOCK_AUTO_SELECT_USER_ID:-}
+      # Lets the mock issue tokens that are valid on the time-shifted clock as well as the real one.
+      TIMESHIFT_DATETIME: ${TIMESHIFT_DATETIME:-}
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./compose/certs/https:/https:ro
+      # Mounted rather than baked in so the user list can be edited with a restart, not a rebuild.
+      - ./mocks/B2CMock/users.json:/app/users.json:ro
+      - ./mocks/B2CMock/clients.json:/app/clients.json:ro
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - packaging
+      - obligations
+
+  epr-packaging-frontend:
+    depends_on:
+      b2c-mock:
+        condition: service_healthy
+    environment:
+      AzureADB2C__Instance: https://b2c-mock:8443
+      # Any non-empty value: the mock does not check the client secret, but MSAL needs one to act
+      # as a confidential client when it redeems the authorization code.
+      AzureADB2C__ClientSecret: mock-client-secret
+      # Microsoft.Identity.Web otherwise installs AadIssuerValidator, which resolves issuer aliases
+      # against live Azure endpoints that will not know about b2c-mock.
+      AzureADB2C__TokenValidationParameters__ValidateIssuer: "false"
+      # This one reaches for real graph.microsoft.com with a client credential.
+      FeatureManagement__UseGraphApiForExtendedUserClaims: "false"
+
+  epr-facade-account-microservice:
+    depends_on:
+      b2c-mock:
+        condition: service_healthy
+    environment:
+      AzureADB2C__Instance: https://b2c-mock:8443
+      AzureADB2C__TokenValidationParameters__ValidateIssuer: "false"
+
+  epr-payment-facade:
+    environment:
+      AzureADB2C__Instance: https://b2c-mock:8443
+      AzureADB2C__TokenValidationParameters__ValidateIssuer: "false"
+
+  epr-pom-api-web:
+    environment:
+      AzureADB2C__Instance: https://b2c-mock:8443
+      AzureADB2C__TokenValidationParameters__ValidateIssuer: "false"
