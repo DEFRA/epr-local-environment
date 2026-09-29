@@ -41,6 +41,34 @@ Then to stop:
 docker compose -f compose.yml -f compose.timeshift.yml --profile packaging --profile timeshift-packaging down -v --remove-orphans
 ```
 
+### Time shift needs the mock B2C
+
+Sign-in breaks under time shift unless you add the [mock B2C](#mock-b2c) overlay:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml -f compose.timeshift.yml --profile packaging --profile timeshift-packaging up -d --build
+```
+
+Without it you get `NotTimeValid` and `IDX20803: Unable to obtain configuration from '...b2clogin.com/.../.well-known/openid-configuration'`. The time-shifted container validates the real `b2clogin.com` certificate against its faked clock, and that certificate is only valid for the ~3 month window around the real date that Microsoft last renewed it in — so any `TIMESHIFT_DATETIME` outside that window fails the TLS handshake before a token is ever issued. `AzureADB2C__ValidateTokenLifetime: false` does not help; it relaxes token lifetime, not the handshake.
+
+## Mock B2C
+
+[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging` or `obligations` profile, with or without time shift:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
+```
+
+- **No Azure VPN needed** to sign in, and no dev B2C account to borrow.
+- Signing in shows a picker at `https://localhost:8443` listing every seeded account. Set `B2CMOCK_AUTO_SELECT_USER_ID` in your `.env` to a `userId` from [`mocks/B2CMock/users.json`](mocks/B2CMock/users.json) to skip the picker and sign straight in as that user.
+- Tokens are really RS256-signed and carry a seeded account's `UserId` as `oid`/`sub`, so `epr-facade-account-microservice` and the other APIs go on validating them for real against the real seeded organisations — see [Seeded users](#seeded-users-packaging-profile). Nothing downstream is stubbed.
+- Only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are.
+- It does not support the `regulator` profile. The regulator frontends still sign in with real B2C, and `epr-payment-facade`, which that profile shares, would reject their tokens. `up` stops with an error if you combine them.
+
+To edit the list of users offered, change `mocks/B2CMock/users.json` and restart `b2c-mock` — it is mounted, not baked into the image.
+
+`mocks/B2CMock/signing-key.pem` is committed on purpose. Relying parties cache the JWKS for hours, so a key regenerated on every restart would make them reject tokens with `IDX10503` until they were restarted too. It is a local-development key, no more sensitive than the dev certificate keys already committed under `compose/certs`.
+
 ## Migrations
 
 The Dockerfile for migrations is unchanged, however, a different `run-migrations.sh` script is included in this repo.
@@ -251,7 +279,7 @@ Obtain a dev login account from a colleague.
 
 If you get into a redirect cycle on login that you cannot break out of then your previous session cookie might be invalid. Visit https://localhost:7084/admin/health and remove all cookies, then try again.
 
-You will need to be on the Azure VPN when running this profile.
+You will need to be on the Azure VPN when running this profile, and a dev login account from a colleague — unless you add the [mock B2C](#mock-b2c) overlay, which replaces sign-in with a picker over the seeded accounts and needs neither.
 
 To stop:
 
