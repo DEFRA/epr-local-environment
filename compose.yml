@@ -16,7 +16,6 @@ services:
       MSSQL_SA_PASSWORD: "s4usag3s!"
       ACCEPT_EULA: "Y"
     profiles:
-      - paycal
       - packaging
       - obligations
       - regulator
@@ -36,7 +35,6 @@ services:
       start_period: 5s
       start_interval: 1s
     profiles:
-      - paycal
       - packaging
       - obligations
       - regulator
@@ -232,7 +230,6 @@ services:
       start_period: 5s
       start_interval: 1s
     profiles:
-      - paycal
       - packaging
       - obligations
       - regulator
@@ -305,8 +302,6 @@ services:
     depends_on:
       sqledge:
         condition: service_healthy
-      asb:
-        condition: service_healthy
       azurite:
         condition: service_healthy
       azurite-init:
@@ -360,16 +355,8 @@ services:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorfrontendrepository:${EPR_CALCULATOR_FRONTEND:-main-latest}
     depends_on:
-      sqledge:
-        condition: service_healthy
-      asb:
-        condition: service_healthy
       epr-calculator-api:
         condition: service_started
-      azurite:
-        condition: service_healthy
-      azurite-init:
-        condition: service_completed_successfully
     environment:
       ASPNETCORE_URLS: http://+:8080;https://+:8081
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
