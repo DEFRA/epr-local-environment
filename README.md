@@ -225,7 +225,7 @@ To start:
 docker compose --profile paycal up -d
 ```
 
-Once started, access the system via https://localhost:7163 and you can login with your @onmicrosoft account. If login fails then compare with a colleague who can log in as you may need adding to an Azure group.
+Once started, access the system via https://localhost:5284 and you can login with your @onmicrosoft account. If login fails then compare with a colleague who can log in as you may need adding to an Azure group.
 
 To stop:
 
