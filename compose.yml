@@ -39,7 +39,27 @@ services:
       - obligations
       - regulator
 
+  # Newer mssql/server:2025-latest images run as mssql:mssql (10001:10001) rather than in group 0,
+  # so volumes created by older images are unreadable and SQL Server fails with "[/.system] could
+  # not be created". Re-own the data volume to whatever the current image's mssql user is.
+  sqledge-permissions:
+    pull_policy: always
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    user: root
+    entrypoint: [ "/bin/sh", "-c", "if [ \"$$(stat -c %u:%g /var/opt/mssql)\" != \"$$(id -u mssql):$$(id -g mssql)\" ]; then echo 'Fixing /var/opt/mssql ownership'; chown -R mssql:mssql /var/opt/mssql && chmod 770 /var/opt/mssql; fi" ]
+    volumes:
+      - sqledge-data:/var/opt/mssql
+    profiles:
+      - paycal
+      - packaging
+      - prn
+      - obligations
+      - regulator
+
   sqledge:
+    depends_on:
+      sqledge-permissions:
+        condition: service_completed_successfully
     pull_policy: always
     image: mcr.microsoft.com/mssql/server:2025-latest
     ports:
