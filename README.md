@@ -86,15 +86,15 @@ Find the variable name of the service you want to override from the compose.yml.
 Example:
 
 ```
-epr-calculator-service:
+epr-calculator-api:
     pull_policy: always
-    image: devrwdinfac1401.azurecr.io/eprcalculatorservicerepository:${EPR_CALCULATOR_SERVICE:-main-latest}
+    image: devrwdinfac1401.azurecr.io/eprcalculatorapirepository:${EPR_CALCULATOR_API:-main-latest}
 ```
 
-Set the `EPR_CALCULATOR_SERVICE` variable in your .env file to the image tag you require, which can be found in ADO:
+Set the `EPR_CALCULATOR_API` variable in your .env file to the image tag you require, which can be found in ADO:
 
 ```
-EPR_CALCULATOR_SERVICE=image-tag-name-to-use
+EPR_CALCULATOR_API_=image-tag-name-to-use
 ```
 
 Then start the services.
