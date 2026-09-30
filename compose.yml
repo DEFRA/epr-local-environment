@@ -330,6 +330,7 @@ services:
         condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: local
+      DOTNET_SYSTEM_NET_DISABLEIPV6: "1" # Fix to disable auth attempts via IPV6 since default bridge is IPV4 only
       AzureAd__Instance: https://login.microsoftonline.com/
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
       AzureAd__ClientId: e17b882b-afe1-481c-b519-3ca067b9b9e9 # DEV1 - DEVRWDWEBWA1422_API
@@ -381,39 +382,23 @@ services:
       epr-calculator-api:
         condition: service_started
     environment:
-      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_ENVIRONMENT: local
+      DOTNET_SYSTEM_NET_DISABLEIPV6: "1" # Fix to disable auth attempts via IPV6 since default bridge is IPV4 only
+      ASPNETCORE_URLS: https://+:5294 # Only HTTPS supported
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
-      ASPNETCORE_ENVIRONMENT: Development
+      AzureAd__Instance: https://login.microsoftonline.com/
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
-      AzureAd__ClientId: f94d57e6-b554-4cb6-b26b-fc3fb838eaa0
-      AzureAd__ClientSecret: ${EprCalculatorFrontend__AzureAd__ClientSecret} # see .env
-      DownstreamApi__Scopes: api://28b6c996-1817-4e2b-b04d-8578064d5283/default
+      AzureAd__ClientId: d0ac80d4-311b-49a7-bdb8-96585d0db49d # DEV1 - DEVRWDWEBWA1421
+      AzureAd__ClientSecret: ${EprCalculatorFrontend__AzureAd__ClientSecret} # See .env
       EprCalculatorApiService__BaseUrl: http://epr-calculator-api:8080
-      FinancialYearListApi: http://epr-calculator-api:8080/v1/financialYears
-      DashboardCalculatorRun__DashboardCalculatorRunApi: http://epr-calculator-api:8080/v1/calculatorRuns
-      DashboardCalculatorRun__DashboardCalculatorRunApiV2: http://epr-calculator-api:8080/v2/calculatorRuns
-      CalculationRunSettings__CalculationRunNameApi: http://epr-calculator-api:8080/v1/CheckCalcNameExists
-      CalculationRunSettings__CalculationRunApi: http://epr-calculator-api:8080/v1/calculatorRun
-      CalculationRunSettings__DownloadResultApi: http://epr-calculator-api:8080/v1/DownloadResult
-      CalculationRunSettings__DownloadCsvBillingApi: http://epr-calculator-api:8080/v1/DownloadBillingFile
-      CalculationRunSettings__ClassificationByFinancialYearApi: http://epr-calculator-api:8080/v1/ClassificationByFinancialYear
-      CalculationRunSettings__PrepareBillingFileSendToFSS: http://epr-calculator-api:8080/v2/prepareBillingFileSendToFSS
-      CalculationRunSettings__CalculationRunApiV2: http://epr-calculator-api:8080/v2/calculatorRuns
-      CalculationRunSettings__ProducerBillingInstructionsAcceptApi: http://epr-calculator-api:8080/v1/producerBillingInstructionsAccept
-      LapcapSettings__LapcapSettingsApi: http://epr-calculator-api:8080/v1/lapcapData
-      BillingFileSettings__BillingFileApi: http://epr-calculator-api:8080/v1/GenerateBillingFile
-      ProducerBillingInstructions__ProducerBillingInstructions: http://epr-calculator-api:8080/v1/producerBillingInstructions
-      ProducerBillingInstructions__ProducerBillingInstructionsV2: http://epr-calculator-api:8080/v2/producerBillingInstructions
-      ParameterSettings__DefaultParameterSettingsApi: http://epr-calculator-api:8080/v1/defaultParameterSetting
-      BlobStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
+      DownstreamApi__Scopes: api://e17b882b-afe1-481c-b519-3ca067b9b9e9/default # The GUID here should match epr-calculator-api's AzureAd__ClientId
     ports:
-      - "5294:8080" # taken from launch settings in epr-calculator-frontend
-      - "7163:8081" # taken from launch settings in epr-calculator-frontend
+      - "5294:5294" # Be warned: changing https/ports will break auth unless the redirect urls are updated for the Entra application matching AzureAd__ClientId
     volumes:
       - ./compose/certs/https:/https:ro
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/admin/health" ]
+      test: [ "CMD", "curl", "-fk", "https://localhost:5294/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
