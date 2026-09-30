@@ -1,6 +1,15 @@
 services:
   # The future profile needs the existing local Common Data database lifecycle,
   # but must remain independently startable from the obligations profile.
+  sqledge-permissions:
+    profiles:
+      - paycal
+      - packaging
+      - prn
+      - obligations
+      - regulator
+      - future
+
   sqledge:
     profiles:
       - paycal
