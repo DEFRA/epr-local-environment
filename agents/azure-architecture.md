@@ -55,7 +55,6 @@ UK Extended Producer Responsibility (EPR) for packaging - multi-tenant microserv
 - [epr-regulator-service-facade](repos/epr-regulator-service-facade.md) (WA 406): Orchestrates dual-source queries (CosmosDB + Synapse)
 
 ### Fee Calculation & Payment
-- [epr-calculator-service](https://github.com/DEFRA/epr-calculator-service): Core calculation engine for disposal fees
 - [epr-calculator-api](https://github.com/DEFRA/epr-calculator-api): Calculation API
 - [epr-calculator-frontend](https://github.com/DEFRA/epr-calculator-frontend): Calculator UI
 - [epr-payment-service](repos/epr-payment-service.md) (WA 425): Fee calculation + payment record management, owns feesPaymentDB
