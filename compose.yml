@@ -16,7 +16,6 @@ services:
       MSSQL_SA_PASSWORD: "s4usag3s!"
       ACCEPT_EULA: "Y"
     profiles:
-      - paycal
       - packaging
       - obligations
       - regulator
@@ -36,12 +35,31 @@ services:
       start_period: 5s
       start_interval: 1s
     profiles:
-      - paycal
       - packaging
       - obligations
       - regulator
 
+  # Newer mssql/server:2025-latest images run as mssql:mssql (10001:10001) rather than in group 0,
+  # so volumes created by older images are unreadable and SQL Server fails with "[/.system] could
+  # not be created". Re-own the data volume to whatever the current image's mssql user is.
+  sqledge-permissions:
+    pull_policy: always
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    user: root
+    entrypoint: [ "/bin/sh", "-c", "if [ \"$$(stat -c %u:%g /var/opt/mssql)\" != \"$$(id -u mssql):$$(id -g mssql)\" ]; then echo 'Fixing /var/opt/mssql ownership'; chown -R mssql:mssql /var/opt/mssql && chmod 770 /var/opt/mssql; fi" ]
+    volumes:
+      - sqledge-data:/var/opt/mssql
+    profiles:
+      - paycal
+      - packaging
+      - prn
+      - obligations
+      - regulator
+
   sqledge:
+    depends_on:
+      sqledge-permissions:
+        condition: service_completed_successfully
     pull_policy: always
     image: mcr.microsoft.com/mssql/server:2025-latest
     ports:
@@ -232,7 +250,6 @@ services:
       start_period: 5s
       start_interval: 1s
     profiles:
-      - paycal
       - packaging
       - obligations
       - regulator
@@ -299,57 +316,11 @@ services:
       - obligations
       - regulator
 
-  epr-calculator-service:
-    pull_policy: always
-    image: devrwdinfac1401.azurecr.io/eprcalculatorservicerepository:${EPR_CALCULATOR_SERVICE:-main-latest}
-    depends_on:
-      sqledge:
-        condition: service_healthy
-      asb:
-        condition: service_healthy
-      epr-calculator-api:
-        condition: service_started
-      azurite:
-        condition: service_healthy
-      azurite-init:
-        condition: service_completed_successfully
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ServiceBusConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
-      ServiceBusQueueName: defra.epr.calculator.run.local
-      FUNCTIONS_WORKER_RUNTIME: dotnet
-      FUNCTIONS_INPROC_NET8_ENABLED: 1
-      StatusUpdateEndpoint: http://epr-calculator-api:8080/v1/internal/rpdStatus
-      PrepareCalcResultEndPoint: http://epr-calculator-api:8080/v1/internal/prepareCalcResults
-      # https://github.com/dotnet/runtime/issues/103063
-      DOTNET_EnableWriteXorExecute: 0
-      APPINSIGHTS_INSTRUMENTATIONKEY: 00000000-0000-0000-0000-000000000000
-      Database:ConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;TrustServerCertificate=True"
-      BlobStorage:ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
-      BlobStorage:ResultFileCsvContainer: "paycal"
-      BlobStorage:BillingFileCsvContainer: "paycal-billingfilecsv"
-      BlobStorage:BillingFileJsonContainer: "paycal-billingfilejson"
-      CommonDataApi:HttpClient:BaseUrl: "https://localhost:8002"
-      CommonDataApi:DataLoader:Enabled: false
-    ports:
-      - "8001:80"
-    healthcheck:
-      test: [ "CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/80' || exit 1" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-      start_interval: 1s
-    profiles:
-      - paycal
-
   epr-calculator-api:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorapirepository:${EPR_CALCULATOR_API:-main-latest}
     depends_on:
       sqledge:
-        condition: service_healthy
-      asb:
         condition: service_healthy
       azurite:
         condition: service_healthy
@@ -358,12 +329,16 @@ services:
       epr-calculator-api-migrations:
         condition: service_completed_successfully
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: local
+      DOTNET_SYSTEM_NET_DISABLEIPV6: "1" # Fix to disable auth attempts via IPV6 since default bridge is IPV4 only
+      AzureAd__Instance: https://login.microsoftonline.com/
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
-      AzureAd__ClientId: 28b6c996-1817-4e2b-b04d-8578064d5283
-      ServiceBus__ConnectionString: Endpoint=sb://asb-backend;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
-      ServiceBus__QueueName: defra.epr.calculator.run.local
+      AzureAd__ClientId: e17b882b-afe1-481c-b519-3ca067b9b9e9 # DEV1 - DEVRWDWEBWA1422_API
+      AzureMonitor__ConnectionString: InstrumentationKey=00000000-0000-0000-0000-000000000000
       Database__ConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;TrustServerCertificate=True"
+      Database__CommandTimeout: "00:05:00"
+      CommonDataApi__DataLoader__Enabled: ${EprCalculatorApi__CommonDataApi__DataLoader__Enabled:-true}
+      CommonDataApi__HttpClient__BaseUrl: ${EprCalculatorApi__CommonDataApi__HttpClient__BaseUrl:-http://epr-common-data-api:8080} # Note that epr-common-data-api is absent from depends_on and will need to be started manually
       BlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
       BlobStorage__ResultFileCsvContainer: "paycal"
       BlobStorage__BillingFileCsvContainer: "paycal-billingfilecsv"
@@ -384,19 +359,19 @@ services:
   epr-calculator-api-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorapirepository:${EPR_CALCULATOR_API_MIGRATIONS:-main-latest-database-migrations}
-    command: [ "/bin/bash", "/home/nonroot/sql/run-migrations.sh", "/home/nonroot/sql/migrations.sql", "/home/nonroot/sql/seed.sql" ]
+    command: [ "/bin/bash", "/migrations/run-migrations.sh", "/migrations/migrations.sql" ]
     depends_on:
       sqledge:
         condition: service_healthy
     volumes:
       - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
-      - ./compose/epr-calculator-api-migrations/seed.sql:/home/nonroot/sql/seed.sql
     environment:
       SERVER: sqledge
       PORT: 1433
       USER: sa
       PASSWORD: "s4usag3s!"
       DATABASE: PayCal
+      TRUST_SERVER_CERTIFICATE: "true"
     profiles:
       - paycal
 
@@ -404,50 +379,26 @@ services:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorfrontendrepository:${EPR_CALCULATOR_FRONTEND:-main-latest}
     depends_on:
-      sqledge:
-        condition: service_healthy
-      asb:
-        condition: service_healthy
       epr-calculator-api:
         condition: service_started
-      azurite:
-        condition: service_healthy
-      azurite-init:
-        condition: service_completed_successfully
     environment:
-      ASPNETCORE_URLS: http://+:8080;https://+:8081
+      ASPNETCORE_ENVIRONMENT: local
+      DOTNET_SYSTEM_NET_DISABLEIPV6: "1" # Fix to disable auth attempts via IPV6 since default bridge is IPV4 only
+      ASPNETCORE_URLS: https://+:5294 # Only HTTPS supported
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_Kestrel__Certificates__Default__Password: password
-      ASPNETCORE_ENVIRONMENT: Development
+      AzureAd__Instance: https://login.microsoftonline.com/
       AzureAd__TenantId: 6f504113-6b64-43f2-ade9-242e05780007
-      AzureAd__ClientId: f94d57e6-b554-4cb6-b26b-fc3fb838eaa0
-      AzureAd__ClientSecret: ${EprCalculatorFrontend__AzureAd__ClientSecret} # see .env
-      DownstreamApi__Scopes: api://28b6c996-1817-4e2b-b04d-8578064d5283/default
+      AzureAd__ClientId: d0ac80d4-311b-49a7-bdb8-96585d0db49d # DEV1 - DEVRWDWEBWA1421
+      AzureAd__ClientSecret: ${EprCalculatorFrontend__AzureAd__ClientSecret} # See .env
       EprCalculatorApiService__BaseUrl: http://epr-calculator-api:8080
-      FinancialYearListApi: http://epr-calculator-api:8080/v1/financialYears
-      DashboardCalculatorRun__DashboardCalculatorRunApi: http://epr-calculator-api:8080/v1/calculatorRuns
-      DashboardCalculatorRun__DashboardCalculatorRunApiV2: http://epr-calculator-api:8080/v2/calculatorRuns
-      CalculationRunSettings__CalculationRunNameApi: http://epr-calculator-api:8080/v1/CheckCalcNameExists
-      CalculationRunSettings__CalculationRunApi: http://epr-calculator-api:8080/v1/calculatorRun
-      CalculationRunSettings__DownloadResultApi: http://epr-calculator-api:8080/v1/DownloadResult
-      CalculationRunSettings__DownloadCsvBillingApi: http://epr-calculator-api:8080/v1/DownloadBillingFile
-      CalculationRunSettings__ClassificationByFinancialYearApi: http://epr-calculator-api:8080/v1/ClassificationByFinancialYear
-      CalculationRunSettings__PrepareBillingFileSendToFSS: http://epr-calculator-api:8080/v2/prepareBillingFileSendToFSS
-      CalculationRunSettings__CalculationRunApiV2: http://epr-calculator-api:8080/v2/calculatorRuns
-      CalculationRunSettings__ProducerBillingInstructionsAcceptApi: http://epr-calculator-api:8080/v1/producerBillingInstructionsAccept
-      LapcapSettings__LapcapSettingsApi: http://epr-calculator-api:8080/v1/lapcapData
-      BillingFileSettings__BillingFileApi: http://epr-calculator-api:8080/v1/GenerateBillingFile
-      ProducerBillingInstructions__ProducerBillingInstructions: http://epr-calculator-api:8080/v1/producerBillingInstructions
-      ProducerBillingInstructions__ProducerBillingInstructionsV2: http://epr-calculator-api:8080/v2/producerBillingInstructions
-      ParameterSettings__DefaultParameterSettingsApi: http://epr-calculator-api:8080/v1/defaultParameterSetting
-      BlobStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
+      DownstreamApi__Scopes: api://e17b882b-afe1-481c-b519-3ca067b9b9e9/default # The GUID here should match epr-calculator-api's AzureAd__ClientId
     ports:
-      - "5294:8080" # taken from launch settings in epr-calculator-frontend
-      - "7163:8081" # taken from launch settings in epr-calculator-frontend
+      - "5294:5294" # Be warned: changing https/ports will break auth unless the redirect urls are updated for the Entra application matching AzureAd__ClientId
     volumes:
       - ./compose/certs/https:/https:ro
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/admin/health" ]
+      test: [ "CMD", "curl", "-fk", "https://localhost:5294/admin/health" ]
       interval: 5s
       timeout: 5s
       retries: 10
