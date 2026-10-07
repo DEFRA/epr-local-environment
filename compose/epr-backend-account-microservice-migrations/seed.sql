@@ -143,6 +143,54 @@ if not exists (select 1 from Enrolments where ConnectionId = @dpBasicConnectionI
     values (@dpBasicConnectionId, 3, 3)
 
 -- ============================================================
+-- SMALLWOOD TRADING LTD: a standalone Small Direct Producer, seeded alongside POP QUEST LTD (the
+-- Large one) so devlocal registration tests can exercise a Direct Producer + Small combination -
+-- POP QUEST LTD has no Small-sized registration of its own. Same shape as the POP QUEST LTD block
+-- above, single approved person only (no delegate/basic user - not needed for data-correctness
+-- verification scenarios). No subsidiaries. Mirrored into
+-- synapse-sqlserver-restore/seed/baseline.sql (rpd.Organisations 165290), mocks/CosmosDbInit/
+-- Program.cs and epr-payment-service-migrations/seed.sql using the same ExternalId/ReferenceNumber.
+-- ============================================================
+declare @dpSmallUserId uniqueidentifier
+declare @dpSmallEmail nvarchar(255)
+set @dpSmallUserId = 'DDA43611-5AA2-44BF-B449-B4734DD32694'
+set @dpSmallEmail = 'ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com'
+
+if not exists (select 1 from Users where UserId = @dpSmallUserId)
+    insert into Users (UserId, Email) values (@dpSmallUserId, @dpSmallEmail)
+
+if not exists (select 1 from Persons where Email = @dpSmallEmail)
+    insert into Persons (FirstName, LastName, Email, Telephone, UserId)
+    values ('Jordan', 'Ellis', @dpSmallEmail, '07123456791',
+        (select Id from Users where Email = @dpSmallEmail))
+
+declare @dpSmallOrgExternalId uniqueidentifier
+set @dpSmallOrgExternalId = '64FA50DE-2F7D-49E8-8CB2-C4106386B023'
+
+-- ReferenceNumber '165290' is explicit for the same reason as POP QUEST LTD's above - it must match
+-- rpd.Organisations.ReferenceNumber in the Synapse replica and organisation_id in this org's
+-- company-details seed row.
+if not exists (select 1 from Organisations where ExternalId = @dpSmallOrgExternalId)
+    insert into Organisations (OrganisationTypeId, CompaniesHouseNumber, Name, TradingName,
+        ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
+    values (1, '19234567', 'SMALLWOOD TRADING LTD', '', '165290', 1, 0, 1, @dpSmallOrgExternalId)
+
+declare @dpSmallOrgId int
+set @dpSmallOrgId = (select Id from Organisations where ExternalId = @dpSmallOrgExternalId)
+
+if not exists (select 1 from PersonOrganisationConnections where OrganisationId = @dpSmallOrgId and PersonId = (select Id from Users where Email = @dpSmallEmail))
+    insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId)
+    values ('Director', @dpSmallOrgId, 1,
+        (select Id from Users where Email = @dpSmallEmail), 1)
+
+declare @dpSmallConnectionId int
+set @dpSmallConnectionId = (select top 1 Id from PersonOrganisationConnections where OrganisationId = @dpSmallOrgId and PersonId = (select Id from Users where Email = @dpSmallEmail))
+
+if not exists (select 1 from Enrolments where ConnectionId = @dpSmallConnectionId)
+    insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
+    values (@dpSmallConnectionId, 1, 3)
+
+-- ============================================================
 -- 2 subsidiary companies attached to POP QUEST LTD (the Direct Producer above).
 -- Same three-table shape the real journey produces (see BulkUploadController ->
 -- OrganisationService.AddOrganisationAndOrganisationRelationshipsAsync): the subsidiary's own

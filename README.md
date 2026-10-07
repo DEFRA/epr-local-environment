@@ -609,6 +609,50 @@ BlobName GUIDs: the CSVs in `compose/seed-data/popquest/` (uploaded to Azurite b
 `compose/synapse-sqlserver-restore/seed/baseline.sql`, `mocks/CosmosDbInit/Program.cs`, and
 `compose/epr-payment-service-migrations/seed.sql`.
 
+### Direct Producer — "SMALLWOOD TRADING LTD" (CHN `19234567`)
+
+The Small-producer counterpart to POP QUEST LTD above, which is Large-only — added so
+`epr-playwright-bdd`'s devlocal registration tests can exercise a Direct Producer + Small
+combination. No delegated or basic user, no subsidiaries.
+
+| Email | Role | UserId |
+|-------|------|--------|
+| `ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com` | Approved Person | `DDA43611-5AA2-44BF-B449-B4734DD32694` |
+
+The email ends `-AUTO_TEST_DONT_USE@equalexperts.com` and the `UserId` is the real Azure B2C Object
+ID (`oid`) for that account in the shared tenant — the same requirement as the Northbridge accounts
+below. A fictional UserId will let the seed insert run but will not authenticate; this bit the first
+version of this seed (see git history on this file around when Smallwood was added).
+
+Identifiers — same cross-store agreement rule as POP QUEST LTD above:
+
+| Organisation | CHN | Reference number | `ExternalId` |
+|---|---|---|---|
+| SMALLWOOD TRADING LTD | `19234567` | `165290` | `64fa50de-2f7d-49e8-8cb2-c4106386b023` |
+
+`165290` is `Organisations.ReferenceNumber` in the account microservice DB,
+`rpd.Organisations.ReferenceNumber` in the Synapse replica, the `organisation_id` column in
+`rpd.CompanyDetails` and in `compose/seed-data/smallwood/Smallwood_CompanyDetails_2026.csv`, and
+`OrganisationId` in the PayCal registration tables.
+
+#### Seeded submissions
+
+One already-granted registration only — no 2025 (`Lookup.SubmissionPeriod` only splits registration
+windows by producer size from 2026 onward; the 2025 window isn't split by size, so it can't carry a
+Small-specific registration) and no packaging data (POM) — `dpPackagingDataDevLocal.feature` only
+exercises POP QUEST LTD today.
+
+| Journey | Period | State |
+|---|---|---|
+| Registration | January to December 2026 | Approved |
+
+Application reference `PEPR16529026P1S` (fee paid `£1,850.00`), registration reference
+`SWD-2026-REG-0001`, regulator nation `GB-ENG`. Spans the same four places POP QUEST LTD's data
+does, all keyed on the same SubmissionId/FileId/BlobName GUIDs: the CSV in
+`compose/seed-data/smallwood/` (uploaded to Azurite by `azurite-init`),
+`compose/synapse-sqlserver-restore/seed/baseline.sql`, `mocks/CosmosDbInit/Program.cs`, and
+`compose/epr-payment-service-migrations/seed.sql`.
+
 ### Compliance Scheme — "Northbridge Compliance Solutions Ltd" (CHN `11000000`)
 
 | Email | Role | UserId |

@@ -5,7 +5,8 @@
 #
 #   ./scripts/wait-for-packaging-ready.sh [--timeout SECONDS] [--start]
 #
-#     --start    run `docker compose --profile packaging up -d --build --wait` first
+#     --start    run `az acr login --name devrwdinfac1401` then
+#                `docker compose --profile packaging up -d --build --wait` first
 #     --timeout  overall budget, default 600s (cold start measured ~97s)
 #
 # Why this exists rather than just `docker compose up -d --wait`:
@@ -82,6 +83,11 @@ say_progress() { # msg
 }
 
 if [ "$DO_START" = "1" ]; then
+  say "logging in to devrwdinfac1401 ACR"
+  if ! az acr login --name devrwdinfac1401 >/dev/null 2>&1; then
+    fail "az acr login --name devrwdinfac1401 failed - run it manually to see the error"
+  fi
+
   say "starting packaging profile"
   up_log=$(mktemp)
   # Note: no --wait. This profile has nine one-shot containers (the *-migrations, *-init and

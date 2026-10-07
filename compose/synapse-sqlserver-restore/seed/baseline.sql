@@ -1457,6 +1457,51 @@ values
 
 end
 
+-- ============================================================
+-- SMALLWOOD TRADING LTD (Direct Producer, CHN 19234567): a standalone Small Direct Producer,
+-- the Small-producer counterpart to POP QUEST LTD above (which is Large-only). Same shape as the
+-- POP QUEST LTD Registration block, one already-granted "January to December 2026" registration
+-- only (no 2025, no subsidiaries) - 2026 is used specifically because Lookup.SubmissionPeriod only
+-- splits registration windows by producer size from 2026 onward (DirectSmallProducer=6 vs
+-- DirectLargeProducer=5 - see epr-payment-service's AddSubmissionPeriodAndLink migration); the 2025
+-- window ("Direct") isn't split by size, so it can't demonstrate a Small-specific RegistrationJourney.
+-- ExternalId/ReferenceNumber match epr-backend-account-microservice-migrations/seed.sql
+-- (@dpSmallOrgExternalId / '165290') and mocks/CosmosDbInit/Program.cs exactly.
+declare @dpSmallOrgExternalId uniqueidentifier
+set @dpSmallOrgExternalId = '64FA50DE-2F7D-49E8-8CB2-C4106386B023'
+
+if not exists (select 1 from rpd.Organisations where ExternalId = @dpSmallOrgExternalId)
+    insert into rpd.Organisations (Id, OrganisationTypeId, CompaniesHouseNumber, Name, TradingName,
+        ReferenceNumber, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId,
+        CreatedOn, LastUpdatedOn, IsDeleted, ProducerTypeId)
+    values (165290, 1, '19234567', 'SMALLWOOD TRADING LTD', '', '165290',
+        1, 0, 1, @dpSmallOrgExternalId, getdate(), getdate(), 0, 0)
+
+-- SMALLWOOD TRADING LTD's own Approved Person, mirrored so SubmittedBy/UserId on the events below resolve.
+if not exists (select 1 from rpd.Users where UserId = 'DDA43611-5AA2-44BF-B449-B4734DD32694')
+    insert into rpd.Users (Id, UserId, Email, IsDeleted)
+    values (165290, 'DDA43611-5AA2-44BF-B449-B4734DD32694', 'ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com', 0)
+
+    -- CompanyDetails row behind the 2026 Registration submission below.
+    insert into rpd.CompanyDetails (organisation_id, subsidiary_id, organisation_name, trading_name, companies_house_number, home_nation_code, organisation_type_code, packaging_activity_so, registration_type_code, turnover, total_tonnage, produce_blank_packaging_flag, liable_for_disposal_costs_flag, meet_reporting_requirements_flag, registered_addr_line1, registered_city, registered_addr_county, registered_addr_postcode, registered_addr_country, registered_addr_phone_number, approved_person_first_name, approved_person_last_name, approved_person_phone_number, approved_person_email, approved_person_job_title, primary_contact_person_first_name, primary_contact_person_last_name, primary_contact_person_phone_number, primary_contact_person_email, primary_contact_person_job_title, organisation_size, load_ts, FileName)
+    values
+        (165290, null, N'SMALLWOOD TRADING LTD', N'', N'19234567', N'EN', N'LTD', N'Yes', N'GR', 620000, 18, N'No', N'Yes', N'Yes', N'9 Mill Lane', N'York', N'North Yorkshire', N'YO1 6PL', N'United Kingdom', N'01904460301', N'Jordan', N'Ellis', N'01904460301', N'ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com', N'Director', N'Jordan', N'Ellis', N'01904460301', N'ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com', N'Director', N'S', N'2026-05-04 12:00:00.0000000', N'Smallwood_CompanyDetails_2026.csv');
+
+    -- Registration January to December 2026 - 7-event accepted chain (same shape as POP QUEST LTD's own 2026 chain above).
+    insert into rpd.SubmissionEvents (IsPackagingResubmissionFeeViewed, PaidAmount, DecisionDate, RequiresRowValidation, IsResubmitted, PaymentStatus, Created, OrganisationId, RequiresBrandsFile, ErrorCount, WarningCount, OrganisationMemberCount, UserEmail, RegistrationReferenceNumber, Comments, RegistrationSetId, IsResubmissionRequired, AppReferenceNumber, ApplicationReferenceNumber, SubmissionDate, SubmissionEventId, DataCount, SubmissionPeriod, RowErrorCount, SubmissionType, HasMaxRowErrors, RequiresValidation, ContentScan, SubmissionId, Decision, RegulatorDecision, PackagingResubmissionReferenceNumber, FileId, IsValid, BlobName, AntivirusScanResult, id, RequiresPartnershipsFile, Errors, FileName, AntivirusScanTrigger, FileType, UserId, ProducerId, SubmittedBy, RegulatorUserId, PaymentMethod, IsResubmission, Type, BlobContainerName, load_ts)
+    values
+        (null, null, null, null, null, null, N'2026-05-04T09:15:00.0000000Z', null, null, null, null, null, null, null, null, null, null, null, null, null, N'D9D9D9D9-DDDD-4DDD-8DDD-000000000001', null, null, null, null, null, null, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', null, null, null, N'BFDBB8D5-53BE-4E2B-89B3-95F4185CEF57', null, null, null, N'AntivirusCheck|D9D9D9D9-DDDD-4DDD-8DDD-000000000001', null, N'[]', N'Smallwood_CompanyDetails_2026.csv', null, N'CompanyDetails', N'DDA43611-5AA2-44BF-B449-B4734DD32694', null, null, null, null, null, N'AntivirusCheck', N'registration-upload-container', N'2026-05-04 12:00:00.0000000'),
+        (null, null, null, 0, null, null, N'2026-05-04T09:17:32.0000000Z', null, null, null, null, null, null, null, null, null, null, null, null, null, N'D9D9D9D9-DDDD-4DDD-8DDD-000000000002', null, null, null, null, null, null, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', null, null, null, N'BFDBB8D5-53BE-4E2B-89B3-95F4185CEF57', null, N'CBB27ECD-DFF3-4DED-989E-502D1199E599', N'Success', N'AntivirusResult|D9D9D9D9-DDDD-4DDD-8DDD-000000000002', null, N'[]', null, N'Upload', null, N'DDA43611-5AA2-44BF-B449-B4734DD32694', null, null, null, null, null, N'AntivirusResult', N'registration-upload-container', N'2026-05-04 12:00:00.0000000'),
+        (null, null, null, null, null, null, N'2026-05-04T09:18:10.0000000Z', null, 0, 0, 0, 1, null, null, null, null, null, null, null, null, N'D9D9D9D9-DDDD-4DDD-8DDD-000000000003', null, null, 0, null, 0, 0, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', null, null, null, null, 1, N'CBB27ECD-DFF3-4DED-989E-502D1199E599', null, N'Registration|D9D9D9D9-DDDD-4DDD-8DDD-000000000003', 0, N'[]', null, null, null, N'DDA43611-5AA2-44BF-B449-B4734DD32694', null, null, null, null, null, N'Registration', null, N'2026-05-04 12:00:00.0000000'),
+        (null, null, null, null, null, null, N'2026-05-04T09:20:00.0000000Z', null, null, null, null, null, N'ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com', null, null, null, 0, null, null, null, N'D9D9D9D9-DDDD-4DDD-8DDD-000000000004', null, N'January to December 2026', null, N'Registration', null, null, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', null, null, null, N'BFDBB8D5-53BE-4E2B-89B3-95F4185CEF57', null, null, null, N'Submitted|D9D9D9D9-DDDD-4DDD-8DDD-000000000004', null, N'[]', null, null, null, N'DDA43611-5AA2-44BF-B449-B4734DD32694', null, N'Jordan Ellis', null, null, 0, N'Submitted', N'registration-upload-container', N'2026-05-04 12:00:00.0000000'),
+        (null, N'1850.00', null, null, null, N'Paid', N'2026-05-04T09:25:44.0000000Z', null, null, null, null, null, null, null, null, null, null, null, N'PEPR16529026P1S', null, N'D9D9D9D9-DDDD-4DDD-8DDD-000000000005', null, null, null, null, null, null, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', null, null, null, null, null, null, null, N'RegistrationFeePayment|D9D9D9D9-DDDD-4DDD-8DDD-000000000005', null, N'[]', null, null, null, N'DDA43611-5AA2-44BF-B449-B4734DD32694', null, null, null, N'PayOnline', 0, N'RegistrationFeePayment', null, N'2026-05-04 12:00:00.0000000'),
+        (null, null, null, null, null, null, N'2026-05-04T09:26:05.0000000Z', null, null, null, null, null, null, null, null, null, null, null, N'PEPR16529026P1S', N'2026-05-04T09:26:05.0000000Z', N'D9D9D9D9-DDDD-4DDD-8DDD-000000000006', null, null, null, null, null, null, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', null, null, null, null, null, null, null, N'RegistrationApplicationSubmitted|D9D9D9D9-DDDD-4DDD-8DDD-000000000006', null, N'[]', null, null, null, N'DDA43611-5AA2-44BF-B449-B4734DD32694', null, null, null, null, 0, N'RegistrationApplicationSubmitted', null, N'2026-05-04 12:00:00.0000000'),
+        (null, null, N'2026-05-20T11:00:00.0000000Z', null, null, null, N'2026-05-20T11:00:00.0000000Z', null, null, null, null, null, null, N'SWD-2026-REG-0001', N'Registration approved', null, null, null, null, null, N'D9D9D9D9-DDDD-4DDD-8DDD-000000000007', null, null, null, null, null, null, null, N'7A144A34-579E-46CA-BB21-2391DF6E0A06', N'Accepted', null, null, N'BFDBB8D5-53BE-4E2B-89B3-95F4185CEF57', null, null, null, N'RegulatorRegistrationDecision|D9D9D9D9-DDDD-4DDD-8DDD-000000000007', null, N'[]', null, null, null, N'a586e22f-0df0-4a24-8048-ae7d0aabbbbc', null, null, null, null, null, N'RegulatorRegistrationDecision', null, N'2026-05-04 12:00:00.0000000');
+
+    insert into rpd.Submissions (Created, OrganisationId, IsSubmitted, Comments, IsResubmissionRequired, AppReferenceNumber, DataSourceType, SubmissionEventId, SubmissionPeriod, SubmissionType, SubmissionId, Decision, RegulatorDecision, FileId, id, UserId, SubmittedBy, IsResubmission, Type, ComplianceSchemeId, RegistrationJourney, load_ts)
+    values
+        (N'2026-05-04T09:15:00.0000000Z', @dpSmallOrgExternalId, 1, N'Registration approved', 0, N'PEPR16529026P1S', N'File', N'D9D9D9D9-DDDD-4DDD-8DDD-000000000007', N'January to December 2026', N'Registration', N'7A144A34-579E-46CA-BB21-2391DF6E0A06', N'Accepted', N'Accepted', N'BFDBB8D5-53BE-4E2B-89B3-95F4185CEF57', N'7A144A34-579E-46CA-BB21-2391DF6E0A06', N'DDA43611-5AA2-44BF-B449-B4734DD32694', N'Jordan Ellis', 0, null, null, null, N'2026-05-04 12:00:00.0000000');
+
 
 -- ============================================================
 -- apps.SubmissionsSummaries: the pipeline's flattened projection of submitted POM data.
