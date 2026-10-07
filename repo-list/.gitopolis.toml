@@ -588,7 +588,7 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/epr-app-config-sett
 
 [[repos]]
 path = "epr-azure-stub"
-tags = ["cdp", "epr", "github", "public"]
+tags = ["cdp", "epr", "epr-meet-obligations", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -847,6 +847,14 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-frontend-journey-tests.git"
 
 [[repos]]
+path = "epr-ingestion"
+tags = ["cdp", "epr", "epr-analytics-insights", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-ingestion.git"
+
+[[repos]]
 path = "epr-laps-accounts"
 tags = ["azure-devops", "devops-abandoned", "epr", "github", "public"]
 
@@ -1051,6 +1059,22 @@ name = "origin"
 url = "git@github.com:DEFRA/epr-obligationchecker-frontend.git"
 
 [[repos]]
+path = "epr-packaging-data-api"
+tags = ["cdp", "epr", "epr-submit", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-packaging-data-api.git"
+
+[[repos]]
+path = "epr-packaging-data-archive"
+tags = ["cdp", "epr", "epr-submit", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-packaging-data-archive.git"
+
+[[repos]]
 path = "epr-packaging-frontend"
 tags = ["azure-devops", "devops-abandoned", "devops-sync-abandoned", "devops-sync-active", "epr", "epr-producer", "frontend", "github", "primary-is-github", "public"]
 
@@ -1165,6 +1189,14 @@ url = "git@ssh.dev.azure.com:v3/defragovuk/RWD-CPR-EPR4P-ADO/ZZZ-Archive-epr_pom
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/epr-pom-func-submission-check-splitter.git"
+
+[[repos]]
+path = "epr-pom-producer-validation"
+tags = ["cdp", "epr", "epr-submit", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/epr-pom-producer-validation.git"
 
 [[repos]]
 path = "epr-pom-testdata-generator"
@@ -1348,7 +1380,7 @@ url = "git@github.com:DEFRA/epr-re-ex-entra-stub.git"
 
 [[repos]]
 path = "epr-register-enrol"
-tags = ["cdp", "epr", "github", "public", "register", "tooling"]
+tags = ["cdp", "epr", "epr-register-enrol", "github", "public", "register", "tooling"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1356,7 +1388,7 @@ url = "git@github.com:DEFRA/epr-register-enrol.git"
 
 [[repos]]
 path = "epr-register-enrol-backend"
-tags = ["backend", "cdp", "epr", "github", "public", "register"]
+tags = ["backend", "cdp", "epr", "epr-register-enrol", "github", "public", "register"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1364,7 +1396,7 @@ url = "git@github.com:DEFRA/epr-register-enrol-backend.git"
 
 [[repos]]
 path = "epr-register-enrol-fe-tests"
-tags = ["cdp", "epr", "github", "public", "register"]
+tags = ["cdp", "epr", "epr-register-enrol", "github", "public", "register"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1372,7 +1404,7 @@ url = "git@github.com:DEFRA/epr-register-enrol-fe-tests.git"
 
 [[repos]]
 path = "epr-register-enrol-frontend"
-tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public", "register"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-register-enrol", "frontend", "github", "public", "register"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1380,7 +1412,7 @@ url = "git@github.com:DEFRA/epr-register-enrol-frontend.git"
 
 [[repos]]
 path = "epr-register-enrol-management-be"
-tags = ["backend", "cdp", "epr", "github", "public", "register"]
+tags = ["backend", "cdp", "epr", "epr-register-enrol", "github", "public", "register"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1388,7 +1420,7 @@ url = "git@github.com:DEFRA/epr-register-enrol-management-be.git"
 
 [[repos]]
 path = "epr-register-enrol-management-fe"
-tags = ["cdp", "epr", "frontend", "github", "public", "register"]
+tags = ["cdp", "epr", "epr-register-enrol", "frontend", "github", "public", "register"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1747,6 +1779,14 @@ name = "origin"
 url = "git@github.com:DEFRA/land-grants-ui-poc.git"
 
 [[repos]]
+path = "legacy-prns"
+tags = ["cdp", "epr", "epr-meet-obligations", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/legacy-prns.git"
+
+[[repos]]
 path = "ls-keeper-data-api-admin-service"
 tags = ["cdp", "cdp-node-frontend-template", "github"]
 
@@ -1819,6 +1859,14 @@ name = "origin"
 url = "git@github.com:DEFRA/nrf-frontend.git"
 
 [[repos]]
+path = "packaging-waste-proxy"
+tags = ["cdp", "epr", "epr-meet-obligations", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/packaging-waste-proxy.git"
+
+[[repos]]
 path = "pafs-portal-frontend"
 tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
 
@@ -1857,6 +1905,14 @@ tags = ["design", "epr", "epr-producer", "github", "internal"]
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:defra-design/regulator-responsibility-prototype.git"
+
+[[repos]]
+path = "report-packaging-proxy-spike"
+tags = ["cdp", "epr", "epr-meet-obligations", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/report-packaging-proxy-spike.git"
 
 [[repos]]
 path = "service-manual-ui"
@@ -1899,8 +1955,16 @@ name = "origin"
 url = "git@github.com:DEFRA/trade-imports-journey-config-ui.git"
 
 [[repos]]
+path = "waste-manage-account-frontend"
+tags = ["cdp", "epr", "github", "public", "waste-manage-account"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-manage-account-frontend.git"
+
+[[repos]]
 path = "waste-obligations"
-tags = ["cdp", "epr", "github", "public"]
+tags = ["cdp", "epr", "epr-meet-obligations", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1908,7 +1972,7 @@ url = "git@github.com:DEFRA/waste-obligations.git"
 
 [[repos]]
 path = "waste-obligations-frontend"
-tags = ["cdp", "cdp-node-frontend-template", "epr", "frontend", "github", "public"]
+tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-meet-obligations", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1923,6 +1987,14 @@ name = "origin"
 url = "git@github.com:DEFRA/waste-obligations-journey-tests.git"
 
 [[repos]]
+path = "waste-obligations-notifications"
+tags = ["cdp", "epr", "epr-meet-obligations", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-obligations-notifications.git"
+
+[[repos]]
 path = "waste-organisation-frontend"
 tags = ["cdp", "cdp-node-frontend-template", "frontend", "github"]
 
@@ -1932,15 +2004,23 @@ url = "git@github.com:DEFRA/waste-organisation-frontend.git"
 
 [[repos]]
 path = "waste-organisations"
-tags = ["cdp", "epr", "github", "public"]
+tags = ["cdp", "epr", "github", "public", "waste-manage-account"]
 
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/waste-organisations.git"
 
 [[repos]]
+path = "waste-organisations-backend"
+tags = ["cdp", "epr", "github", "public", "waste-manage-account"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-organisations-backend.git"
+
+[[repos]]
 path = "waste-organisations-stub"
-tags = ["cdp", "epr", "github", "public"]
+tags = ["cdp", "epr", "github", "public", "waste-manage-account"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1969,3 +2049,11 @@ tags = ["cdp", "epr", "epr-regulator", "frontend", "github"]
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/waste-regulator-dashboard-fe.git"
+
+[[repos]]
+path = "waste-submit-reg-packaging-api"
+tags = ["cdp", "epr", "epr-submit", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-submit-reg-packaging-api.git"
