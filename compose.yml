@@ -115,6 +115,7 @@ services:
     volumes:
       - ./compose/seed-data/northbridge:/seed-data/northbridge:ro
       - ./compose/seed-data/popquest:/seed-data/popquest:ro
+      - ./compose/seed-data/smallwood:/seed-data/smallwood:ro
     entrypoint: >
       sh -c "
       az storage container create --name 'paycal' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
@@ -141,7 +142,9 @@ services:
       az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c01' --file '/seed-data/popquest/PopQuest_Pom_2025H2_Resubmission.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name 'e1f2a3b4-c5d6-4e7f-8a8b-9c0d1e2f3a45' --file '/seed-data/popquest/PopQuest_Pom_2026H1.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
       az storage blob upload --overwrite --container-name 'epr-antivirus-pom' --name '2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6f' --file '/seed-data/popquest/PopQuest_Pom_2026H1_Corrected.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
-      echo 'POP QUEST seed blobs uploaded successfully'
+      echo 'POP QUEST seed blobs uploaded successfully' &&
+      az storage blob upload --overwrite --container-name 'epr-antivirus-registration' --name 'cbb27ecd-dff3-4ded-989e-502d1199e599' --file '/seed-data/smallwood/Smallwood_CompanyDetails_2026.csv' --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;' &&
+      echo 'Smallwood seed blob uploaded successfully'
       "
     profiles:
       - paycal
@@ -713,8 +716,8 @@ services:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/admin/health" ]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 5s
+      retries: 20
+      start_period: 10s
       start_interval: 1s
     profiles:
       - packaging

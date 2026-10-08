@@ -45,6 +45,7 @@ await SeedNorthbridgeRegistrationsAsync(database.Database);
 await SeedNorthbridgePackagingDataAsync(database.Database);
 await SeedPopQuestRegistrationsAsync(database.Database);
 await SeedPopQuestPackagingDataAsync(database.Database);
+await SeedSmallwoodRegistrationAsync(database.Database);
 
 Console.WriteLine("Cosmos DB emulator initialisation complete.");
 
@@ -1145,6 +1146,147 @@ static async Task SeedPopQuestRegistrationsAsync(Database database)
 
         Console.WriteLine($"Seeded POP QUEST registration submission {s.SubmissionId} ({s.FileName})");
     }
+}
+
+// SMALLWOOD TRADING LTD (CHN 19234567): a standalone Small Direct Producer, the Small-producer
+// counterpart to POP QUEST LTD above (which is Large-only). One already-granted "January to
+// December 2026" registration only (no 2025, no subsidiaries) - same shape as a single entry
+// from SeedPopQuestRegistrationsAsync's own `submissions` array. RegistrationJourney stays null on
+// this seeded doc for the same reason as POP QUEST LTD's (the seed predates RegistrationJourney
+// being written at all - see findRegistrationSubmissionId's untagged-fallback comment in
+// epr-playwright-bdd/features/utils/cosmosSubmissions.js); a live resubmission against this
+// SubmissionId is what should populate it. Mirrors the same GUIDs seeded into the Synapse replica
+// in synapse-sqlserver-restore/seed/baseline.sql and epr-backend-account-microservice-migrations/seed.sql.
+static async Task SeedSmallwoodRegistrationAsync(Database database)
+{
+    const string approvedPersonUserId = "DDA43611-5AA2-44BF-B449-B4734DD32694";
+    const string smallwoodOrgId = "64FA50DE-2F7D-49E8-8CB2-C4106386B023";
+    const string regulatorUserId = "a586e22f-0df0-4a24-8048-ae7d0aabbbbc";
+    const string uploadContainerName = "registration-upload-container";
+
+    var submissionsContainer = database.GetContainer("Submissions");
+    var eventsContainer = database.GetContainer("SubmissionEvents");
+
+    var s = new PopQuestRegistrationSeed(
+        SubmissionId: "7A144A34-579E-46CA-BB21-2391DF6E0A06",
+        FileId: "BFDBB8D5-53BE-4E2B-89B3-95F4185CEF57",
+        BlobName: "CBB27ECD-DFF3-4DED-989E-502D1199E599",
+        FileName: "Smallwood_CompanyDetails_2026.csv",
+        SubmissionPeriod: "January to December 2026",
+        AppReferenceNumber: "PEPR16529026P1S",
+        RegistrationReferenceNumber: "SWD-2026-REG-0001",
+        PaidAmount: "1850.00",
+        EventIdPrefix: "D9D9D9D9-DDDD-4DDD-8DDD",
+        Day: "2026-05-04",
+        DecisionDay: "2026-05-20");
+
+    await submissionsContainer.UpsertItemAsync(new Dictionary<string, object?>
+    {
+        ["id"] = s.SubmissionId.ToLowerInvariant(),
+        ["SubmissionId"] = s.SubmissionId.ToLowerInvariant(),
+        ["SubmissionType"] = "Registration",
+        ["SubmissionPeriod"] = s.SubmissionPeriod,
+        ["DataSourceType"] = "File",
+        ["OrganisationId"] = smallwoodOrgId.ToLowerInvariant(),
+        ["UserId"] = approvedPersonUserId.ToLowerInvariant(),
+        ["IsSubmitted"] = true,
+        ["IsResubmission"] = false,
+        // No ComplianceSchemeId - this is a direct producer, not a scheme member.
+        ["AppReferenceNumber"] = s.AppReferenceNumber,
+        ["Created"] = $"{s.Day}T09:15:00.0000000Z",
+        ["RegistrationJourney"] = null,
+    }, new PartitionKey(s.SubmissionId.ToLowerInvariant()));
+
+    Task UpsertEvent(int seq, string type, string created, Dictionary<string, object?> extra)
+    {
+        var eventId = $"{s.EventIdPrefix}-{seq:D12}".ToLowerInvariant();
+        var doc = new Dictionary<string, object?>
+        {
+            ["id"] = $"{type}|{eventId}",
+            ["SubmissionEventId"] = eventId,
+            ["SubmissionId"] = s.SubmissionId.ToLowerInvariant(),
+            ["Type"] = type,
+            ["UserId"] = approvedPersonUserId.ToLowerInvariant(),
+            ["Created"] = created,
+            ["Errors"] = Array.Empty<string>(),
+            ["BlobContainerName"] = uploadContainerName,
+        };
+        foreach (var (key, value) in extra)
+        {
+            doc[key] = value;
+        }
+
+        return eventsContainer.UpsertItemAsync(doc, new PartitionKey(eventId));
+    }
+
+    await UpsertEvent(1, "AntivirusCheck", $"{s.Day}T09:15:00.0000000Z", new()
+    {
+        ["FileId"] = s.FileId.ToLowerInvariant(),
+        ["FileType"] = "CompanyDetails",
+        ["FileName"] = s.FileName,
+        ["RegistrationSetId"] = null,
+    });
+
+    await UpsertEvent(2, "AntivirusResult", $"{s.Day}T09:17:32.0000000Z", new()
+    {
+        ["FileId"] = s.FileId.ToLowerInvariant(),
+        ["BlobName"] = s.BlobName.ToLowerInvariant(),
+        ["AntivirusScanResult"] = "Success",
+        ["AntivirusScanTrigger"] = "Upload",
+        ["RequiresRowValidation"] = false,
+    });
+
+    await UpsertEvent(3, "Registration", $"{s.Day}T09:18:10.0000000Z", new()
+    {
+        ["IsValid"] = true,
+        ["ErrorCount"] = 0,
+        ["WarningCount"] = 0,
+        ["RequiresBrandsFile"] = false,
+        ["RequiresPartnershipsFile"] = false,
+        ["HasMaxRowErrors"] = false,
+        ["RowErrorCount"] = 0,
+        // The producer itself only - no subsidiaries.
+        ["OrganisationMemberCount"] = 1,
+        ["BlobName"] = s.BlobName.ToLowerInvariant(),
+    });
+
+    await UpsertEvent(4, "Submitted", $"{s.Day}T09:20:00.0000000Z", new()
+    {
+        ["FileId"] = s.FileId.ToLowerInvariant(),
+        ["SubmittedBy"] = "Jordan Ellis",
+        ["IsResubmission"] = false,
+        ["RegistrationJourney"] = null,
+    });
+
+    await UpsertEvent(5, "RegistrationFeePayment", $"{s.Day}T09:25:44.0000000Z", new()
+    {
+        ["ApplicationReferenceNumber"] = s.AppReferenceNumber,
+        ["PaymentMethod"] = "PayOnline",
+        ["PaymentStatus"] = "Paid",
+        ["PaidAmount"] = s.PaidAmount,
+        ["IsResubmission"] = false,
+        ["RegistrationJourney"] = null,
+    });
+
+    await UpsertEvent(6, "RegistrationApplicationSubmitted", $"{s.Day}T09:26:05.0000000Z", new()
+    {
+        ["ApplicationReferenceNumber"] = s.AppReferenceNumber,
+        ["SubmissionDate"] = $"{s.Day}T09:26:05.0000000Z",
+        ["IsResubmission"] = false,
+        ["RegistrationJourney"] = null,
+    });
+
+    await UpsertEvent(7, "RegulatorRegistrationDecision", $"{s.DecisionDay}T11:00:00.0000000Z", new()
+    {
+        ["FileId"] = s.FileId.ToLowerInvariant(),
+        ["Decision"] = "Accepted",
+        ["RegistrationReferenceNumber"] = s.RegistrationReferenceNumber,
+        ["DecisionDate"] = $"{s.DecisionDay}T11:00:00.0000000Z",
+        ["Comments"] = "Registration approved",
+        ["UserId"] = regulatorUserId.ToLowerInvariant(),
+    });
+
+    Console.WriteLine($"Seeded SMALLWOOD TRADING registration submission {s.SubmissionId} ({s.FileName})");
 }
 
 // POP QUEST LTD Packaging Data (POM) submissions: 2025 H1 (Accepted), 2025 H2 (Accepted then a

@@ -82,6 +82,25 @@ begin
     insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'11126CE3-5642-4C43-B042-59901AD69E38', N'4E5F1A7B-9C6D-4E3A-9FB5-08124C6D5EA7', N'AcceptedByRegulator', N'2026-01-02T09:20:00', SYSDATETIMEOFFSET());
 end
 
+-- SMALLWOOD TRADING LTD (Direct Producer, CHN 19234567): the Small-producer counterpart to POP
+-- QUEST LTD above (which is Large-only). SubmissionId/ApplicationReferenceNumber MUST match
+-- compose/synapse-sqlserver-restore/seed/baseline.sql and mocks/CosmosDbInit/Program.cs exactly.
+-- ComplianceSchemeId is NULL (direct producer, not a scheme member); SubmissionPeriodId=6 points at
+-- Lookup.SubmissionPeriod's DirectSmallProducer/2026 row (5 is DirectLargeProducer/2026 - see the
+-- comment on the POP QUEST block above). OrganisationId uses the organisation reference number
+-- (165290), matching organisation_id in this org's rpd.CompanyDetails row.
+if not exists (select 1 from registration.RegistrationSubmissionData where SubmissionId = N'7A144A34-579E-46CA-BB21-2391DF6E0A06')
+begin
+    insert into registration.RegistrationSubmissionData (Id, SubmissionId, RegistrationBlobName, ComplianceSchemeId, SubmissionDate, CreatedDate, SubmissionPeriodId, RegulatorNation, ApplicationReferenceNumber) values (N'CEFABEF3-2895-4442-B99B-4B98A3E83D60', N'7A144A34-579E-46CA-BB21-2391DF6E0A06', N'cbb27ecd-dff3-4ded-989e-502d1199e599', null, N'2026-05-04T09:20:00', SYSDATETIMEOFFSET(), 6, N'GB-ENG', N'PEPR16529026P1S');
+
+    insert into registration.RegistrationSubmissionProducer (Id, RegistrationSubmissionDataId, OrganisationId, OrganisationSize, NationId, IsOnlineMarketplace, IsClosedLoopRecycling, IsNewJoiner, CreatedDate) values (N'8803468F-9E00-4468-978F-3AF4C21348F2', N'CEFABEF3-2895-4442-B99B-4B98A3E83D60', N'165290', N'Small', 1, 0, 0, 0, SYSDATETIMEOFFSET());
+
+    -- See the 601A176C block above for why these two events are seeded (already-granted lifecycle,
+    -- no snapshot yet).
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'B0BEDB79-F815-4539-8616-5C52A10CD184', N'CEFABEF3-2895-4442-B99B-4B98A3E83D60', N'SubmittedForRegulatorApproval', N'2026-05-04T09:21:00', SYSDATETIMEOFFSET());
+    insert into registration.RegistrationSubmissionDataEvents (Id, RegistrationSubmissionDataId, EventName, EventDate, CreatedDate) values (N'4287CEA5-F436-40B9-8106-4186017DB64E', N'CEFABEF3-2895-4442-B99B-4B98A3E83D60', N'AcceptedByRegulator', N'2026-05-05T09:20:00', SYSDATETIMEOFFSET());
+end
+
 -- PayCal Payment records: one per accepted registration above, both Compliance Scheme
 -- (Northbridge) and Direct Producer (PopQuest). Reference matches that registration's own
 -- ApplicationReferenceNumber; UserId matches the UserId seeded for that registration in Cosmos
@@ -129,6 +148,13 @@ if not exists (select 1 from dbo.Payment where Reference = N'PEPR16528226P1')
 begin
     insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
     values (N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', 2, 'GB-ENG', N'PEPR16528226P1', 100000.0000, N'Registration Fee', N'2026-04-01T09:20:00', N'79D0DEAB-C22D-4C30-8082-508FF8DC1BD7', N'2026-04-01T09:20:00');
+end
+
+-- Smallwood Trading 2026 (Direct Producer, Small, matches SubmissionId 7A144A34-579E-46CA-BB21-2391DF6E0A06)
+if not exists (select 1 from dbo.Payment where Reference = N'PEPR16529026P1S')
+begin
+    insert into dbo.Payment (UserId, InternalStatusId, Regulator, Reference, Amount, ReasonForPayment, CreatedDate, UpdatedByUserId, UpdatedDate)
+    values (N'DDA43611-5AA2-44BF-B449-B4734DD32694', 2, 'GB-ENG', N'PEPR16529026P1S', 18500.0000, N'Registration Fee', N'2026-05-04T09:25:44', N'DDA43611-5AA2-44BF-B449-B4734DD32694', N'2026-05-04T09:25:44');
 end
 
 -- Packaging data resubmission fees for the two completed 2026 H1 resubmission cycles. These mirror
