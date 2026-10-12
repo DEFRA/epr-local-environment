@@ -23,6 +23,22 @@ services:
     profiles:
       - timeshift-prn
 
+  # The obligations frontend shifts its own UI clock (see STARTUP_UTC_TIMESTAMP_OVERRIDE in
+  # waste-obligations-frontend), so no libfaketime image is needed and sign-in keeps the real
+  # clock. Both frontend instances get the same shifted clock. The value is RFC 3339, unlike
+  # TIMESHIFT_DATETIME.
+  waste-obligations-frontend:
+    environment:
+      STARTUP_UTC_TIMESTAMP_OVERRIDE: ${OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE:-2026-12-15T12:00:00Z}
+    profiles:
+      - timeshift-obligations
+
+  waste-obligations-frontend-isolated:
+    environment:
+      STARTUP_UTC_TIMESTAMP_OVERRIDE: ${OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE:-2026-12-15T12:00:00Z}
+    profiles:
+      - timeshift-obligations
+
 volumes:
   azurite-data:
   sqledge-data:

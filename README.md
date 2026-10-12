@@ -55,6 +55,16 @@ docker compose -f compose.yml -f compose.b2cmock.yml -f compose.timeshift.yml --
 
 Without it you get `NotTimeValid` and `IDX20803: Unable to obtain configuration from '...b2clogin.com/.../.well-known/openid-configuration'`. The time-shifted container validates the real `b2clogin.com` certificate against its faked clock, and that certificate is only valid for the ~3 month window around the real date that Microsoft last renewed it in — so any `TIMESHIFT_DATETIME` outside that window fails the TLS handshake before a token is ever issued. `AzureADB2C__ValidateTokenLifetime: false` does not help; it relaxes token lifetime, not the handshake.
 
+### Obligations frontend
+
+The obligations frontend shifts its own UI clock instead, so it needs neither the mock B2C nor a rebuilt image. Use the `obligations` and `timeshift-obligations` profiles (for example to see the December waste "choose year" page) and set `OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE` in `.env` to an RFC 3339 timestamp (default `2026-12-15T12:00:00Z`). Seed the December waste PRNs with `compose/epr-prn-common-backend-migrations/apply-extra-prn-scenarios.sh`:
+
+```
+docker compose -f compose.yml -f compose.timeshift.yml --profile obligations --profile timeshift-obligations up -d
+```
+
+Only the frontend's date-dependent UI logic is shifted; sign-in, sessions and the backend services keep the real date.
+
 ## Mock B2C
 
 [`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging` or `obligations` profile, with or without time shift:
