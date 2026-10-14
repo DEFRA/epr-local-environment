@@ -1611,17 +1611,39 @@ services:
     profiles:
       - obligations
 
+  waste-organisations-postgres:
+    image: postgres:16-alpine
+    environment:
+      # Matches the Postgres section in waste-organisations' appsettings.Development.json
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: waste_organisations
+    volumes:
+      - waste-organisations-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d waste_organisations" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
   waste-organisations:
     image: defradigital/waste-organisations:${WASTE_ORGANISATIONS:-latest}
     pull_policy: always
     depends_on:
       mongodb:
         condition: service_started
+      waste-organisations-postgres:
+        condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
       - 'compose/cdp/dotnet-service.env'
     environment:
       Mongo__DatabaseUri: mongodb://mongodb:27017/
+      Postgres__DefaultHost: waste-organisations-postgres
       Acl__Clients__Developer__Type: ApiKey
       Acl__Clients__Developer__Secret: developer-pwd
       Acl__Clients__Developer__Scopes__0: read
@@ -2169,3 +2191,4 @@ volumes:
   sqledge-data:
   token-cache:
   mongodb-data:
+  waste-organisations-postgres-data:
