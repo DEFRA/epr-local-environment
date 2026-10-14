@@ -400,6 +400,12 @@ Use **https://localhost:8010** (HTTPS proxy) for the packaging-linked app and B2
 
 The `waste-obligations-frontend-isolated` variant runs only behind `packaging-waste-proxy` and has distinct session, CSRF and OAuth-state cookie names, so it does not interfere with the packaging-linked frontend. It has no host port mappings; access it only at **https://localhost:8015/manage-recycling-obligations**. Register `https://localhost:8015/manage-recycling-obligations/signin-oidc` with Azure AD B2C.
 
+When using the mock B2C overlay with the obligations profile, the waste-obligations-frontend redirects the browser to `https://b2c-mock:8443` for sign-in. Add the following entry to your `/etc/hosts` so the browser can resolve that hostname:
+
+```
+sudo sh -c 'echo "127.0.0.1 b2c-mock" >> /etc/hosts'
+```
+
 **npm run dev:** start the obligations profile, then configure [waste-obligations-frontend/.env.example](https://github.com/DEFRA/waste-obligations-frontend/blob/main/.env.example) in that repo:
 
 - Set `AZURE_AD_B2C_CLIENT_SECRET` (same B2C app as Docker).
