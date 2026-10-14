@@ -10,7 +10,6 @@ Flows often cross the Azure/CDP boundary during the transition - follow the call
 
 - **Azure** - original estate, primarily maintenance with some ongoing change. See [azure-architecture.md](azure-architecture.md). Synapse / PowerBI reporting expected to stay here for the foreseeable future. Tagged `epr-producer`.
 - **CDP** - active development. See `cdp-documentation` for platform specifics. Producer-team CDP repos:
-  - [epr-regulator-frontend](https://github.com/DEFRA/epr-regulator-frontend), [epr-regulator-gateway](https://github.com/DEFRA/epr-regulator-gateway) - regulator side.
   - [epr-register-enrol-frontend](https://github.com/DEFRA/epr-register-enrol-frontend), [-backend](https://github.com/DEFRA/epr-register-enrol-backend), [-fe-tests](https://github.com/DEFRA/epr-register-enrol-fe-tests) - registration/enrolment.
 
   Tagged `cdp`.

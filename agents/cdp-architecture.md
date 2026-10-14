@@ -8,11 +8,6 @@ For platform specifics (deployment model, persistence, networking, auth, telemet
 
 Permalinks pin to the SHA the trace was performed against. Re-run `git rev-parse origin/main` in each repo to refresh.
 
-### Regulator side
-
-- [epr-regulator-frontend](https://github.com/DEFRA/epr-regulator-frontend) - regulator UI. Calls `epr-regulator-gateway` for account data ([`account-details.js#L103-L105`](https://github.com/DEFRA/epr-regulator-frontend/blob/d73fdf50a5dc29380fc9e633112ed3232969c0ae/src/server/common/services/account-details.js#L103-L105)). External auth via Azure AD B2C ([`config.js`](https://github.com/DEFRA/epr-regulator-frontend/blob/d73fdf50a5dc29380fc9e633112ed3232969c0ae/src/config/config.js)).
-- [epr-regulator-gateway](https://github.com/DEFRA/epr-regulator-gateway) - regulator-side gateway. **Crosses the chasm**: calls Azure-hosted [epr-backend-account-microservice](repos/epr-backend-account-microservice.md) (WA 407) via `UserService.BaseUrl` ([`appsettings.json#L8-L9`](https://github.com/DEFRA/epr-regulator-gateway/blob/a90d0b9eec4490e3bbcfed91486c5946054c74e2/EprRegulatorGateway/appsettings.json#L8-L9), [`UserApiClient.cs#L9`](https://github.com/DEFRA/epr-regulator-gateway/blob/a90d0b9eec4490e3bbcfed91486c5946054c74e2/EprRegulatorGateway/Account/Services/UserApiClient.cs#L9)). Auth via [`DefaultAzureCredential`](https://github.com/DEFRA/epr-regulator-gateway/blob/a90d0b9eec4490e3bbcfed91486c5946054c74e2/EprRegulatorGateway/Account/Handlers/UserServiceAuthorisationHandler.cs#L25).
-
 ### Registration & Enrolment
 
 - [epr-register-enrol-frontend](https://github.com/DEFRA/epr-register-enrol-frontend) - producer registration & enrolment UI. Calls `epr-register-enrol-backend` ([`config.js#L295-L308`](https://github.com/DEFRA/epr-register-enrol-frontend/blob/c91275b78e3c8ca9187a7a154086d46e933073a4/src/config/config.js#L295-L308), [`api-client.js#L47`](https://github.com/DEFRA/epr-register-enrol-frontend/blob/c91275b78e3c8ca9187a7a154086d46e933073a4/src/server/common/api-client.js#L47)). External auth: Azure Entra ID (regulators) + Defra ID (operators) ([`auth/providers/`](https://github.com/DEFRA/epr-register-enrol-frontend/tree/c91275b78e3c8ca9187a7a154086d46e933073a4/src/server/common/helpers/auth/providers)).
@@ -27,7 +22,6 @@ Permalinks pin to the SHA the trace was performed against. Re-run `git rev-parse
 ## Cross-platform calls
 
 Confirmed CDP → Azure HTTP paths today:
-- `regulator-gateway → epr-backend-account-microservice` (WA 407)
 - `waste-obligations → epr-prn-common-backend` (WA 418)
 
 See [architecture.md](architecture.md#cross-platform-interactions) for detail. There may be others not yet documented.
