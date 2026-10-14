@@ -48,8 +48,6 @@ workspace/
 │       └── repos/                ← per-service quick reference
 ├── epr-regulator-service/         ← Azure
 ├── epr-regulator-service-facade/  ← Azure
-├── epr-regulator-frontend/        ← CDP
-├── epr-regulator-gateway/         ← CDP
 ├── cdp-documentation/
 ├── cdp-app-config/
 └── ...                            (all epr-producer + common repos)

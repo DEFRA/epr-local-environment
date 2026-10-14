@@ -1452,7 +1452,7 @@ url = "git@github.com:DEFRA/epr-regulator-enrolment-frontend.git"
 
 [[repos]]
 path = "epr-regulator-frontend"
-tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-producer", "epr-regulator", "frontend", "github", "public"]
+tags = ["archived", "cdp", "cdp-node-frontend-template", "epr", "epr-producer", "epr-regulator", "frontend", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"
@@ -1460,7 +1460,7 @@ url = "git@github.com:DEFRA/epr-regulator-frontend.git"
 
 [[repos]]
 path = "epr-regulator-gateway"
-tags = ["backend", "cdp", "epr-producer", "epr-regulator", "github", "public"]
+tags = ["archived", "backend", "cdp", "epr-producer", "epr-regulator", "github", "public"]
 
 [repos.remotes.origin]
 name = "origin"

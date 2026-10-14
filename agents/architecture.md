@@ -13,12 +13,6 @@ Flows often cross the boundary - follow the call, don't stop at the platform lin
 
 Permalinks below pin to the SHA the trace was performed against. Re-run `git rev-parse origin/main` in each repo to refresh.
 
-- **regulator-frontend (CDP) → regulator-gateway (CDP) → epr-backend-account-microservice (Azure, WA 407)**
-  - `epr-regulator-gateway` configures `UserService.BaseUrl` pointing at the Azure-hosted account microservice in [`appsettings.json#L8-L9`](https://github.com/DEFRA/epr-regulator-gateway/blob/a90d0b9eec4490e3bbcfed91486c5946054c74e2/EprRegulatorGateway/appsettings.json#L8-L9) (`devrwdwebwa9407.azurewebsites.net` for dev).
-  - Outbound calls are made from [`UserApiClient.GetUserOrganisationsAsync()`](https://github.com/DEFRA/epr-regulator-gateway/blob/a90d0b9eec4490e3bbcfed91486c5946054c74e2/EprRegulatorGateway/Account/Services/UserApiClient.cs#L9) → `api/users/user-organisations`.
-  - Auth crosses the boundary via [`DefaultAzureCredential` in `UserServiceAuthorisationHandler.cs#L25`](https://github.com/DEFRA/epr-regulator-gateway/blob/a90d0b9eec4490e3bbcfed91486c5946054c74e2/EprRegulatorGateway/Account/Handlers/UserServiceAuthorisationHandler.cs#L25) - the gateway acquires an Azure AD token to call the Azure-hosted API.
-  - The frontend itself does not call Azure directly; it talks to the gateway via [`account-details.js#L103-L105`](https://github.com/DEFRA/epr-regulator-frontend/blob/d73fdf50a5dc29380fc9e633112ed3232969c0ae/src/server/common/services/account-details.js#L103-L105).
-
 - **waste-obligations-frontend (CDP) → waste-obligations (CDP) → epr-prn-common-backend (Azure, WA 418)**
   - `waste-obligations` calls the Azure-hosted PRN backend for obligation calculations. Per-environment base URL in `cdp-app-config/services/waste-obligations/{env}/waste-obligations.env` (`PrnCommonBackend__BaseAddress`); [dev config#L15-L21](https://github.com/DEFRA/cdp-app-config/blob/dcf7dde9910dda5f310a7728caaa1ac5af5f0a86/services/waste-obligations/dev/waste-obligations.env#L15-L21) points at `https://devrwdwebwa9418.azurewebsites.net`.
   - In-repo HTTP client: [`PrnCommonBackendService.cs#L14`](https://github.com/DEFRA/waste-obligations/blob/f4f317c916c7114306087cb5e41f980daf29291c/src/Api/Services/PrnCommonBackend/PrnCommonBackendService.cs#L14) calling `api/v1/prn/obligationcalculation/{year}`.
