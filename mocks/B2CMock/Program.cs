@@ -35,6 +35,11 @@ var policy = config["B2CMock:Policy"] ?? "B2C_1A_EPR_SignUpSignIn";
 // a real (unknown) user id.
 var autoSelectUserId = config["B2CMock:AutoSelectUserId"] is { Length: > 0 } id ? id : null;
 
+// Real B2C keeps a single sign-on session, so a second service (waste-obligations-frontend after
+// packaging) signs straight in without asking again. The mock does the same with this cookie on its
+// own origin; prompt=login or signing out clears it.
+const string SsoCookie = "b2cmock_sso";
+
 // AadIssuerValidator, which Microsoft.Identity.Web installs by default, expects
 // "{authority-host}/{tid}/v2.0" - so shape the issuer that way and emit a matching tid claim.
 var issuer = $"{internalOrigin}/{tenantId}/v2.0";
@@ -191,7 +196,9 @@ async Task Authorize(HttpContext context)
         return;
     }
 
-    var selectedUserId = Value("b2cmock_user") ?? autoSelectUserId;
+    var forceLogin = string.Equals(Value("prompt"), "login", StringComparison.OrdinalIgnoreCase);
+    var ssoUserId = forceLogin ? null : context.Request.Cookies[SsoCookie] is { Length: > 0 } sso ? sso : null;
+    var selectedUserId = Value("b2cmock_user") ?? autoSelectUserId ?? ssoUserId;
     var user = users.FirstOrDefault(u => string.Equals(u.UserId, selectedUserId, StringComparison.OrdinalIgnoreCase));
 
     if (user is null)
@@ -220,6 +227,14 @@ async Task Authorize(HttpContext context)
         Value("code_challenge_method"));
 
     log.LogInformation("B2C mock: issued code for {Email} ({UserId})", user.Email, user.UserId);
+
+    context.Response.Cookies.Append(SsoCookie, user.UserId, new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Lax,
+        Path = "/"
+    });
 
     var payload = new Dictionary<string, string?>
     {
@@ -311,6 +326,7 @@ async Task Token(HttpContext context)
 
 void Logout(HttpContext context)
 {
+    context.Response.Cookies.Delete(SsoCookie, new CookieOptions { Secure = true, Path = "/" });
     var redirect = context.Request.Query["post_logout_redirect_uri"].ToString();
     context.Response.Redirect(string.IsNullOrEmpty(redirect) ? browserOrigin : redirect);
 }

@@ -67,6 +67,8 @@ docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d -
 - Signing in shows a picker at `https://localhost:8443` listing every seeded account. Set `B2CMOCK_AUTO_SELECT_USER_ID` in your `.env` to a `userId` from [`mocks/B2CMock/users.json`](mocks/B2CMock/users.json) to skip the picker and sign straight in as that user.
 - Tokens are really RS256-signed and carry a seeded account's `UserId` as `oid`/`sub`, so `epr-facade-account-microservice` and the other APIs go on validating them for real against the real seeded organisations — see [Seeded users](#seeded-users-packaging-profile). Nothing downstream is stubbed.
 - Only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are.
+- Both `waste-obligations-frontend` instances (https://localhost:8010 and https://localhost:8015/manage-recycling-obligations) sign in through the mock too, with no `/etc/hosts` entry: they send the browser to `https://localhost:8443`, and a small forwarder in each container ([`b2c-mock-forwarder.mjs`](compose/waste-obligations-frontend/b2c-mock-forwarder.mjs)) passes the container's own token calls on to `b2c-mock`.
+- Like real B2C, the mock remembers who signed in (a `b2cmock_sso` cookie on `localhost:8443`), so following a link from packaging to the obligations frontend signs straight in without the picker. Signing out, or a request with `prompt=login`, shows the picker again.
 - It does not support the `regulator` profile. The regulator frontends still sign in with real B2C, and `epr-payment-facade`, which that profile shares, would reject their tokens. `up` stops with an error if you combine them.
 
 To edit the list of users offered, change `mocks/B2CMock/users.json` and restart `b2c-mock` — it is mounted, not baked into the image.
@@ -400,11 +402,7 @@ Use **https://localhost:8010** (HTTPS proxy) for the packaging-linked app and B2
 
 The `waste-obligations-frontend-isolated` variant runs only behind `packaging-waste-proxy` and has distinct session, CSRF and OAuth-state cookie names, so it does not interfere with the packaging-linked frontend. It has no host port mappings; access it only at **https://localhost:8015/manage-recycling-obligations**. Register `https://localhost:8015/manage-recycling-obligations/signin-oidc` with Azure AD B2C.
 
-When using the mock B2C overlay with the obligations profile, the waste-obligations-frontend redirects the browser to `https://b2c-mock:8443` for sign-in. Add the following entry to your `/etc/hosts` so the browser can resolve that hostname:
-
-```
-sudo sh -c 'echo "127.0.0.1 b2c-mock" >> /etc/hosts'
-```
+With the [mock B2C](#mock-b2c) overlay, both instances sign in through the mock at `https://localhost:8443`; no `/etc/hosts` entry is needed.
 
 **npm run dev:** start the obligations profile, then configure [waste-obligations-frontend/.env.example](https://github.com/DEFRA/waste-obligations-frontend/blob/main/.env.example) in that repo:
 
