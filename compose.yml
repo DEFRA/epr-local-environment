@@ -284,6 +284,46 @@ services:
       - obligations
       - regulator
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      # Services connect as this user; waste-organisations' appsettings.Development.json expects it
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    restart: unless-stopped
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
+  postgres-init:
+    image: postgres:16-alpine
+    entrypoint: [ "/bin/sh", "/compose/init-postgres.sh" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    volumes:
+      - ./compose/init-postgres.sh:/compose/init-postgres.sh:ro
+    profiles:
+      - packaging
+      - obligations
+      - regulator
+
   floci:
     image: floci/floci:latest
     pull_policy: always
@@ -1611,39 +1651,20 @@ services:
     profiles:
       - obligations
 
-  waste-organisations-postgres:
-    image: postgres:16-alpine
-    environment:
-      # Matches the Postgres section in waste-organisations' appsettings.Development.json
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: waste_organisations
-    volumes:
-      - waste-organisations-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d waste_organisations" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    profiles:
-      - packaging
-      - obligations
-      - regulator
-
   waste-organisations:
     image: defradigital/waste-organisations:${WASTE_ORGANISATIONS:-latest}
     pull_policy: always
     depends_on:
       mongodb:
         condition: service_started
-      waste-organisations-postgres:
-        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
     env_file:
       - 'compose/cdp/aws.env'
       - 'compose/cdp/dotnet-service.env'
     environment:
       Mongo__DatabaseUri: mongodb://mongodb:27017/
-      Postgres__DefaultHost: waste-organisations-postgres
+      Postgres__DefaultHost: postgres
       Acl__Clients__Developer__Type: ApiKey
       Acl__Clients__Developer__Secret: developer-pwd
       Acl__Clients__Developer__Scopes__0: read
@@ -2191,4 +2212,4 @@ volumes:
   sqledge-data:
   token-cache:
   mongodb-data:
-  waste-organisations-postgres-data:
+  postgres-data:

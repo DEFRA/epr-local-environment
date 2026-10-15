@@ -446,6 +446,8 @@ The packaging front end will be started alongside all necessary services that al
 
 The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
 
+It also starts a shared PostgreSQL instance (`postgres`, published on port 5432). Each service gets its own database, created by the one-shot `postgres-init` service from `compose/init-postgres.sh`. To give a new service a database, add a `create_database <name>` line to that script and make the service depend on `postgres-init` with `condition: service_completed_successfully`. The script skips databases that already exist, so it also works on an existing volume.
+
 A local SQL Server-compatible representation of Synapse is created in `sqledge` before Common
 Data API starts. The restore service shallow-fetches the current `main` branch of
 `epr-data-sqldb`, converts Synapse physical-storage declarations for SQL Server, restores the
