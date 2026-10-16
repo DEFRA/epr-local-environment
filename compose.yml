@@ -194,7 +194,7 @@ services:
 
   cosmosdb-emulator:
     pull_policy: always
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-EN20260907pre
     environment:
       PROTOCOL: https
       ENABLE_EXPLORER: "true"
@@ -857,6 +857,9 @@ services:
       AzureADB2C__Domain: AZDCUSPOC2.onmicrosoft.com
       AzureAdB2C__Scopes: https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/payment-service
       AzureAdB2C__SignUpSignInPolicyId: B2C_1A_EPR_SignUpSignIn
+      # Callers (e.g. epr-pom-api-web) send the managed-identity-mock's placeholder token, which
+      # isn't a JWT, so the facade's JWT bearer validation would 401 every call. Local only.
+      FeatureManagement__EnableAuthenticationFeature: "false"
       # All of these route to controllers hosted by epr-payment-service itself (confirmed by
       # reading its Controllers/ routes directly) - EndPointName v1/v2 matches each controller's
       # actual API version, Url/ServiceClientId are the same for all of them since they're the
