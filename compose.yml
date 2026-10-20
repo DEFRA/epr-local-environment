@@ -1814,6 +1814,9 @@ services:
       # Comment the following line to use the actual Govuk Notify service
       GovukNotify__BaseAddress: http://wiremock/
       GovukNotify__ApiKey: ${GovukNotify__ApiKey}
+      # Shared with waste-obligations-notifications: this service emails actions before the cutover, notifications
+      # emails those at or after it. Both read EmailDeliveryCutoverUtc so they never disagree (2100 = this service sends).
+      EmailDelivery__EmailDeliveryCutoverUtc: ${EmailDeliveryCutoverUtc:-2100-01-01T00:00:00Z}
     ports:
       - "8007:8080"
     healthcheck:
@@ -1897,8 +1900,9 @@ services:
       NotificationCommandDelivery__QueueUrl: http://floci:4566/000000000000/waste_obligations_notifications_commands.fifo
       NotificationCommandDelivery__WaitTimeSeconds: 1
       NotificationCommandDelivery__PollIntervalSeconds: 1
-      # Commands before the cutover are recorded as suppressed, so no email is sent unless this is moved earlier.
-      NotificationCommandDelivery__EmailDeliveryCutoverUtc: ${WasteObligationsNotifications__EmailDeliveryCutoverUtc:-2100-01-01T00:00:00Z}
+      # Shared with waste-obligations (see its EmailDelivery__EmailDeliveryCutoverUtc): commands for actions before the
+      # cutover are recorded as suppressed, because waste-obligations emails those. Move both with EmailDeliveryCutoverUtc.
+      NotificationCommandDelivery__EmailDeliveryCutoverUtc: ${EmailDeliveryCutoverUtc:-2100-01-01T00:00:00Z}
       NotificationCommandDelivery__EvidenceDigestSecret: local-only-evidence-digest-secret
       NotificationCommandDelivery__RecipientLaneSecret: local-only-recipient-lane-secret
       CommandDlqAdministration__QueueUrl: http://floci:4566/000000000000/waste_obligations_notifications_commands_dlq.fifo

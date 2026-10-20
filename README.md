@@ -451,7 +451,12 @@ Locally:
   `compose/wiremock/mappings/govuk-notify-templates.json`), and every command before the 2100 cutover is recorded as
   `delivery-suppressed`. To try a real send, set `GovukNotify__ApiKey` to a Notify test key,
   `WasteObligationsNotifications__Notify__BaseAddress=https://api.notifications.service.gov.uk` and
-  `WasteObligationsNotifications__EmailDeliveryCutoverUtc` to a past date in `.env` (see `.env.example`).
+  `EmailDeliveryCutoverUtc` to a past date in `.env` (see `.env.example`).
+- **One cutover for both services.** waste-obligations emails declaration actions before the cutover and
+  notifications emails those at or after it, so both read the same `EmailDeliveryCutoverUtc` (default
+  `2100-01-01T00:00:00Z`: waste-obligations sends, notifications suppresses). Set it once in `.env`; a different value
+  in each would send some emails twice or not at all. It must be a UTC timestamp (`Z`); waste-obligations and
+  notifications fail to start on anything else. Recreate both services after changing it.
 - **Reaching waste-obligations.** The service reads declarations only over https or loopback http, and checks this at
   start-up. The `waste-obligations-notifications-net` forwarder shares its network with the service, so
   `http://localhost:8090` reaches `waste-obligations:8080`; it also publishes the service's port. waste-obligations has
