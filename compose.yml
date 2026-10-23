@@ -1698,7 +1698,7 @@ services:
       - regulator
 
   waste-organisations-seed:
-    image: node:20-alpine
+    image: node:22.23.4-alpine
     depends_on:
       waste-organisations:
         condition: service_healthy
@@ -1712,7 +1712,7 @@ services:
       - regulator
 
   waste-obligations-seed:
-    image: node:20-alpine
+    image: node:22.23.4-alpine
     depends_on:
       waste-obligations:
         condition: service_healthy
