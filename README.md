@@ -55,6 +55,14 @@ docker compose -f compose.yml -f compose.b2cmock.yml -f compose.timeshift.yml --
 
 Without it you get `NotTimeValid` and `IDX20803: Unable to obtain configuration from '...b2clogin.com/.../.well-known/openid-configuration'`. The time-shifted container validates the real `b2clogin.com` certificate against its faked clock, and that certificate is only valid for the ~3 month window around the real date that Microsoft last renewed it in — so any `TIMESHIFT_DATETIME` outside that window fails the TLS handshake before a token is ever issued. `AzureADB2C__ValidateTokenLifetime: false` does not help; it relaxes token lifetime, not the handshake.
 
+### PRN backend
+
+The PRN backend (`epr-prn-common-backend`) works out which notes can be accepted into a year from the date, so it is
+shifted with the same `TIMESHIFT_DATETIME` under the `timeshift-prn`, `timeshift-packaging` and `timeshift-obligations`
+profiles, using a small `libfaketime` image built on top of the registry image. `TIMESHIFT_DATETIME` and
+`OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE` should name the same moment, or the frontends and the backend disagree
+about which year a December waste note can go into.
+
 ### Obligations frontend
 
 The obligations frontend shifts its own UI clock instead, so it needs neither the mock B2C nor a rebuilt image. Use the `obligations` and `timeshift-obligations` profiles (for example to see the December waste "choose year" page) and set `OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE` in `.env` to an RFC 3339 timestamp (default `2026-12-15T12:00:00Z`). Seed the December waste PRNs with `compose/epr-prn-common-backend-migrations/apply-extra-prn-scenarios.sh`:
