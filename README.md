@@ -398,6 +398,7 @@ Sign-in uses Azure AD B2C, then calls **epr-backend-account-microservice** (`GET
 | epr-backend-account-microservice | http://localhost:8003/api/ |
 | waste-organisations | http://localhost:8006 |
 | waste-obligations | http://localhost:8007 |
+| waste-obligations-notifications | http://localhost:8016 (`/health`, `/health/all`) |
 | wiremock | http://localhost:9090 |
 | Floci (SNS/SQS emulator) | http://localhost:4566 |
 
@@ -433,6 +434,51 @@ To start:
 docker compose --profile obligations up -d
 ```
 
+#### waste-obligations-notifications
+
+Consumes the Waste Obligations analytics events and turns compliance-declaration submissions into email commands
+(port 8016). The one-shot `waste-obligations-notifications-init` service (`compose/init-floci-notifications.sh`, this
+profile only) provisions its queues in Floci:
+
+- `waste_obligations_notifications_analytics_events_queue`, subscribed to `waste_obligations_analytics_events` with raw
+  message delivery (the service needs it), with `…-deadletter` after 3 receives (the CDP convention);
+- `waste_obligations_notifications_commands.fifo`, with `waste_obligations_notifications_commands_dlq.fifo` after 3
+  receives.
+
+Locally:
+
+- **No email is sent by default.** Notify is Wiremock (it also answers the Notify health check,
+  `compose/wiremock/mappings/govuk-notify-templates.json`), and every command before the 2100 cutover is recorded as
+  `delivery-suppressed`. To try a real send, set `GovukNotify__ApiKey` to a Notify test key,
+  `WasteObligationsNotifications__Notify__BaseAddress=https://api.notifications.service.gov.uk` and
+  `EmailDeliveryCutoverUtc` to a past date in `.env` (see `.env.example`).
+- **One cutover for both services.** waste-obligations emails declaration actions before the cutover and
+  notifications emails those at or after it, so both read the same `EmailDeliveryCutoverUtc` (default
+  `2100-01-01T00:00:00Z`: waste-obligations sends, notifications suppresses). Set it once in `.env`; a different value
+  in each would send some emails twice or not at all. It must be a UTC timestamp (`Z`); waste-obligations and
+  notifications fail to start on anything else. Recreate both services after changing it.
+- **Reaching waste-obligations.** The service reads declarations only over https or loopback http, and checks this at
+  start-up. The `waste-obligations-notifications-net` forwarder shares its network with the service, so
+  `http://localhost:8090` reaches `waste-obligations:8080`; it also publishes the service's port. waste-obligations has
+  a read-only `waste-obligations-notifications` API client for it. If you recreate the forwarder on its own, recreate
+  the service with it:
+  `docker compose --profile obligations up -d --force-recreate waste-obligations-notifications-net waste-obligations-notifications`.
+- **Admin endpoints** (command dead-letter queue status, inspect, redrive) use Basic sign-in as `Developer` /
+  `developer-pwd`, e.g. `curl -u Developer:developer-pwd http://localhost:8016/admin/notification-commands/dlq/status`.
+
+Override the image tag with `WASTE_OBLIGATIONS_NOTIFICATIONS` (default `latest`).
+
+##### Seeing the events
+
+| What | Where |
+| --- | --- |
+| Events waste-obligations published | Mongo `waste-obligations`, collection `AuditEvent` (`eventType`, `entityId`, `dispatches.analytics.status`) |
+| What the notifications service did | Its log, in Dozzle at http://localhost:8080 or `docker logs -f epr-local-environment-waste-obligations-notifications-1` ("Consumed analytics event …", "Notification command outcome …"). Event and entity IDs are logged as opaque hashes (`opaque-…`); match by time, and use `AuditEvent` for the real IDs |
+| Each email command's result | Mongo `waste-obligations-notifications`, collection `NotificationDeliveryRecord` (`notificationType`, `outcome`) |
+| Failed or stuck messages | The `…-deadletter` and `…_dlq.fifo` queues in Floci (`aws --endpoint-url http://localhost:4566 sqs get-queue-attributes …` with the dummy `test` credentials), and the admin status endpoint above |
+
+Mongo is at `mongodb://localhost:27017/?directConnection=true` (for example in MongoDB Compass).
+
 #### Browser load testing
 
 To run the browser load tests against locally built versions of the frontend
@@ -454,7 +500,7 @@ local Azure AD B2C callback URL.
 
 The packaging front end will be started alongside all necessary services that allow the obligation calculation process to function.
 
-The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
+The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and the SQS queues subscribed to it (for waste-obligations and [waste-obligations-notifications](#waste-obligations-notifications)) provisioned automatically.
 
 It also starts a shared PostgreSQL instance (`postgres`, published on port 5432). Each service gets its own database, created by the one-shot `postgres-init` service from `compose/init-postgres.sh`. To give a new service a database, add a `create_database <name>` line to that script and make the service depend on `postgres-init` with `condition: service_completed_successfully`. The script skips databases that already exist, so it also works on an existing volume.
 
