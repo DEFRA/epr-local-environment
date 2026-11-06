@@ -1955,6 +1955,14 @@ name = "origin"
 url = "git@github.com:DEFRA/trade-imports-journey-config-ui.git"
 
 [[repos]]
+path = "waste-case-intake-processor"
+tags = ["backend", "cdp", "epr", "epr-regulator", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-case-intake-processor.git"
+
+[[repos]]
 path = "waste-disposal-fee-frontend"
 tags = ["cdp", "epr", "epr-disposal-fees", "github", "public"]
 
@@ -2049,6 +2057,14 @@ tags = ["cdp", "cdp-node-frontend-template", "epr", "epr-regulator", "frontend",
 [repos.remotes.origin]
 name = "origin"
 url = "git@github.com:DEFRA/waste-packaging-regulators-fe.git"
+
+[[repos]]
+path = "waste-regulator-case-management"
+tags = ["backend", "cdp", "epr", "epr-regulator", "github", "public"]
+
+[repos.remotes.origin]
+name = "origin"
+url = "git@github.com:DEFRA/waste-regulator-case-management"
 
 [[repos]]
 path = "waste-regulator-dashboard-fe"
