@@ -1,0 +1,32 @@
+# Feeds the paycal profile from the real Synapse in Azure, through epr-common-data-api, instead of the load tables
+# seeded by compose/epr-calculator-api-migrations/seed.sql:
+#
+#   docker compose -f compose.yml -f compose.synapse.yml --profile paycal up -d
+#
+# Needs the Azure VPN, `az login` on the host (token-provider reads ~/.azure) and
+# EprCommonDataApi__ConnectionStrings__SynapseDatabase set in .env. Each calculator run refills the load tables
+# from Synapse.
+
+services:
+  token-provider:
+    profiles:
+      - prn
+      - paycal
+
+  epr-common-data-api:
+    depends_on: !override
+      token-provider:
+        condition: service_healthy
+    environment:
+      AZURE_SQL_ACCESS_TOKEN_FILE: /tokens/sql.azuresynapse_token.txt
+      ConnectionStrings__SynapseDatabase: ${EprCommonDataApi__ConnectionStrings__SynapseDatabase:?Set EprCommonDataApi__ConnectionStrings__SynapseDatabase in .env}
+    profiles:
+      - prn
+      - paycal
+
+  epr-calculator-api:
+    depends_on:
+      epr-common-data-api:
+        condition: service_healthy
+    environment:
+      CommonDataApi__DataLoader__Enabled: "true"
