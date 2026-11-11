@@ -23,6 +23,21 @@ services:
     profiles:
       - timeshift-prn
 
+  # The PRN backend decides which notes can be accepted into a year (AcceptanceYearRule), which depends on the date,
+  # so it must see the same shifted date as the frontends.
+  epr-prn-common-backend:
+    build:
+      context: .
+      dockerfile: ./compose/epr-prn-common-backend/Dockerfile.timeshift
+      args:
+        BASE_IMAGE: devrwdinfac1401.azurecr.io/eprprncommonbackendrepository:${EPR_PRN_COMMON_BACKEND:-main-latest}
+    image: epr-prn-common-backend:timeshift
+    entrypoint: ["sh", "-c", "echo 'Setting fake time to ${TIMESHIFT_DATETIME}' && exec faketime --exclude-monotonic -f '${TIMESHIFT_DATETIME}' dotnet ${EprPrnCommonBackend__Dll:-EPR.PRN.Backend.API.dll}"]
+    profiles:
+      - timeshift-prn
+      - timeshift-packaging
+      - timeshift-obligations
+
   # The obligations frontend shifts its own UI clock (see STARTUP_UTC_TIMESTAMP_OVERRIDE in
   # waste-obligations-frontend), so no libfaketime image is needed and sign-in keeps the real
   # clock. Both frontend instances get the same shifted clock. The value is RFC 3339, unlike
