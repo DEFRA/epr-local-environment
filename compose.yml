@@ -614,6 +614,30 @@ services:
       - packaging
       - regulator
 
+  waste-submit-reg-packaging-api:
+    image: defradigital/waste-submit-reg-packaging-api:${WASTE_SUBMIT_REG_PACKAGING_API:-latest}
+    depends_on:
+      epr-common-data-api:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_URLS: http://+:8085
+      CommonDataApi__BaseUrl: http://epr-common-data-api:8080
+      Postgres__Host: postgres
+      Postgres__Database: waste_submit_reg_packaging_api
+      Postgres__Username: postgres
+      Postgres__Password: postgres
+      Postgres__UseIamAuthentication: "false"
+      Postgres__SslMode: Disable
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-pwd
+      Acl__Clients__Developer__Scopes__0: read
+    ports:
+      - "8019:8085"
+    profiles:
+      - obligations
+
   epr-packaging-frontend:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprpackagingfrontendrepository:${EPR_PACKAGING_FRONTEND:-main-latest}
