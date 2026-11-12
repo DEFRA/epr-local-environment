@@ -614,6 +614,33 @@ services:
       - packaging
       - regulator
 
+  waste-submit-reg-packaging-api:
+    image: defradigital/waste-submit-reg-packaging-api:${WASTE_SUBMIT_REG_PACKAGING_API:-latest}
+    depends_on:
+      epr-common-data-api:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_URLS: http://+:8085
+      CommonDataApi__BaseUrl: http://epr-common-data-api:8080
+      Postgres__Host: postgres
+      Postgres__Database: waste_submit_reg_packaging_api
+      Postgres__Username: postgres
+      Postgres__Password: postgres
+      Postgres__UseIamAuthentication: "false"
+      Postgres__SslMode: Disable
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-pwd
+      Acl__Clients__Developer__Scopes__0: read
+      Acl__Clients__waste-obligations__Type: ApiKey
+      Acl__Clients__waste-obligations__Secret: waste-obligations-pwd
+      Acl__Clients__waste-obligations__Scopes__0: read
+    ports:
+      - "8019:8085"
+    profiles:
+      - obligations
+
   epr-packaging-frontend:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprpackagingfrontendrepository:${EPR_PACKAGING_FRONTEND:-main-latest}
@@ -1761,6 +1788,8 @@ services:
         condition: service_healthy
       waste-organisations:
         condition: service_healthy
+      waste-submit-reg-packaging-api:
+        condition: service_started
     env_file:
       - 'compose/cdp/aws.env'
       - 'compose/cdp/dotnet-service.env'
@@ -1797,6 +1826,11 @@ services:
       WasteOrganisations__BaseAddress: ${WasteObligations__WasteOrganisations__BaseAddress:-http://waste-organisations:8080/}
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
+      WastePackaging__BaseAddress: http://waste-submit-reg-packaging-api:8085/
+      WastePackaging__ClientId: waste-obligations
+      WastePackaging__ClientSecret: waste-obligations-pwd
+      ScheduledJobs__ObligationCalculation__Enabled: "false"
+      ScheduledJobs__ObligationCalculation__Processing__Enabled: "true"
       # The initial refresh can run before the seed container completes. Refresh quickly in local use.
       OrganisationEligibility__RefreshPollingEnabled: true
       OrganisationEligibility__RefreshPollIntervalSeconds: 60

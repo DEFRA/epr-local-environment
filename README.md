@@ -138,9 +138,15 @@ github/
 Add the following to your `~/.zshrc`, then run `source ~/.zshrc`. This is a function rather than a shell alias because it accepts a profile, an action and optional service names.
 
 ```zsh
-typeset -A eprlocalenv_targets
+typeset -A eprlocalenv_targets eprlocalenv_contexts eprlocalenv_dockerfiles
 eprlocalenv_targets=(
   waste-obligations-frontend production
+)
+eprlocalenv_contexts=(
+  epr-common-data-api src
+)
+eprlocalenv_dockerfiles=(
+  epr-common-data-api EPR.CommonDataService.Api/Dockerfile
 )
 
 eprlocalenv() {
@@ -149,7 +155,7 @@ eprlocalenv() {
     return 2
   fi
 
-  local profile=$1 action=$2 env_root service source_dir target
+  local profile=$1 action=$2 env_root service source_dir context dockerfile target database_ref
   shift 2
 
   env_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 2
@@ -168,8 +174,21 @@ eprlocalenv() {
 
       for service in "$@"; do
         source_dir="${env_root%/*}/$service"
-        [[ -f "$source_dir/Dockerfile" ]] || {
-          print -u2 -- "Expected source/Dockerfile at: $source_dir"
+        if [[ "$service" == epr-data-sqldb ]]; then
+          [[ -f "$source_dir/Database.sqlproj" ]] || {
+            print -u2 -- "Expected database checkout at: $source_dir"
+            return 2
+          }
+          database_ref=$(git -C "$source_dir" symbolic-ref --short HEAD) || {
+            print -u2 -- "Check out a branch in: $source_dir"
+            return 2
+          }
+          continue
+        fi
+        context="$source_dir/${eprlocalenv_contexts[$service]:-.}"
+        dockerfile=${eprlocalenv_dockerfiles[$service]:-Dockerfile}
+        [[ -f "$context/$dockerfile" ]] || {
+          print -u2 -- "Expected Dockerfile at: $context/$dockerfile"
           return 2
         }
       done
@@ -178,14 +197,32 @@ eprlocalenv() {
         print 'services:'
         for service in "$@"; do
           source_dir="${env_root%/*}/$service"
+          if [[ "$service" == epr-data-sqldb ]]; then
+            print '  synapse-source-sync:'
+            print '    volumes:'
+            print "      - \"$source_dir:/local-source:ro\""
+            print '    environment:'
+            print '      SOURCE_URL: /local-source'
+            print "      SOURCE_REF: \"$database_ref\""
+            print '      GIT_CONFIG_COUNT: "1"'
+            print '      GIT_CONFIG_KEY_0: safe.directory'
+            print '      GIT_CONFIG_VALUE_0: /local-source'
+            print '  synapse-sqlserver-restore:'
+            print '    environment:'
+            print '      SCHEMA_SET: full'
+            print "      SOURCE_REF: \"$database_ref\""
+            continue
+          fi
+          context="$source_dir/${eprlocalenv_contexts[$service]:-.}"
+          dockerfile=${eprlocalenv_dockerfiles[$service]:-Dockerfile}
           target=${eprlocalenv_targets[$service]}
 
           print "  $service:"
           print "    image: local/$service:dev"
           print "    pull_policy: build"
           print "    build:"
-          print "      context: $source_dir"
-          print "      dockerfile: Dockerfile"
+          print "      context: \"$context\""
+          print "      dockerfile: \"$dockerfile\""
           [[ -n "$target" ]] && print "      target: $target"
         done
       } | docker compose -f "$env_root/compose.yml" -f - \
@@ -222,6 +259,9 @@ eprlocalenv obligations up waste-obligations-frontend
 # Build multiple selected services from their sibling source folders.
 eprlocalenv obligations up waste-obligations-frontend waste-obligations
 
+# Build both APIs from their checked-out branches and restore the database checkout.
+eprlocalenv obligations up epr-common-data-api waste-submit-reg-packaging-api epr-data-sqldb
+
 # Stop the profile while retaining database and emulator data.
 eprlocalenv obligations down
 
@@ -234,6 +274,8 @@ The services supplied to `up` choose which images are built locally; they do not
 The no-argument `down` form intentionally retains volumes. This keeps the local SQL Server and
 emulator state, and avoids the expensive reinitialisation caused by `down --volumes`. Use the second
 form only when a clean local state is required.
+
+The `eprlocalenv_contexts` and `eprlocalenv_dockerfiles` maps describe services whose build context or Dockerfile differs from the repository root. `epr-data-sqldb` is a special source target: it selects the checked-out branch from the sibling repository and uses the existing Synapse source sync and full restore. The sync copies committed branch content; commit SQL changes before starting. Switching source revisions or schema sets requires a fresh database, and the restore refuses to overwrite an existing one. See the [restore README](./compose/synapse-sqlserver-restore/README.md).
 
 The `eprlocalenv_targets` map is only needed for Dockerfiles whose normal runtime image is not their final build stage. `waste-obligations-frontend` uses its `production` stage so that the local image matches the runtime image rather than its final `integration` stage.
 
@@ -540,6 +582,23 @@ retained under `.cache/synapse-source` in this repository and ignored by Git; se
 for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
+
+### Submit registration packaging API
+
+The obligations profile starts `waste-submit-reg-packaging-api` at http://localhost:8019.
+It reads approved submissions through `epr-common-data-api` from the local Synapse replica.
+The endpoint and `dbo.sp_GetApprovedSubmissionsMycWithObligations` are currently in
+[common data API PR 390](https://github.com/DEFRA/epr-common-data-api/pull/390) and
+[database PR 557](https://github.com/DEFRA/epr-data-sqldb/pull/557). Until those changes
+are published, check out the respective branches in the sibling repositories and use
+`eprlocalenv obligations up epr-common-data-api waste-submit-reg-packaging-api epr-data-sqldb`.
+The normal images and default schema map do not yet contain the endpoint and procedure.
+
+```sh
+curl -u Developer:developer-pwd http://localhost:8019/packaging/2025/producer-material-totals-by-submitter
+```
+
+The credentials and database are local; the replica uses seeded data, not live Synapse.
 
 ### Synthetic obligations data
 

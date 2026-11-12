@@ -18,3 +18,4 @@ create_database() {
 }
 
 create_database waste_organisations
+create_database waste_submit_reg_packaging_api
