@@ -7,6 +7,7 @@ set -Eeuo pipefail
 : "${DATABASE:=EprCommonData}"
 : "${SOURCE_DIRECTORY:=/cache/epr-data-sqldb}"
 : "${SOURCE_COMMIT_FILE:=/cache/resolved-commit}"
+: "${SOURCE_REF:=main}"
 : "${SEED_FILE:=/scripts/seed/baseline.sql}"
 : "${SCHEMA_MAP_FILE:=/scripts/schema-map.txt}"
 : "${SCHEMA_SET:=common-data-api}"
@@ -77,6 +78,11 @@ SOURCE_COMMIT=$(tr -d '\r\n' < "${SOURCE_COMMIT_FILE}")
 
 if [[ ! "${SCHEMA_SET}" =~ ^[A-Za-z][A-Za-z0-9_-]*$ ]]; then
     echo "SCHEMA_SET must be a simple schema-set name." >&2
+    exit 2
+fi
+
+if [[ ! "${SOURCE_REF}" =~ ^[A-Za-z0-9._/-]{1,100}$ ]]; then
+    echo "SOURCE_REF must be a simple Git branch name of at most 100 characters." >&2
     exit 2
 fi
 
@@ -484,6 +490,6 @@ BEGIN
     );
 END;
 INSERT INTO dbo.LocalSynapseRestoreHistory (SourceCommit, SourceRef, SchemaSet, SchemaMapHash, Status, RestoredAt)
-VALUES (N'${SOURCE_COMMIT}', N'main', N'${SCHEMA_SET}', N'${SCHEMA_MAP_HASH}', N'succeeded', SYSUTCDATETIME());"
+VALUES (N'${SOURCE_COMMIT}', N'${SOURCE_REF}', N'${SCHEMA_SET}', N'${SCHEMA_MAP_HASH}', N'succeeded', SYSUTCDATETIME());"
 
 echo "Restored ${DATABASE} from epr-data-sqldb ${SOURCE_COMMIT} with schema set '${SCHEMA_SET}'."
