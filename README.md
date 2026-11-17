@@ -586,7 +586,7 @@ This approach should provide an early feedback loop yet there could still be sub
 
 ### Submit registration packaging API
 
-The obligations, packaging and regulator profiles start `waste-submit-reg-packaging-api` at http://localhost:8019.
+The obligations, packaging, regulator and submit-data profiles start `waste-submit-reg-packaging-api` at http://localhost:8019.
 It reads approved submissions through `epr-common-data-api` from the local Synapse replica.
 The endpoint and `dbo.sp_GetApprovedSubmissionsMycWithObligations` are currently in
 [common data API PR 390](https://github.com/DEFRA/epr-common-data-api/pull/390) and
@@ -666,8 +666,11 @@ To remove all, append `-v --remove-orphans`
 
 ### submit-data
 
-The Submit Data service: waste-submit-reg-packaging-fe and waste-submit-reg-packaging-api, with the API's MongoDB,
-Postgres (database `waste_submit_reg_packaging_api`, created by `postgres-init`) and WireMock. It needs no secrets.
+The Submit Data service: waste-submit-reg-packaging-fe and waste-submit-reg-packaging-api, with the API's MongoDB and
+Postgres (database `waste_submit_reg_packaging_api`, created by `postgres-init`), and the `epr-common-data-api` it reads
+packaging data from, with its local Synapse replica (`sqledge`, restored by `synapse-sqlserver-restore` from
+[epr-data-sqldb](https://github.com/DEFRA/epr-data-sqldb)). `epr-common-data-api` comes from the Azure container
+registry, so log in first (see the top of this README).
 
 ```
 docker compose --profile submit-data up -d --wait
@@ -675,41 +678,36 @@ docker compose --profile submit-data up -d --wait
 
 | Service | Local URL |
 | --- | --- |
-| waste-submit-reg-packaging-fe | http://localhost:8019 |
-| waste-submit-reg-packaging-api | http://localhost:8020 (Swagger at http://localhost:8020/swagger) |
+| waste-submit-reg-packaging-fe | http://localhost:8020 |
+| waste-submit-reg-packaging-api | http://localhost:8019 (Swagger at http://localhost:8019/swagger) |
+
+The API is the same service the obligations, packaging and regulator profiles start (see
+[Submit registration packaging API](#submit-registration-packaging-api)), so it keeps the same port.
 
 The frontend's home page lists the API under **Backend services**. **Healthy** means the frontend called the API's
 authenticated `/describe` and the API accepted its key.
 
-The API takes an API key as HTTP Basic credentials. Two local-only clients are set up, both with the `read` scope:
+The API takes an API key as HTTP Basic credentials. Three local-only clients are set up, all with the `read` scope:
 
 | Client | Secret | Used by |
 | --- | --- | --- |
 | `WasteSubmitRegPackagingFrontend` | `waste-submit-reg-packaging-frontend-pwd` | The frontend, under the client id it uses in CDP |
+| `waste-obligations` | `waste-obligations-pwd` | waste-obligations-api (obligations, packaging and regulator profiles) |
 | `Developer` | `developer-pwd` | You: curl, Postman, Swagger |
 
 ```
-curl -u Developer:developer-pwd http://localhost:8020/packaging/2024/producer-material-totals-by-submitter
+curl -u Developer:developer-pwd http://localhost:8019/packaging/2024/producer-material-totals-by-submitter
 ```
 
 #### Where the packaging data comes from
 
-The API reads approved submissions from epr-common-data-api's `GET /api/submissions/v1/pom/approved-submissions/{year}`.
-That endpoint is on epr-common-data-api's `SUB-410-approved-submissions-with-obligations` branch, not yet on `main`,
-so the `epr-common-data-api` image here doesn't have it. Until it is merged, the API reads a WireMock stub with
-synthetic data for 2024: a direct registrant (`11111111-1111-4111-8111-111111111111`) and a compliance scheme
-(`aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`) with four members. Other years return no data. See
-[compose/wiremock/mappings/README.md](compose/wiremock/mappings/README.md).
-
-Once the endpoint is on `main`, point the API at the real service by setting this in `.env` and adding
-`--profile packaging` (which starts `epr-common-data-api` and its database):
-
-```
-SUBMIT_DATA_COMMON_DATA_API_BASE_URL=http://epr-common-data-api:8080
-```
-
-The real service returns only what is seeded in its local database, so seed approved submissions for the year first
-(see [agents/common-data-api-testing-strategy.md](agents/common-data-api-testing-strategy.md)).
+The API reads approved submissions from epr-common-data-api's `GET /api/submissions/v1/pom/approved-submissions/{year}`
+(SUB-410), which runs `dbo.sp_GetApprovedSubmissionsMycWithObligations` against the local Synapse replica. It returns
+only what is seeded there, so seed approved submissions for the year first: see
+[Synthetic obligations data](#synthetic-obligations-data) and
+[agents/common-data-api-testing-strategy.md](agents/common-data-api-testing-strategy.md). Until the endpoint and
+procedure are published, run the branches as described in
+[Submit registration packaging API](#submit-registration-packaging-api).
 
 Override the images with `WASTE_SUBMIT_REG_PACKAGING_FE` and `WASTE_SUBMIT_REG_PACKAGING_API` (default `latest`, from
 Docker Hub), as in [Override image tag](#override-image-tag).
