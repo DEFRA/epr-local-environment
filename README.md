@@ -585,7 +585,7 @@ This approach should provide an early feedback loop yet there could still be sub
 
 ### Submit registration packaging API
 
-The obligations profile starts `waste-submit-reg-packaging-api` at http://localhost:8019.
+The obligations, packaging and regulator profiles start `waste-submit-reg-packaging-api` at http://localhost:8019.
 It reads approved submissions through `epr-common-data-api` from the local Synapse replica.
 The endpoint and `dbo.sp_GetApprovedSubmissionsMycWithObligations` are currently in
 [common data API PR 390](https://github.com/DEFRA/epr-common-data-api/pull/390) and

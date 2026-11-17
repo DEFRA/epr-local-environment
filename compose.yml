@@ -616,6 +616,7 @@ services:
 
   waste-submit-reg-packaging-api:
     image: defradigital/waste-submit-reg-packaging-api:${WASTE_SUBMIT_REG_PACKAGING_API:-latest}
+    pull_policy: always
     depends_on:
       epr-common-data-api:
         condition: service_healthy
@@ -638,8 +639,17 @@ services:
       Acl__Clients__waste-obligations__Scopes__0: read
     ports:
       - "8019:8085"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
     profiles:
+      - packaging
       - obligations
+      - regulator
 
   epr-packaging-frontend:
     pull_policy: always
@@ -1789,7 +1799,7 @@ services:
       waste-organisations:
         condition: service_healthy
       waste-submit-reg-packaging-api:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
       - 'compose/cdp/dotnet-service.env'
