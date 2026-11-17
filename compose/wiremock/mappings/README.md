@@ -58,23 +58,3 @@ Stub for `POST /api/v1/log-events`, EPR.Common.Logging's protective-monitoring e
 404 here throws unhandled and the Service Bus trigger invocation fails before the real
 antivirus-result work ever runs — the frontend then polls `GetSubmission` forever waiting for
 a scan result that will never arrive.
-
-## common-data-api-approved-submissions.json, common-data-api-approved-submissions-other-years.json
-
-Stub for epr-common-data-api's `GET /api/submissions/v1/pom/approved-submissions/{year}`, read by
-`waste-submit-reg-packaging-api` (`submit-data` profile) through `CommonDataApi__BaseUrl`.
-
-**Why a stub:** the endpoint is on epr-common-data-api's `SUB-410-approved-submissions-with-obligations` branch and not
-yet on `main`, so the local `epr-common-data-api` image doesn't serve it. This is a temporary exception to the
-[testing strategy](../../../agents/common-data-api-testing-strategy.md): once the endpoint is on `main`, seed the
-data it reads instead and point the API at `epr-common-data-api` with `SUBMIT_DATA_COMMON_DATA_API_BASE_URL` (see the
-`submit-data` section of the main README).
-
-- `2024` returns synthetic rows: a direct registrant (`11111111-1111-4111-8111-111111111111`) with PL and PC, and a
-  compliance scheme (`aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`) with four members, one of which left (code `13`,
-  2024-09-30).
-- Any other year returns `204 No Content`, which the API reads as no data.
-
-The rows follow the shape `CommonDataApiApprovedSubmissionsProvider` in waste-submit-reg-packaging-api reads
-(`submitterType`, `submitterId`, `organisationId`, `packagingMaterial`, `packagingMaterialWeightKg`, and the optional
-`leaverCode`, `joinerDate`, `leaverDate`). Change them together.
