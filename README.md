@@ -26,6 +26,7 @@ The following profiles are available:
 - prn
 - packaging
 - obligations
+- submit-data
 
 ## Time shift
 
@@ -543,6 +544,60 @@ docker compose --profile obligations down
 ```
 
 To remove all, append `-v --remove-orphans`
+
+### submit-data
+
+The Submit Data service: waste-submit-reg-packaging-fe and waste-submit-reg-packaging-api, with the API's MongoDB,
+Postgres (database `waste_submit_reg_packaging_api`, created by `postgres-init`) and WireMock. It needs no secrets.
+
+```
+docker compose --profile submit-data up -d --wait
+```
+
+| Service | Local URL |
+| --- | --- |
+| waste-submit-reg-packaging-fe | http://localhost:8019 |
+| waste-submit-reg-packaging-api | http://localhost:8020 (Swagger at http://localhost:8020/swagger) |
+
+The frontend's home page lists the API under **Backend services**. **Healthy** means the frontend called the API's
+authenticated `/describe` and the API accepted its key.
+
+The API takes an API key as HTTP Basic credentials. Two local-only clients are set up, both with the `read` scope:
+
+| Client | Secret | Used by |
+| --- | --- | --- |
+| `WasteSubmitRegPackagingFrontend` | `waste-submit-reg-packaging-frontend-pwd` | The frontend, under the client id it uses in CDP |
+| `Developer` | `developer-pwd` | You: curl, Postman, Swagger |
+
+```
+curl -u Developer:developer-pwd http://localhost:8020/packaging/2024/producer-material-totals-by-submitter
+```
+
+#### Where the packaging data comes from
+
+The API reads approved submissions from epr-common-data-api's `GET /api/submissions/v1/pom/approved-submissions/{year}`.
+That endpoint is on epr-common-data-api's `SUB-410-approved-submissions-with-obligations` branch, not yet on `main`,
+so the `epr-common-data-api` image here doesn't have it. Until it is merged, the API reads a WireMock stub with
+synthetic data for 2024: a direct registrant (`11111111-1111-4111-8111-111111111111`) and a compliance scheme
+(`aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`) with four members. Other years return no data. See
+[compose/wiremock/mappings/README.md](compose/wiremock/mappings/README.md).
+
+Once the endpoint is on `main`, point the API at the real service by setting this in `.env` and adding
+`--profile packaging` (which starts `epr-common-data-api` and its database):
+
+```
+SUBMIT_DATA_COMMON_DATA_API_BASE_URL=http://epr-common-data-api:8080
+```
+
+The real service returns only what is seeded in its local database, so seed approved submissions for the year first
+(see [agents/common-data-api-testing-strategy.md](agents/common-data-api-testing-strategy.md)).
+
+Override the images with `WASTE_SUBMIT_REG_PACKAGING_FE` and `WASTE_SUBMIT_REG_PACKAGING_API` (default `latest`, from
+Docker Hub), as in [Override image tag](#override-image-tag).
+
+```
+docker compose --profile submit-data down
+```
 
 ## Seeded users (packaging profile)
 

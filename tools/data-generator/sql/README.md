@@ -13,6 +13,9 @@ The first scripts produce aggregate result sets only and do not export organisat
 - `validation/generated-run-counts.sql`
   - Local run-scoped POM, accepted-decision and PRN counts, plus the stored-procedure material matrix.
 
+- `regression/`
+  - Before/after regression check for `dbo.sp_GetApprovedSubmissionsMyc`, focused on `NumberOfDaysObligated`. Runs in a rolled-back transaction; see [regression/README.md](regression/README.md).
+
 ## Use when refreshing a profile
 
 1. Run baseline SQL against the chosen pre-production snapshot.
