@@ -1,0 +1,24 @@
+{
+  "Request": {
+    "Path": {
+      "Matchers": [
+        {
+          "Name": "ExactMatcher",
+          "Pattern": "/v2/templates"
+        }
+      ]
+    },
+    "Methods": [
+      "GET"
+    ]
+  },
+  "Response": {
+    "StatusCode": 200,
+    "BodyAsJson": {
+      "templates": []
+    },
+    "Headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

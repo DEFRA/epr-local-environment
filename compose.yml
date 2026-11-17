@@ -384,7 +384,7 @@ services:
       AzureMonitor__ConnectionString: InstrumentationKey=00000000-0000-0000-0000-000000000000
       Database__ConnectionString: "Data Source=sqledge,1433;User id=sa;Password=s4usag3s!;Initial Catalog=PayCal;TrustServerCertificate=True"
       Database__CommandTimeout: "00:05:00"
-      CommonDataApi__DataLoader__Enabled: ${EprCalculatorApi__CommonDataApi__DataLoader__Enabled:-true}
+      CommonDataApi__DataLoader__Enabled: ${EprCalculatorApi__CommonDataApi__DataLoader__Enabled:-false}
       CommonDataApi__HttpClient__BaseUrl: ${EprCalculatorApi__CommonDataApi__HttpClient__BaseUrl:-http://epr-common-data-api:8080} # Note that epr-common-data-api is absent from depends_on and will need to be started manually
       BlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
       BlobStorage__ResultFileCsvContainer: "paycal"
@@ -406,12 +406,12 @@ services:
   epr-calculator-api-migrations:
     pull_policy: always
     image: devrwdinfac1401.azurecr.io/eprcalculatorapirepository:${EPR_CALCULATOR_API_MIGRATIONS:-main-latest-database-migrations}
-    command: [ "/bin/bash", "/migrations/run-migrations.sh", "/migrations/migrations.sql" ]
+    command: [ "/bin/bash", "-c", "bash /migrations/run-migrations.sh /migrations/migrations.sql && bash /migrations/run-migrations.sh /seed/seed.sql" ]
     depends_on:
       sqledge:
         condition: service_healthy
     volumes:
-      - ./compose/migrations/run-migrations.sh:/home/nonroot/sql/run-migrations.sh
+      - ./compose/epr-calculator-api-migrations/seed.sql:/seed/seed.sql
     environment:
       SERVER: sqledge
       PORT: 1433
@@ -616,6 +616,43 @@ services:
       - prn
       - obligations
       - packaging
+      - regulator
+
+  waste-submit-reg-packaging-api:
+    image: defradigital/waste-submit-reg-packaging-api:${WASTE_SUBMIT_REG_PACKAGING_API:-latest}
+    pull_policy: always
+    depends_on:
+      epr-common-data-api:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_URLS: http://+:8085
+      CommonDataApi__BaseUrl: http://epr-common-data-api:8080
+      Postgres__Host: postgres
+      Postgres__Database: waste_submit_reg_packaging_api
+      Postgres__Username: postgres
+      Postgres__Password: postgres
+      Postgres__UseIamAuthentication: "false"
+      Postgres__SslMode: Disable
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-pwd
+      Acl__Clients__Developer__Scopes__0: read
+      Acl__Clients__waste-obligations__Type: ApiKey
+      Acl__Clients__waste-obligations__Secret: waste-obligations-pwd
+      Acl__Clients__waste-obligations__Scopes__0: read
+    ports:
+      - "8019:8085"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - packaging
+      - obligations
       - regulator
 
   epr-packaging-frontend:
@@ -1765,6 +1802,8 @@ services:
         condition: service_healthy
       waste-organisations:
         condition: service_healthy
+      waste-submit-reg-packaging-api:
+        condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
       - 'compose/cdp/dotnet-service.env'
@@ -1792,12 +1831,20 @@ services:
       Acl__Clients__waste-obligations-frontend__Scopes__1: write
       Acl__Clients__epr-pom-api-web__Type: OAuth
       Acl__Clients__epr-pom-api-web__Scopes__0: read
+      Acl__Clients__waste-obligations-notifications__Type: ApiKey
+      Acl__Clients__waste-obligations-notifications__Secret: waste-obligations-notifications-pwd
+      Acl__Clients__waste-obligations-notifications__Scopes__0: read
       PrnCommonBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       PrnCommonBackend__ClientId: waste-obligations
       PrnCommonBackend__BaseAddress: ${WasteObligations__PrnCommonBackend__BaseAddress:-http://epr-prn-common-backend:8080/}
       WasteOrganisations__BaseAddress: ${WasteObligations__WasteOrganisations__BaseAddress:-http://waste-organisations:8080/}
       WasteOrganisations__ClientId: waste-obligations
       WasteOrganisations__ClientSecret: waste-obligations-pwd
+      WastePackaging__BaseAddress: http://waste-submit-reg-packaging-api:8085/
+      WastePackaging__ClientId: waste-obligations
+      WastePackaging__ClientSecret: waste-obligations-pwd
+      ScheduledJobs__ObligationCalculation__Enabled: "false"
+      ScheduledJobs__ObligationCalculation__Processing__Enabled: "true"
       # The initial refresh can run before the seed container completes. Refresh quickly in local use.
       OrganisationEligibility__RefreshPollingEnabled: true
       OrganisationEligibility__RefreshPollIntervalSeconds: 60
@@ -1815,6 +1862,9 @@ services:
       # Comment the following line to use the actual Govuk Notify service
       GovukNotify__BaseAddress: http://wiremock/
       GovukNotify__ApiKey: ${GovukNotify__ApiKey}
+      # Shared with waste-obligations-notifications: this service emails actions before the cutover, notifications
+      # emails those at or after it. Both read EmailDeliveryCutoverUtc so they never disagree (2100 = this service sends).
+      EmailDelivery__EmailDeliveryCutoverUtc: ${EmailDeliveryCutoverUtc:-2100-01-01T00:00:00Z}
     ports:
       - "8007:8080"
     healthcheck:
@@ -1828,6 +1878,102 @@ services:
       - packaging
       - obligations
       - regulator
+
+  # Floci queues for waste-obligations-notifications. Kept out of floci-init (which runs in every profile) so the
+  # packaging and regulator profiles don't collect unread analytics events.
+  waste-obligations-notifications-init:
+    image: amazon/aws-cli:latest
+    entrypoint: ["/bin/sh", "/compose/init-floci-notifications.sh"]
+    depends_on:
+      floci-init:
+        condition: service_completed_successfully
+    env_file:
+      - 'compose/cdp/aws.env'
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+    volumes:
+      - ./compose/init-floci-notifications.sh:/compose/init-floci-notifications.sh:ro
+    profiles:
+      - obligations
+
+  # The notifications service reads waste-obligations only over https or loopback http, and checks this at start-up.
+  # This forwarder gives it a loopback address: the service shares the forwarder's network, so
+  # http://localhost:8090 reaches waste-obligations:8080 (the pattern the service's own repo uses for its tests).
+  # It also publishes the service's port, since a service sharing another's network can't publish its own.
+  # If the forwarder is recreated, recreate the service too (it keeps the old network otherwise):
+  #   docker compose --profile obligations up -d --force-recreate waste-obligations-notifications-net waste-obligations-notifications
+  waste-obligations-notifications-net:
+    image: alpine/socat:1.8.1.3
+    command: [ "tcp-listen:8090,fork,reuseaddr", "tcp-connect:waste-obligations:8080" ]
+    depends_on:
+      waste-obligations:
+        condition: service_healthy
+    ports:
+      - "8016:8080"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "8090" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
+      start_interval: 1s
+    profiles:
+      - obligations
+
+  waste-obligations-notifications:
+    image: defradigital/waste-obligations-notifications:${WASTE_OBLIGATIONS_NOTIFICATIONS:-latest}
+    pull_policy: always
+    network_mode: service:waste-obligations-notifications-net
+    depends_on:
+      # The forwarder waits for waste-obligations to be healthy.
+      waste-obligations-notifications-net:
+        condition: service_healthy
+        restart: true
+      waste-obligations-notifications-init:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/cdp/dotnet-service.env'
+    environment:
+      Mongo__DatabaseUri: mongodb://mongodb:27017/?replicaSet=rs0&directConnection=true&readPreference=secondaryPreferred
+      # Consumes waste_obligations_analytics_events through its own queue (compose/init-floci-notifications.sh).
+      AnalyticsEventConsumer__ProcessingEnabled: true
+      AnalyticsEventConsumer__QueueUrl: http://floci:4566/000000000000/waste_obligations_notifications_analytics_events_queue
+      AnalyticsEventConsumer__WaitTimeSeconds: 1
+      AnalyticsEventConsumer__PollIntervalSeconds: 1
+      NotificationCommandDelivery__QueueUrl: http://floci:4566/000000000000/waste_obligations_notifications_commands.fifo
+      NotificationCommandDelivery__WaitTimeSeconds: 1
+      NotificationCommandDelivery__PollIntervalSeconds: 1
+      # Shared with waste-obligations (see its EmailDelivery__EmailDeliveryCutoverUtc): commands for actions before the
+      # cutover are recorded as suppressed, because waste-obligations emails those. Move both with EmailDeliveryCutoverUtc.
+      NotificationCommandDelivery__EmailDeliveryCutoverUtc: ${EmailDeliveryCutoverUtc:-2100-01-01T00:00:00Z}
+      NotificationCommandDelivery__EvidenceDigestSecret: local-only-evidence-digest-secret
+      NotificationCommandDelivery__RecipientLaneSecret: local-only-recipient-lane-secret
+      CommandDlqAdministration__QueueUrl: http://floci:4566/000000000000/waste_obligations_notifications_commands_dlq.fifo
+      # GOV.UK Notify is Wiremock unless overridden; the same key as waste-obligations (GovukNotify__ApiKey), or a
+      # synthetic key in Notify's format when that is blank.
+      Notify__BaseAddress: ${WasteObligationsNotifications__Notify__BaseAddress:-http://wiremock/}
+      Notify__ApiKey: ${GovukNotify__ApiKey:-local-00000000-0000-4000-8000-000000000000-00000000-0000-4000-8000-000000000001}
+      # Read access to waste-obligations through the forwarder above (loopback http).
+      WasteObligations__BaseAddress: http://localhost:8090/
+      WasteObligations__Username: waste-obligations-notifications
+      WasteObligations__Password: waste-obligations-notifications-pwd
+      Acl__Clients__Developer__Type: ApiKey
+      Acl__Clients__Developer__Secret: developer-pwd
+      Acl__Clients__Developer__Scopes__0: admin
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - obligations
 
   waste-obligations-frontend:
     image: defradigital/waste-obligations-frontend:${WASTE_OBLIGATIONS_FRONTEND:-latest}

@@ -56,6 +56,14 @@ docker compose -f compose.yml -f compose.b2cmock.yml -f compose.timeshift.yml --
 
 Without it you get `NotTimeValid` and `IDX20803: Unable to obtain configuration from '...b2clogin.com/.../.well-known/openid-configuration'`. The time-shifted container validates the real `b2clogin.com` certificate against its faked clock, and that certificate is only valid for the ~3 month window around the real date that Microsoft last renewed it in — so any `TIMESHIFT_DATETIME` outside that window fails the TLS handshake before a token is ever issued. `AzureADB2C__ValidateTokenLifetime: false` does not help; it relaxes token lifetime, not the handshake.
 
+### PRN backend
+
+The PRN backend (`epr-prn-common-backend`) works out which notes can be accepted into a year from the date, so it is
+shifted with the same `TIMESHIFT_DATETIME` under the `timeshift-prn`, `timeshift-packaging` and `timeshift-obligations`
+profiles, using a small `libfaketime` image built on top of the registry image. `TIMESHIFT_DATETIME` and
+`OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE` should name the same moment, or the frontends and the backend disagree
+about which year a December waste note can go into.
+
 ### Obligations frontend
 
 The obligations frontend shifts its own UI clock instead, so it needs neither the mock B2C nor a rebuilt image. Use the `obligations` and `timeshift-obligations` profiles (for example to see the December waste "choose year" page) and set `OBLIGATIONS_STARTUP_UTC_TIMESTAMP_OVERRIDE` in `.env` to an RFC 3339 timestamp (default `2026-12-15T12:00:00Z`). Seed the December waste PRNs with `compose/epr-prn-common-backend-migrations/apply-extra-prn-scenarios.sh`:
@@ -131,9 +139,15 @@ github/
 Add the following to your `~/.zshrc`, then run `source ~/.zshrc`. This is a function rather than a shell alias because it accepts a profile, an action and optional service names.
 
 ```zsh
-typeset -A eprlocalenv_targets
+typeset -A eprlocalenv_targets eprlocalenv_contexts eprlocalenv_dockerfiles
 eprlocalenv_targets=(
   waste-obligations-frontend production
+)
+eprlocalenv_contexts=(
+  epr-common-data-api src
+)
+eprlocalenv_dockerfiles=(
+  epr-common-data-api EPR.CommonDataService.Api/Dockerfile
 )
 
 eprlocalenv() {
@@ -142,7 +156,7 @@ eprlocalenv() {
     return 2
   fi
 
-  local profile=$1 action=$2 env_root service source_dir target
+  local profile=$1 action=$2 env_root service source_dir context dockerfile target database_ref
   shift 2
 
   env_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 2
@@ -161,8 +175,21 @@ eprlocalenv() {
 
       for service in "$@"; do
         source_dir="${env_root%/*}/$service"
-        [[ -f "$source_dir/Dockerfile" ]] || {
-          print -u2 -- "Expected source/Dockerfile at: $source_dir"
+        if [[ "$service" == epr-data-sqldb ]]; then
+          [[ -f "$source_dir/Database.sqlproj" ]] || {
+            print -u2 -- "Expected database checkout at: $source_dir"
+            return 2
+          }
+          database_ref=$(git -C "$source_dir" symbolic-ref --short HEAD) || {
+            print -u2 -- "Check out a branch in: $source_dir"
+            return 2
+          }
+          continue
+        fi
+        context="$source_dir/${eprlocalenv_contexts[$service]:-.}"
+        dockerfile=${eprlocalenv_dockerfiles[$service]:-Dockerfile}
+        [[ -f "$context/$dockerfile" ]] || {
+          print -u2 -- "Expected Dockerfile at: $context/$dockerfile"
           return 2
         }
       done
@@ -171,14 +198,32 @@ eprlocalenv() {
         print 'services:'
         for service in "$@"; do
           source_dir="${env_root%/*}/$service"
+          if [[ "$service" == epr-data-sqldb ]]; then
+            print '  synapse-source-sync:'
+            print '    volumes:'
+            print "      - \"$source_dir:/local-source:ro\""
+            print '    environment:'
+            print '      SOURCE_URL: /local-source'
+            print "      SOURCE_REF: \"$database_ref\""
+            print '      GIT_CONFIG_COUNT: "1"'
+            print '      GIT_CONFIG_KEY_0: safe.directory'
+            print '      GIT_CONFIG_VALUE_0: /local-source'
+            print '  synapse-sqlserver-restore:'
+            print '    environment:'
+            print '      SCHEMA_SET: full'
+            print "      SOURCE_REF: \"$database_ref\""
+            continue
+          fi
+          context="$source_dir/${eprlocalenv_contexts[$service]:-.}"
+          dockerfile=${eprlocalenv_dockerfiles[$service]:-Dockerfile}
           target=${eprlocalenv_targets[$service]}
 
           print "  $service:"
           print "    image: local/$service:dev"
           print "    pull_policy: build"
           print "    build:"
-          print "      context: $source_dir"
-          print "      dockerfile: Dockerfile"
+          print "      context: \"$context\""
+          print "      dockerfile: \"$dockerfile\""
           [[ -n "$target" ]] && print "      target: $target"
         done
       } | docker compose -f "$env_root/compose.yml" -f - \
@@ -215,6 +260,9 @@ eprlocalenv obligations up waste-obligations-frontend
 # Build multiple selected services from their sibling source folders.
 eprlocalenv obligations up waste-obligations-frontend waste-obligations
 
+# Build both APIs from their checked-out branches and restore the database checkout.
+eprlocalenv obligations up epr-common-data-api waste-submit-reg-packaging-api epr-data-sqldb
+
 # Stop the profile while retaining database and emulator data.
 eprlocalenv obligations down
 
@@ -227,6 +275,8 @@ The services supplied to `up` choose which images are built locally; they do not
 The no-argument `down` form intentionally retains volumes. This keeps the local SQL Server and
 emulator state, and avoids the expensive reinitialisation caused by `down --volumes`. Use the second
 form only when a clean local state is required.
+
+The `eprlocalenv_contexts` and `eprlocalenv_dockerfiles` maps describe services whose build context or Dockerfile differs from the repository root. `epr-data-sqldb` is a special source target: it selects the checked-out branch from the sibling repository and uses the existing Synapse source sync and full restore. The sync copies committed branch content; commit SQL changes before starting. Switching source revisions or schema sets requires a fresh database, and the restore refuses to overwrite an existing one. See the [restore README](./compose/synapse-sqlserver-restore/README.md).
 
 The `eprlocalenv_targets` map is only needed for Dockerfiles whose normal runtime image is not their final build stage. `waste-obligations-frontend` uses its `production` stage so that the local image matches the runtime image rather than its final `integration` stage.
 
@@ -242,7 +292,13 @@ To start:
 docker compose --profile paycal up -d
 ```
 
-Once started, access the system via https://localhost:5284 and you can login with your @onmicrosoft account. If login fails then compare with a colleague who can log in as you may need adding to an Azure group.
+Once started, access the system via https://localhost:5294 and you can login with your @onmicrosoft account. If login fails then compare with a colleague who can log in as you may need adding to an Azure group.
+
+By default a calculator run reads the 2026 organisations and POMs seeded by [`compose/epr-calculator-api-migrations/seed.sql`](compose/epr-calculator-api-migrations/seed.sql). To feed it from the real Synapse in Azure instead, through `epr-common-data-api`, add [`compose.synapse.yml`](compose.synapse.yml). It needs the Azure VPN, `az login` and `EprCommonDataApi__ConnectionStrings__SynapseDatabase` set in `.env`:
+
+```
+docker compose -f compose.yml -f compose.synapse.yml --profile paycal up -d
+```
 
 To stop:
 
@@ -399,6 +455,7 @@ Sign-in uses Azure AD B2C, then calls **epr-backend-account-microservice** (`GET
 | epr-backend-account-microservice | http://localhost:8003/api/ |
 | waste-organisations | http://localhost:8006 |
 | waste-obligations | http://localhost:8007 |
+| waste-obligations-notifications | http://localhost:8016 (`/health`, `/health/all`) |
 | wiremock | http://localhost:9090 |
 | Floci (SNS/SQS emulator) | http://localhost:4566 |
 
@@ -434,6 +491,51 @@ To start:
 docker compose --profile obligations up -d
 ```
 
+#### waste-obligations-notifications
+
+Consumes the Waste Obligations analytics events and turns compliance-declaration submissions into email commands
+(port 8016). The one-shot `waste-obligations-notifications-init` service (`compose/init-floci-notifications.sh`, this
+profile only) provisions its queues in Floci:
+
+- `waste_obligations_notifications_analytics_events_queue`, subscribed to `waste_obligations_analytics_events` with raw
+  message delivery (the service needs it), with `…-deadletter` after 3 receives (the CDP convention);
+- `waste_obligations_notifications_commands.fifo`, with `waste_obligations_notifications_commands_dlq.fifo` after 3
+  receives.
+
+Locally:
+
+- **No email is sent by default.** Notify is Wiremock (it also answers the Notify health check,
+  `compose/wiremock/mappings/govuk-notify-templates.json`), and every command before the 2100 cutover is recorded as
+  `delivery-suppressed`. To try a real send, set `GovukNotify__ApiKey` to a Notify test key,
+  `WasteObligationsNotifications__Notify__BaseAddress=https://api.notifications.service.gov.uk` and
+  `EmailDeliveryCutoverUtc` to a past date in `.env` (see `.env.example`).
+- **One cutover for both services.** waste-obligations emails declaration actions before the cutover and
+  notifications emails those at or after it, so both read the same `EmailDeliveryCutoverUtc` (default
+  `2100-01-01T00:00:00Z`: waste-obligations sends, notifications suppresses). Set it once in `.env`; a different value
+  in each would send some emails twice or not at all. It must be a UTC timestamp (`Z`); waste-obligations and
+  notifications fail to start on anything else. Recreate both services after changing it.
+- **Reaching waste-obligations.** The service reads declarations only over https or loopback http, and checks this at
+  start-up. The `waste-obligations-notifications-net` forwarder shares its network with the service, so
+  `http://localhost:8090` reaches `waste-obligations:8080`; it also publishes the service's port. waste-obligations has
+  a read-only `waste-obligations-notifications` API client for it. If you recreate the forwarder on its own, recreate
+  the service with it:
+  `docker compose --profile obligations up -d --force-recreate waste-obligations-notifications-net waste-obligations-notifications`.
+- **Admin endpoints** (command dead-letter queue status, inspect, redrive) use Basic sign-in as `Developer` /
+  `developer-pwd`, e.g. `curl -u Developer:developer-pwd http://localhost:8016/admin/notification-commands/dlq/status`.
+
+Override the image tag with `WASTE_OBLIGATIONS_NOTIFICATIONS` (default `latest`).
+
+##### Seeing the events
+
+| What | Where |
+| --- | --- |
+| Events waste-obligations published | Mongo `waste-obligations`, collection `AuditEvent` (`eventType`, `entityId`, `dispatches.analytics.status`) |
+| What the notifications service did | Its log, in Dozzle at http://localhost:8080 or `docker logs -f epr-local-environment-waste-obligations-notifications-1` ("Consumed analytics event …", "Notification command outcome …"). Event and entity IDs are logged as opaque hashes (`opaque-…`); match by time, and use `AuditEvent` for the real IDs |
+| Each email command's result | Mongo `waste-obligations-notifications`, collection `NotificationDeliveryRecord` (`notificationType`, `outcome`) |
+| Failed or stuck messages | The `…-deadletter` and `…_dlq.fifo` queues in Floci (`aws --endpoint-url http://localhost:4566 sqs get-queue-attributes …` with the dummy `test` credentials), and the admin status endpoint above |
+
+Mongo is at `mongodb://localhost:27017/?directConnection=true` (for example in MongoDB Compass).
+
 #### Browser load testing
 
 To run the browser load tests against locally built versions of the frontend
@@ -455,7 +557,7 @@ local Azure AD B2C callback URL.
 
 The packaging front end will be started alongside all necessary services that allow the obligation calculation process to function.
 
-The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and subscribed SQS queue provisioned automatically.
+The profile also starts MongoDB as a single-node replica set and Floci with the Waste Obligations analytics SNS topic and the SQS queues subscribed to it (for waste-obligations and [waste-obligations-notifications](#waste-obligations-notifications)) provisioned automatically.
 
 It also starts a shared PostgreSQL instance (`postgres`, published on port 5432). Each service gets its own database, created by the one-shot `postgres-init` service from `compose/init-postgres.sh`. To give a new service a database, add a `create_database <name>` line to that script and make the service depend on `postgres-init` with `condition: service_completed_successfully`. The script skips databases that already exist, so it also works on an existing volume.
 
@@ -481,6 +583,23 @@ retained under `.cache/synapse-source` in this repository and ignored by Git; se
 for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
+
+### Submit registration packaging API
+
+The obligations, packaging and regulator profiles start `waste-submit-reg-packaging-api` at http://localhost:8019.
+It reads approved submissions through `epr-common-data-api` from the local Synapse replica.
+The endpoint and `dbo.sp_GetApprovedSubmissionsMycWithObligations` are currently in
+[common data API PR 390](https://github.com/DEFRA/epr-common-data-api/pull/390) and
+[database PR 557](https://github.com/DEFRA/epr-data-sqldb/pull/557). Until those changes
+are published, check out the respective branches in the sibling repositories and use
+`eprlocalenv obligations up epr-common-data-api waste-submit-reg-packaging-api epr-data-sqldb`.
+The normal images and default schema map do not yet contain the endpoint and procedure.
+
+```sh
+curl -u Developer:developer-pwd http://localhost:8019/packaging/2025/producer-material-totals-by-submitter
+```
+
+The credentials and database are local; the replica uses seeded data, not live Synapse.
 
 ### Synthetic obligations data
 

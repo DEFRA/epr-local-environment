@@ -1,0 +1,7 @@
+ARG BASE_IMAGE=devrwdinfac1401.azurecr.io/eprprncommonbackendrepository:main-latest
+FROM ${BASE_IMAGE}
+
+USER root
+RUN apk add --no-cache libfaketime
+
+USER dotnet
