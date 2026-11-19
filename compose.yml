@@ -39,12 +39,12 @@ services:
       - obligations
       - regulator
 
-  # Newer mssql/server:2025-latest images run as mssql:mssql (10001:10001) rather than in group 0,
+  # Newer mssql/server:2025-CU9-ubuntu-24.04 images run as mssql:mssql (10001:10001) rather than in group 0,
   # so volumes created by older images are unreadable and SQL Server fails with "[/.system] could
   # not be created". Re-own the data volume to whatever the current image's mssql user is.
   sqledge-permissions:
     pull_policy: always
-    image: mcr.microsoft.com/mssql/server:2025-latest
+    image: mcr.microsoft.com/mssql/server:2025-CU9-ubuntu-24.04
     user: root
     entrypoint: [ "/bin/sh", "-c", "if [ \"$$(stat -c %u:%g /var/opt/mssql)\" != \"$$(id -u mssql):$$(id -g mssql)\" ]; then echo 'Fixing /var/opt/mssql ownership'; chown -R mssql:mssql /var/opt/mssql && chmod 770 /var/opt/mssql; fi" ]
     volumes:
@@ -55,13 +55,14 @@ services:
       - prn
       - obligations
       - regulator
+      - submit-data
 
   sqledge:
     depends_on:
       sqledge-permissions:
         condition: service_completed_successfully
     pull_policy: always
-    image: mcr.microsoft.com/mssql/server:2025-latest
+    image: mcr.microsoft.com/mssql/server:2025-CU9-ubuntu-24.04
     ports:
       - "1433:1433"
     volumes:
@@ -82,6 +83,7 @@ services:
       - prn
       - obligations
       - regulator
+      - submit-data
 
   azurite:
     pull_policy: always
@@ -283,6 +285,7 @@ services:
       - packaging
       - obligations
       - regulator
+      - submit-data
 
   postgres:
     image: postgres:16-alpine
@@ -306,6 +309,7 @@ services:
       - packaging
       - obligations
       - regulator
+      - submit-data
 
   postgres-init:
     image: postgres:16-alpine
@@ -323,6 +327,7 @@ services:
       - packaging
       - obligations
       - regulator
+      - submit-data
 
   floci:
     image: floci/floci:latest
@@ -565,6 +570,7 @@ services:
       - obligations
       - packaging
       - regulator
+      - submit-data
 
   synapse-source-sync:
     pull_policy: always
@@ -582,6 +588,7 @@ services:
       - obligations
       - packaging
       - regulator
+      - submit-data
 
   synapse-sqlserver-restore:
     pull_policy: always
@@ -613,17 +620,25 @@ services:
       - obligations
       - packaging
       - regulator
+      - submit-data
 
   waste-submit-reg-packaging-api:
     image: defradigital/waste-submit-reg-packaging-api:${WASTE_SUBMIT_REG_PACKAGING_API:-latest}
     pull_policy: always
+    platform: linux/amd64
     depends_on:
-      epr-common-data-api:
+      mongodb:
         condition: service_healthy
       postgres-init:
         condition: service_completed_successfully
+      epr-common-data-api:
+        condition: service_healthy
+    env_file:
+      - compose/cdp/aws.env
+      - compose/cdp/dotnet-service.env
     environment:
       ASPNETCORE_URLS: http://+:8085
+      Mongo__DatabaseUri: mongodb://mongodb:27017/
       CommonDataApi__BaseUrl: http://epr-common-data-api:8080
       Postgres__Host: postgres
       Postgres__Database: waste_submit_reg_packaging_api
@@ -631,12 +646,17 @@ services:
       Postgres__Password: postgres
       Postgres__UseIamAuthentication: "false"
       Postgres__SslMode: Disable
+      # Local-only API keys. Developer is for calling it yourself (curl, Postman, Swagger);
+      # waste-obligations and WasteSubmitRegPackagingFrontend are the client ids those services use.
       Acl__Clients__Developer__Type: ApiKey
       Acl__Clients__Developer__Secret: developer-pwd
       Acl__Clients__Developer__Scopes__0: read
       Acl__Clients__waste-obligations__Type: ApiKey
       Acl__Clients__waste-obligations__Secret: waste-obligations-pwd
       Acl__Clients__waste-obligations__Scopes__0: read
+      Acl__Clients__WasteSubmitRegPackagingFrontend__Type: ApiKey
+      Acl__Clients__WasteSubmitRegPackagingFrontend__Secret: waste-submit-reg-packaging-frontend-pwd
+      Acl__Clients__WasteSubmitRegPackagingFrontend__Scopes__0: read
     ports:
       - "8019:8085"
     healthcheck:
@@ -650,6 +670,7 @@ services:
       - packaging
       - obligations
       - regulator
+      - submit-data
 
   epr-packaging-frontend:
     pull_policy: always
@@ -972,7 +993,7 @@ services:
       - regulator
 
   epr-payment-service-db-init:
-    image: mcr.microsoft.com/mssql/server:2025-latest
+    image: mcr.microsoft.com/mssql/server:2025-CU9-ubuntu-24.04
     entrypoint: [ "/opt/mssql-tools18/bin/sqlcmd" ]
     command: [ "-S", "sqledge,1433", "-U", "sa", "-P", "s4usag3s!", "-C",
                "-Q", "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'EprPaymentService') CREATE DATABASE [EprPaymentService]" ]
@@ -2346,6 +2367,32 @@ services:
       start_interval: 1s
     profiles:
       - regulator
+
+  waste-submit-reg-packaging-fe:
+    image: defradigital/waste-submit-reg-packaging-fe:${WASTE_SUBMIT_REG_PACKAGING_FE:-latest}
+    pull_policy: always
+    platform: linux/amd64
+    depends_on:
+      waste-submit-reg-packaging-api:
+        condition: service_healthy
+    environment:
+      SESSION_CACHE_ENGINE: memory
+      SESSION_COOKIE_SECURE: "false"
+      ENABLE_SECURE_CONTEXT: "false"
+      WASTE_SUBMIT_REG_PACKAGING_API_BASE_URL: http://waste-submit-reg-packaging-api:8085
+      WASTE_SUBMIT_REG_PACKAGING_API_CLIENT_ID: WasteSubmitRegPackagingFrontend
+      WASTE_SUBMIT_REG_PACKAGING_API_CLIENT_SECRET: waste-submit-reg-packaging-frontend-pwd
+    ports:
+      - "8020:3000"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
+    profiles:
+      - submit-data
 
   dozzle:
     image: amir20/dozzle:latest
