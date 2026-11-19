@@ -1,0 +1,125 @@
+# Two waste-obligations-frontend instances behind packaging-waste-proxy that share one sign-in
+# through a signed token cookie (SHARED_AUTH_MODE=token), for trying the shared sign-in by hand.
+# Use it with the obligations profile and the mock B2C:
+#
+#   docker compose -f compose.yml -f compose.b2cmock.yml -f compose.shared-auth.yml --profile obligations up -d --build
+#
+# - Frontend A: the existing waste-obligations-frontend-isolated, at
+#   https://localhost:8015/manage-recycling-obligations (and https://localhost:8009 on its own).
+# - Frontend B: waste-obligations-frontend-second, at https://localhost:8015/second-frontend
+#   (and https://localhost:8020 on its own). It has its own cookie names, Redis key prefix and
+#   B2C client id, as a frontend owned by another team would.
+#
+# Both run waste-obligations-frontend built from the clone next to this one (the branch that
+# has SHARED_AUTH_MODE), and the header of each links to the same page on the other.
+# Packaging's ClearSession step is skipped on sign-out, so signing out goes straight to B2C.
+
+x-shared-auth-frontend: &shared-auth-frontend
+  image: ${SHARED_AUTH_FRONTEND_IMAGE:-local/waste-obligations-frontend:shared-auth}
+  pull_policy: never
+  build:
+    context: ${WASTE_OBLIGATIONS_FRONTEND_REPO:-../waste-obligations-frontend}
+    target: production
+
+x-shared-auth-environment: &shared-auth-environment
+  SHARED_AUTH_MODE: token
+  # A local-only key: every frontend that shares the sign-in must use the same one.
+  SHARED_AUTH_SECRET: ${SHARED_AUTH_SECRET:-local-shared-auth-key-not-for-real-use}
+  EPR_PACKAGING_CLEAR_SESSION_URL: ""
+
+services:
+  waste-obligations-frontend-isolated:
+    <<: *shared-auth-frontend
+    environment:
+      <<: *shared-auth-environment
+      SHARED_AUTH_OTHER_FRONTEND_PATH: /second-frontend
+      SHARED_AUTH_OTHER_FRONTEND_NAME: the second frontend
+
+  waste-obligations-frontend-isolated-proxy:
+    ports:
+      - "8009:443"
+
+  waste-obligations-frontend-second:
+    <<: *shared-auth-frontend
+    depends_on:
+      redis:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+      epr-backend-account-microservice:
+        condition: service_healthy
+      waste-obligations:
+        condition: service_healthy
+      waste-organisations:
+        condition: service_healthy
+      waste-obligations-seed:
+        condition: service_completed_successfully
+      b2c-mock:
+        condition: service_healthy
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/waste-obligations-frontend/common.env'
+    environment:
+      <<: *shared-auth-environment
+      AUTH_COOKIE_NAME: second-frontend-oauth-state
+      CSRF_COOKIE_NAME: second-frontend-csrf
+      SESSION_COOKIE_NAME: second-frontend-session
+      REDIS_KEY_PREFIX: "second-frontend:"
+      AZURE_AD_B2C_INSTANCE: https://localhost:8443
+      AZURE_AD_B2C_CLIENT_ID: b2c-mock-second-frontend
+      AZURE_AD_B2C_CLIENT_SECRET: mock-second-client-secret
+      SHARED_AUTH_OTHER_FRONTEND_PATH: /manage-recycling-obligations
+      SHARED_AUTH_OTHER_FRONTEND_NAME: Manage recycling obligations
+    expose:
+      - "3000"
+    volumes:
+      - ./compose/certs/https/epr-local-root-ca.crt:/certs/epr-local-root-ca.crt:ro
+      - ./compose/waste-obligations-frontend/b2c-mock-forwarder.mjs:/b2c-mock-forwarder.mjs:ro
+    # As waste-obligations-frontend in compose.b2cmock.yml: trust the local root CA and forward
+    # the container's localhost:8443 to b2c-mock.
+    command:
+      - sh
+      - -c
+      - export TRUSTSTORE_EPR_LOCAL_ROOT_CA=$$(base64 -w0 /certs/epr-local-root-ca.crt); node /b2c-mock-forwarder.mjs & exec node src
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
+    profiles:
+      - obligations
+
+  waste-obligations-frontend-second-proxy:
+    image: nginx:alpine
+    depends_on:
+      waste-obligations-frontend-second:
+        condition: service_healthy
+    ports:
+      - "8020:443"
+    volumes:
+      - ./compose/waste-obligations-frontend-second-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./compose/certs/https:/certs:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://127.0.0.1/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+      start_interval: 1s
+    profiles:
+      - obligations
+
+  # Adds the /second-frontend route. The routes come from a settings file because the image's
+  # entrypoint drops environment variables whose names hold a hyphen (the X-Forwarded transform).
+  # The route goes straight to frontend B over HTTP, keeping the browser's host: the local
+  # certificate doesn't name B's nginx, which serves only B's own port.
+  packaging-waste-proxy:
+    image: ${SHARED_AUTH_PROXY_IMAGE:-defradigital/packaging-waste-proxy:${PACKAGING_WASTE_PROXY:-latest}}
+    pull_policy: missing
+    depends_on:
+      waste-obligations-frontend-second:
+        condition: service_healthy
+    volumes:
+      - ./compose/packaging-waste-proxy/shared-auth.appsettings.Development.json:/app/appsettings.Development.json:ro

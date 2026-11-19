@@ -471,6 +471,34 @@ The `waste-obligations-frontend-isolated` variant runs only behind `packaging-wa
 
 With the [mock B2C](#mock-b2c) overlay, both instances sign in through the mock at `https://localhost:8443`; no `/etc/hosts` entry is needed.
 
+#### Two frontends sharing one sign-in
+
+[`compose.shared-auth.yml`](compose.shared-auth.yml) puts a second instance of waste-obligations-frontend behind `packaging-waste-proxy`, as a frontend owned by another team would sit there, and has both share one sign-in through a signed token cookie (`SHARED_AUTH_MODE=token`). Use it with the obligations profile and the mock B2C:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml -f compose.shared-auth.yml --profile obligations up -d --build
+```
+
+| Frontend | Behind the proxy | On its own |
+| --- | --- | --- |
+| A: `waste-obligations-frontend-isolated` | https://localhost:8015/manage-recycling-obligations | https://localhost:8009 |
+| B: `waste-obligations-frontend-second` | https://localhost:8015/second-frontend | https://localhost:8020 |
+
+- Both are built from the `waste-obligations-frontend` clone next to this one (set `WASTE_OBLIGATIONS_FRONTEND_REPO` for another path), which must be on a branch that has `SHARED_AUTH_MODE`. After changing that clone, run the same command again to rebuild.
+- B has its own session, CSRF and OAuth-state cookies, Redis key prefix and B2C client id. The two share only the key the token is signed with (`SHARED_AUTH_SECRET`, a local-only default).
+- The header of each has an **Open in …** link to the same page on the other, so you can move between them. It works through the proxy (port 8015), not on the instances' own ports.
+- Signing out skips Packaging's ClearSession step and goes straight to the B2C end-session.
+- To use a proxy image built from source, set `SHARED_AUTH_PROXY_IMAGE`.
+- Time shift isn't supported: B runs on the real clock.
+
+To try it, sign in as the POP QUEST LTD approved person:
+1. Open A's PRN page: sign in when asked.
+2. Follow **Open in the second frontend**: B shows the page without a visit to the mock B2C.
+3. Sign out on B.
+4. Follow **Open in Manage recycling obligations**, or reload A: A asks you to sign in again.
+
+Without the overlay, both instances run as before.
+
 **npm run dev:** start the obligations profile, then configure [waste-obligations-frontend/.env.example](https://github.com/DEFRA/waste-obligations-frontend/blob/main/.env.example) in that repo:
 
 - Set `AZURE_AD_B2C_CLIENT_SECRET` (same B2C app as Docker).

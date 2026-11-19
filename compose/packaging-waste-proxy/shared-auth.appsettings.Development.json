@@ -1,0 +1,40 @@
+{
+  "ReverseProxy": {
+    "Routes": {
+      "SecondFrontend": {
+        "ClusterId": "SecondFrontend",
+        "Match": {
+          "Path": "/second-frontend/{**catch-all}"
+        },
+        "Metadata": {
+          "Shuttered": false
+        },
+        "Transforms": [
+          {
+            "X-Forwarded": "Set",
+            "Prefix": "Off"
+          },
+          {
+            "PathRemovePrefix": "/second-frontend"
+          },
+          {
+            "RequestHeader": "X-Forwarded-Prefix",
+            "Set": "/second-frontend"
+          },
+          {
+            "RequestHeaderOriginalHost": "true"
+          }
+        ]
+      }
+    },
+    "Clusters": {
+      "SecondFrontend": {
+        "Destinations": {
+          "Primary": {
+            "Address": "http://waste-obligations-frontend-second:3000/"
+          }
+        }
+      }
+    }
+  }
+}
