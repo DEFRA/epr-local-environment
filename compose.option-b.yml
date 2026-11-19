@@ -1,0 +1,35 @@
+# Option B of the shared sign-in spike (MO-755): no shared token or session. Each frontend keeps
+# its own Bell sign-in, B2C client id, cookies and Redis prefix, and B2C's own single sign-on
+# session (b2cmock_sso in the mock) makes the second sign-in silent. Sign-out is chained: the
+# frontend the user signs out of visits every other frontend's /clear-session, and the last one
+# signs out of B2C. Layer it over the shared-auth file:
+#
+#   docker compose -f compose.yml -f compose.b2cmock.yml -f compose.shared-auth.yml \
+#     -f compose.option-b.yml --profile obligations up -d --build --no-deps \
+#     waste-obligations-frontend-isolated waste-obligations-frontend-second
+#
+# Both frontends are built from the option B branch, by default in a worktree next to this
+# clone (WASTE_OBLIGATIONS_FRONTEND_OPTION_B_REPO), and tagged :option-b so the :shared-auth
+# image stays as it was.
+
+x-option-b-frontend: &option-b-frontend
+  image: local/waste-obligations-frontend:option-b
+  build:
+    context: ${WASTE_OBLIGATIONS_FRONTEND_OPTION_B_REPO:-../waste-obligations-frontend-option-b}
+    target: production
+
+x-option-b-environment: &option-b-environment
+  SHARED_AUTH_MODE: "off"
+  # The same list, in the same order, in every frontend behind the proxy.
+  SIGN_OUT_FRONTEND_PATHS: /manage-recycling-obligations,/second-frontend
+
+services:
+  waste-obligations-frontend-isolated:
+    <<: *option-b-frontend
+    environment:
+      <<: *option-b-environment
+
+  waste-obligations-frontend-second:
+    <<: *option-b-frontend
+    environment:
+      <<: *option-b-environment
