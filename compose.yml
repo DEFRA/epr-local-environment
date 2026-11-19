@@ -2096,6 +2096,10 @@ services:
       # Clears the image's PORT setting so Kestrel uses the HTTP and HTTPS URLs above.
       PORT: ""
       ReverseProxy__Clusters__ManageRecyclingObligations__Destinations__Primary__Address: https://waste-obligations-frontend-isolated-proxy:443/
+      # The proxy won't start while any destination is unconfigured, and it resolves each host at
+      # start-up. The submit-packaging frontend isn't in this stack, so its route goes to wiremock,
+      # which answers 404.
+      ReverseProxy__Clusters__WasteSubmitRegPackaging__Destinations__Primary__Address: http://wiremock/
     depends_on:
       waste-obligations-frontend-isolated-proxy:
         condition: service_healthy
