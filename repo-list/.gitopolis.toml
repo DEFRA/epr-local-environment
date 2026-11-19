@@ -2068,7 +2068,7 @@ url = "git@github.com:DEFRA/waste-regulator-case-management"
 
 [[repos]]
 path = "waste-regulator-components-fe"
-tags = ["cdp", "epr", "epr-regulator", "frontend", "github", "components"]
+tags = ["cdp", "epr", "epr-regulator", "common", "frontend", "github", "components"]
 
 [repos.remotes.origin]
 name = "origin"
