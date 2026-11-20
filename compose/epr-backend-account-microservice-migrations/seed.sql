@@ -1286,3 +1286,47 @@ if not exists (select 1 from Organisations where ExternalId = N'7F46CC8D-AEE8-46
 if not exists (select 1 from Organisations where ExternalId = N'DC8A6533-031D-4D65-BF2F-45953CF05266')
     insert into Organisations (OrganisationTypeId, Name, ValidatedWithCompaniesHouse, IsComplianceScheme, NationId, ExternalId)
     values (6, N'Natural Resources Wales', 0, 0, 4, N'DC8A6533-031D-4D65-BF2F-45953CF05266')
+
+-- Regulator users, for signing in to the regulator frontends through compose.b2cmock.yml. One
+-- Regulator Admin per nation, plus a Regulator Basic in England. Each UserId is the oid the mock
+-- issues for the matching entry in mocks/B2CMock/users.json. Names mirror the mock-auth personas
+-- in waste-packaging-regulators-fe; the emails and 01632 960xxx phone numbers are reserved fakes.
+declare @regulatorUsers table (
+    UserId uniqueidentifier, Email nvarchar(255), FirstName nvarchar(100), LastName nvarchar(100),
+    Telephone nvarchar(50), OrganisationExternalId uniqueidentifier, PersonRoleId int, ServiceRoleId int)
+
+-- PersonRoleId: 1 Admin, 2 Employee. ServiceRoleId: 4 Regulator Admin, 5 Regulator Basic.
+insert into @regulatorUsers values
+    ('EB8D75A1-ECA8-4433-AEB4-95B5D6DF3AFA', 'regulator-admin-england@epr-local.test', 'James', 'Walker', '01632 960001', 'A832837D-42A4-4F3B-966A-CFE95070A95A', 1, 4),
+    ('3D3E1599-A6A6-4737-A77E-C34BC03C9EFC', 'regulator-basic-england@epr-local.test', 'Priya', 'Shah', '01632 960002', 'A832837D-42A4-4F3B-966A-CFE95070A95A', 2, 5),
+    ('48C89416-BEFD-44BD-82C2-7207998FCA9F', 'regulator-admin-wales@epr-local.test', 'Elin', 'Evans', '01632 960003', 'DC8A6533-031D-4D65-BF2F-45953CF05266', 1, 4),
+    ('411B803F-8B76-4157-9F3C-929600B0C470', 'regulator-admin-scotland@epr-local.test', 'Fiona', 'MacLeod', '01632 960004', '7F46CC8D-AEE8-46AC-A38C-9098F656B257', 1, 4),
+    ('5D8D8DAC-3D95-43D1-9DB7-0B87615C6061', 'regulator-admin-northern-ireland@epr-local.test', 'Patrick', 'O''Neill', '01632 960005', '8CD213F5-3E3B-41D3-A933-1EFC134ED573', 1, 4)
+
+insert into Users (UserId, Email)
+select r.UserId, r.Email from @regulatorUsers r
+where not exists (select 1 from Users u where u.UserId = r.UserId)
+
+insert into Persons (FirstName, LastName, Email, Telephone, UserId)
+select r.FirstName, r.LastName, r.Email, r.Telephone, u.Id
+from @regulatorUsers r join Users u on u.UserId = r.UserId
+where not exists (select 1 from Persons p where p.UserId = u.Id)
+
+-- OrganisationRoleId 1: Employer.
+insert into PersonOrganisationConnections (JobTitle, OrganisationId, OrganisationRoleId, PersonId, PersonRoleId)
+select 'Regulator', o.Id, 1, p.Id, r.PersonRoleId
+from @regulatorUsers r
+join Users u on u.UserId = r.UserId
+join Persons p on p.UserId = u.Id
+join Organisations o on o.ExternalId = r.OrganisationExternalId
+where not exists (select 1 from PersonOrganisationConnections c where c.PersonId = p.Id and c.OrganisationId = o.Id)
+
+-- EnrolmentStatusId 3: Approved.
+insert into Enrolments (ConnectionId, ServiceRoleId, EnrolmentStatusId)
+select c.Id, r.ServiceRoleId, 3
+from @regulatorUsers r
+join Users u on u.UserId = r.UserId
+join Persons p on p.UserId = u.Id
+join Organisations o on o.ExternalId = r.OrganisationExternalId
+join PersonOrganisationConnections c on c.PersonId = p.Id and c.OrganisationId = o.Id
+where not exists (select 1 from Enrolments e where e.ConnectionId = c.Id)

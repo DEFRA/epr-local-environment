@@ -76,7 +76,7 @@ Only the frontend's date-dependent UI logic is shifted; sign-in, sessions and th
 
 ## Mock B2C
 
-[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging` or `obligations` profile, with or without time shift:
+[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging`, `obligations` or `regulator` profile, with or without time shift:
 
 ```
 docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
@@ -85,10 +85,10 @@ docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d -
 - **No Azure VPN needed** to sign in, and no dev B2C account to borrow.
 - Signing in shows a picker at `https://localhost:8443` listing every seeded account. Set `B2CMOCK_AUTO_SELECT_USER_ID` in your `.env` to a `userId` from [`mocks/B2CMock/users.json`](mocks/B2CMock/users.json) to skip the picker and sign straight in as that user.
 - Tokens are really RS256-signed and carry a seeded account's `UserId` as `oid`/`sub`, so `epr-facade-account-microservice` and the other APIs go on validating them for real against the real seeded organisations — see [Seeded users](#seeded-users-packaging-profile). Nothing downstream is stubbed.
-- Only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are.
-- Both `waste-obligations-frontend` instances (https://localhost:8010 and https://localhost:8015/manage-recycling-obligations) sign in through the mock too, with no `/etc/hosts` entry: they send the browser to `https://localhost:8443`, and a small forwarder in each container ([`b2c-mock-forwarder.mjs`](compose/waste-obligations-frontend/b2c-mock-forwarder.mjs)) passes the container's own token calls on to `b2c-mock`.
+- For packaging and obligations, only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are. The regulator profile's `ClientId`s normally come from `.env`, so the overlay swaps them for fixed local ones the mock knows about, and that profile then needs none of its B2C secrets.
+- The Node frontends (both `waste-obligations-frontend` instances, `waste-packaging-regulators-fe` and `waste-regulator-dashboard-fe`) sign in through the mock too, with no `/etc/hosts` entry: they send the browser to `https://localhost:8443`, and a small forwarder in each container ([`forwarder.mjs`](compose/b2c-mock/forwarder.mjs)) passes the container's own token calls on to `b2c-mock`.
 - Like real B2C, the mock remembers who signed in (a `b2cmock_sso` cookie on `localhost:8443`), so following a link from packaging to the obligations frontend signs straight in without the picker. Signing out, or a request with `prompt=login`, shows the picker again.
-- It does not support the `regulator` profile. The regulator frontends still sign in with real B2C, and `epr-payment-facade`, which that profile shares, would reject their tokens. `up` stops with an error if you combine them.
+- The picker includes a Regulator Admin for each nation and a Regulator Basic in England; see [Seeded regulator users](#seeded-regulator-users). Producer accounts are refused by the regulator frontends, which is useful for testing that.
 
 To edit the list of users offered, change `mocks/B2CMock/users.json` and restart `b2c-mock` — it is mounted, not baked into the image.
 
@@ -585,6 +585,24 @@ for its lifecycle.
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
 
 ### regulator
+
+Add the [mock B2C](#mock-b2c) overlay to sign in without the Azure VPN or any regulator B2C secrets:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml --profile regulator up -d --build
+```
+
+#### Seeded regulator users
+
+Seeded in [the accounts database](compose/epr-backend-account-microservice-migrations/seed.sql) against the four regulator organisations, and listed in [`users.json`](mocks/B2CMock/users.json) for the mock's picker:
+
+| Nation | Role | Name | `userId` (for `B2CMOCK_AUTO_SELECT_USER_ID`) |
+| --- | --- | --- | --- |
+| England | Regulator Admin | James Walker | `eb8d75a1-eca8-4433-aeb4-95b5d6df3afa` |
+| England | Regulator Basic | Priya Shah | `3d3e1599-a6a6-4737-a77e-c34bc03c9efc` |
+| Wales | Regulator Admin | Elin Evans | `48c89416-befd-44bd-82c2-7207998fca9f` |
+| Scotland | Regulator Admin | Fiona MacLeod | `411b803f-8b76-4157-9f3c-929600b0c470` |
+| Northern Ireland | Regulator Admin | Patrick O'Neill | `5d8d8dac-3d95-43d1-9db7-0b87615c6061` |
 
 #### Case Management
 
