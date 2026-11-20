@@ -1830,6 +1830,10 @@ services:
       Acl__Clients__waste-obligations-notifications__Type: ApiKey
       Acl__Clients__waste-obligations-notifications__Secret: waste-obligations-notifications-pwd
       Acl__Clients__waste-obligations-notifications__Scopes__0: read
+      Acl__Clients__waste-regulator-case-management__Type: ApiKey
+      Acl__Clients__waste-regulator-case-management__Secret: waste-regulator-case-management-pwd
+      Acl__Clients__waste-regulator-case-management__Scopes__0: read
+      Acl__Clients__waste-regulator-case-management__Scopes__1: write
       PrnCommonBackend__TokenEndpoint: http://wiremock/oauth2/v2.0/token
       PrnCommonBackend__ClientId: waste-obligations
       PrnCommonBackend__BaseAddress: ${WasteObligations__PrnCommonBackend__BaseAddress:-http://epr-prn-common-backend:8080/}
@@ -2230,11 +2234,64 @@ services:
     profiles:
       - regulator
 
+  waste-regulator-case-management:
+    image: defradigital/waste-regulator-case-management:${WASTE_REGULATOR_CASE_MANAGEMENT:-latest}
+    pull_policy: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      floci-init:
+        condition: service_completed_successfully
+    env_file:
+      - 'compose/cdp/aws.env'
+      - 'compose/cdp/dotnet-service.env'
+    environment:
+      ASPNETCORE_URLS: http://+:8085
+      Mongo__DatabaseUri: mongodb://mongodb:27017/?replicaSet=rs0&directConnection=true
+      Mongo__DatabaseName: waste-regulator-case-management
+      AnalyticsAuditEventProcessor__ProcessingEnabled: true
+      AnalyticsAuditEventProcessor__TopicArn: arn:aws:sns:eu-west-2:000000000000:waste_regulator_case_management_analytics_events
+      AnalyticsAuditEventProcessor__PollIntervalSeconds: 1
+      # With any secret set, every caller must sign its requests, as in CDP. Without them Development
+      # trusts unsigned headers, which would hide a signing mismatch with the frontend.
+      AUTH_SHARED_SECRET__MANAGEMENT_FE: local-case-management-frontend-secret
+      AUTH_SHARED_SECRET__CASE_INTAKE: local-case-management-intake-secret
+      # Lets accepting or cancelling a CSoC case update its compliance declaration in waste-obligations.
+      CALLBACK_AUTH__CSOC: waste-regulator-case-management:waste-regulator-case-management-pwd
+    ports:
+      - "8020:8085"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+      start_interval: 1s
+    profiles:
+      - regulator
+
+  waste-regulator-case-management-seed:
+    image: node:22.23.4-alpine
+    depends_on:
+      waste-regulator-case-management:
+        condition: service_healthy
+      waste-obligations-seed:
+        condition: service_completed_successfully
+    environment:
+      CASE_INTAKE_SECRET: local-case-management-intake-secret
+    volumes:
+      - ./compose/waste-regulator-case-management-seed/seed.mjs:/seed.mjs:ro
+    entrypoint: [ "node", "/seed.mjs" ]
+    profiles:
+      - regulator
+
   waste-packaging-regulators-fe:
     image: defradigital/waste-packaging-regulators-fe:${WASTE_PACKAGING_REGULATORS_FE:-latest}
     pull_policy: always
     depends_on:
       redis:
+        condition: service_healthy
+      waste-regulator-case-management:
         condition: service_healthy
     env_file:
       - 'compose/cdp/aws.env'
@@ -2258,6 +2315,9 @@ services:
       ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080
       WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
       WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
+      CASE_MANAGEMENT_ENABLED: "true"
+      CASE_MANAGEMENT_API_BASE_URL: http://waste-regulator-case-management:8085
+      CASE_MANAGEMENT_API_SHARED_SECRET: local-case-management-frontend-secret
     healthcheck:
       test: [ "CMD", "node", "-e", "require('net').connect({host:'127.0.0.1', port:3000}).once('connect', () => process.exit(0)).once('error', () => process.exit(1))" ]
       interval: 5s
