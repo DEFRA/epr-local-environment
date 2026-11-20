@@ -102,3 +102,7 @@ queue_arn="${queue#*|}"
 create_subscription "$topic_arn" "$queue_arn"
 
 echo "Ready: verified $queue_name is subscribed to $topic_name"
+
+case_management_topic_name="waste_regulator_case_management_analytics_events"
+create_topic "$case_management_topic_name" > /dev/null
+echo "Ready: verified $case_management_topic_name exists"

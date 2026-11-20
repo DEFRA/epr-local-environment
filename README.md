@@ -584,6 +584,16 @@ for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
 
+### regulator
+
+#### Case Management
+
+The regulator profile runs [waste-regulator-case-management](https://github.com/DEFRA/waste-regulator-case-management) at http://localhost:8020 (`/health`, `/openapi/v1.json`), with its own database in the shared MongoDB and its analytics topic in Floci. `waste-packaging-regulators-fe` calls it with case management turned on (`CASE_MANAGEMENT_ENABLED`), so the case list is at https://localhost:3000/cases.
+
+- **Signed requests.** Both callers' shared secrets are set, so the frontend and the seed must sign every request, as in CDP. Without them Development trusts unsigned headers, which would hide a signing mismatch. The local values are in `compose.yml`.
+- **Seeded cases (temporary).** Until [waste-case-intake-processor](https://github.com/DEFRA/waste-case-intake-processor) consumes waste-obligations' events, the one-shot `waste-regulator-case-management-seed` service ([`seed.mjs`](compose/waste-regulator-case-management-seed/seed.mjs)) stands in for it. It creates a CSoC case for every compliance declaration in waste-obligations: same id, organisation, producer type and nation, and the declaration's current state. Cases are keyed on the declaration id, so running it again creates nothing new. To add cases, add compliance declarations to [`waste-obligations-seed`](compose/waste-obligations-seed/payloads/compliance-declarations). Once the processor is running here, it replaces this seed and the same declarations arrive through the real event path.
+- **Decisions reach waste-obligations.** Each case's callback URL is its compliance declaration in waste-obligations, and Case Management has a waste-obligations client with read and write scope. So accepting or cancelling a submitted case updates the declaration, as in CDP.
+
 ### Submit registration packaging API
 
 The obligations, packaging, regulator and submit-data profiles start `waste-submit-reg-packaging-api` at http://localhost:8019.
