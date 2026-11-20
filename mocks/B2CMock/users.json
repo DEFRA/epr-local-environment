@@ -150,5 +150,45 @@
     "familyName": "Chelladurai",
     "organisation": "POP QUEST LTD (165282)",
     "role": "Basic User"
+  },
+  {
+    "userId": "eb8d75a1-eca8-4433-aeb4-95b5d6df3afa",
+    "email": "regulator-admin-england@epr-local.test",
+    "givenName": "James",
+    "familyName": "Walker",
+    "organisation": "Environment Agency (regulator)",
+    "role": "Regulator Admin"
+  },
+  {
+    "userId": "3d3e1599-a6a6-4737-a77e-c34bc03c9efc",
+    "email": "regulator-basic-england@epr-local.test",
+    "givenName": "Priya",
+    "familyName": "Shah",
+    "organisation": "Environment Agency (regulator)",
+    "role": "Regulator Basic"
+  },
+  {
+    "userId": "48c89416-befd-44bd-82c2-7207998fca9f",
+    "email": "regulator-admin-wales@epr-local.test",
+    "givenName": "Elin",
+    "familyName": "Evans",
+    "organisation": "Natural Resources Wales (regulator)",
+    "role": "Regulator Admin"
+  },
+  {
+    "userId": "411b803f-8b76-4157-9f3c-929600b0c470",
+    "email": "regulator-admin-scotland@epr-local.test",
+    "givenName": "Fiona",
+    "familyName": "MacLeod",
+    "organisation": "Scottish Environment Protection Agency (regulator)",
+    "role": "Regulator Admin"
+  },
+  {
+    "userId": "5d8d8dac-3d95-43d1-9db7-0b87615c6061",
+    "email": "regulator-admin-northern-ireland@epr-local.test",
+    "givenName": "Patrick",
+    "familyName": "O'Neill",
+    "organisation": "Northern Ireland Environment Agency (regulator)",
+    "role": "Regulator Admin"
   }
 ]

@@ -1,5 +1,5 @@
 {
-  "// note": "Maps the downstream scope the frontend asks for onto the audience the receiving API validates. Audiences are the AzureAD(d)B2C__ClientId values in compose.yml.",
+  "// note": "Maps the downstream scope the frontend asks for onto the audience the receiving API validates. Audiences are the AzureAD(d)B2C__ClientId values in compose.yml, or in compose.b2cmock.yml for the regulator profile.",
   "scopeAudiences": [
     {
       "prefix": "https://AZDCUSPOC2.onmicrosoft.com/epr-dev-producers-account-facade/",
@@ -8,6 +8,10 @@
     {
       "prefix": "https://AZDCUSPOC2.onmicrosoft.com/epr-dev-payments-facade/",
       "audience": "266861c4-3d0b-4e91-b752-91ca02a4b671"
+    },
+    {
+      "prefix": "https://AZDCUSPOC2.onmicrosoft.com/epr-dev-regulators-facade/",
+      "audience": "9d8d869e-7ec7-4635-8182-c1e62725115d"
     }
   ],
   "defaultAudience": "0ff4a0dc-aa85-4b9f-858b-851dbfe7c671"

@@ -1,6 +1,7 @@
 # Replaces Azure AD B2C with a local mock identity provider (mocks/B2CMock).
 #
-# Use it with the packaging or obligations profile, on its own or alongside compose.timeshift.yml:
+# Use it with the packaging, obligations or regulator profile, on its own or alongside
+# compose.timeshift.yml:
 #
 #   docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
 #
@@ -8,13 +9,30 @@
 # ~3 month window around the real date, so OIDC discovery fails with NotTimeValid at any other
 # TIMESHIFT_DATETIME. It also removes the Azure VPN requirement for signing in.
 #
-# The .NET services only have AzureADB2C__Instance repointed. Domain, SignUpSignInPolicyId and the ClientIds stay as
-# they are, because the mock answers on the real tenant's path shape and issues the audiences the
-# real ClientIds expect. Sign-in resolves against the real seeded accounts database as usual.
+# The packaging and obligations .NET services only have AzureADB2C__Instance repointed. Domain,
+# SignUpSignInPolicyId and the ClientIds stay as they are, because the mock answers on the real
+# tenant's path shape and issues the audiences the real ClientIds expect. Sign-in resolves against
+# the real seeded accounts database as usual.
 #
-# Not supported with the regulator profile: the regulator frontends still sign in with real B2C,
-# and epr-payment-facade (shared with that profile) would then reject their tokens because it is
-# repointed here. b2c-mock-regulator-unsupported stops `up` with an explanation instead.
+# The regulator profile's ClientIds come from .env rather than compose.yml, so the mock cannot know
+# them. Here they are replaced with fixed local ones that mocks/B2CMock/clients.json maps scopes
+# onto, which also means the regulator profile needs none of its B2C secrets in .env.
+
+# Shared by the Node frontends below.
+x-node-frontend-b2cmock: &node-frontend-b2cmock
+  depends_on:
+    b2c-mock:
+      condition: service_healthy
+  volumes:
+    - ./compose/certs/https/epr-local-root-ca.crt:/certs/epr-local-root-ca.crt:ro
+    - ./compose/b2c-mock/forwarder.mjs:/b2c-mock-forwarder.mjs:ro
+  # @defra/hapi-secure-context rebuilds the TLS trust store from Node's bundled roots plus
+  # TRUSTSTORE_* variables (base64 PEM), dropping NODE_EXTRA_CA_CERTS, so the local root CA that
+  # signs the mock's certificate goes in that way.
+  command:
+    - sh
+    - -c
+    - export TRUSTSTORE_EPR_LOCAL_ROOT_CA=$$(base64 -w0 /certs/epr-local-root-ca.crt); node /b2c-mock-forwarder.mjs & exec node src
 
 services:
   b2c-mock:
@@ -52,6 +70,7 @@ services:
     profiles:
       - packaging
       - obligations
+      - regulator
 
   epr-packaging-frontend:
     depends_on:
@@ -86,39 +105,52 @@ services:
       AzureADB2C__Instance: https://b2c-mock:8443
       AzureADB2C__TokenValidationParameters__ValidateIssuer: "false"
 
-  # The Node frontend sends the browser to {instance}/.../authorize and calls {instance}/.../token
-  # itself, from the one AZURE_AD_B2C_INSTANCE, so it points at the browser's address and a small
-  # forwarder in the container passes its own localhost:8443 on to b2c-mock. It only decodes the ID
-  # token, so the mock's issuer needs no override.
-  waste-obligations-frontend: &waste-obligations-frontend-b2cmock
+  epr-regulator-service:
     depends_on:
       b2c-mock:
         condition: service_healthy
     environment:
+      AzureAdB2C__Instance: https://b2c-mock:8443
+      # Fixed local values in place of the .env ones (see the top of this file). The secret can be
+      # anything non-empty, as for epr-packaging-frontend.
+      AzureAdB2C__ClientId: 1314697f-da55-49a1-8cfe-fb3316d3571c
+      AzureAdB2C__ClientSecret: mock-client-secret
+      AzureAdB2C__TokenValidationParameters__ValidateIssuer: "false"
+
+  epr-regulator-facade:
+    depends_on:
+      b2c-mock:
+        condition: service_healthy
+    environment:
+      AzureAdB2C__Instance: https://b2c-mock:8443
+      # The audience mocks/B2CMock/clients.json gives tokens for the regulators-facade scope.
+      AzureAdB2C__ClientId: 9d8d869e-7ec7-4635-8182-c1e62725115d
+      AzureAdB2C__TokenValidationParameters__ValidateIssuer: "false"
+
+  # The Node frontends send the browser to {instance}/.../authorize and call {instance}/.../token
+  # themselves, from the one AZURE_AD_B2C_INSTANCE, so it points at the browser's address and the
+  # forwarder in each container passes its own localhost:8443 on to b2c-mock. They only decode the
+  # ID token, so the mock's issuer needs no override. The mock checks neither the client id nor the
+  # secret, but sign-in is disabled without them.
+  waste-obligations-frontend: &waste-obligations-frontend-b2cmock
+    <<: *node-frontend-b2cmock
+    environment:
       AZURE_AD_B2C_INSTANCE: https://localhost:8443
-      # The mock checks neither, but sign-in is disabled without them.
       AZURE_AD_B2C_CLIENT_ID: ${WasteObligationsFrontend__AzureAdB2C__ClientId:-b2c-mock-waste-obligations-frontend}
       AZURE_AD_B2C_CLIENT_SECRET: mock-client-secret
-    volumes:
-      - ./compose/certs/https/epr-local-root-ca.crt:/certs/epr-local-root-ca.crt:ro
-      - ./compose/waste-obligations-frontend/b2c-mock-forwarder.mjs:/b2c-mock-forwarder.mjs:ro
-    # @defra/hapi-secure-context rebuilds the TLS trust store from Node's bundled roots plus
-    # TRUSTSTORE_* variables (base64 PEM), dropping NODE_EXTRA_CA_CERTS, so the local root CA that
-    # signs the mock's certificate goes in that way.
-    command:
-      - sh
-      - -c
-      - export TRUSTSTORE_EPR_LOCAL_ROOT_CA=$$(base64 -w0 /certs/epr-local-root-ca.crt); node /b2c-mock-forwarder.mjs & exec node src
 
   waste-obligations-frontend-isolated: *waste-obligations-frontend-b2cmock
 
-  b2c-mock-regulator-unsupported:
-    image: busybox:1.37
-    command: ["sh", "-c", "echo 'compose.b2cmock.yml does not support the regulator profile: epr-payment-facade would reject real B2C tokens from the regulator frontends. Drop -f compose.b2cmock.yml.' >&2; exit 1"]
-    profiles:
-      - regulator
+  waste-packaging-regulators-fe:
+    <<: *node-frontend-b2cmock
+    environment:
+      AZURE_AD_B2C_INSTANCE: https://localhost:8443
+      AZURE_AD_B2C_CLIENT_ID: b2c-mock-waste-packaging-regulators-fe
+      AZURE_AD_B2C_CLIENT_SECRET: mock-client-secret
 
-  epr-regulator-service:
-    depends_on:
-      b2c-mock-regulator-unsupported:
-        condition: service_completed_successfully
+  waste-regulator-dashboard-fe:
+    <<: *node-frontend-b2cmock
+    environment:
+      AZURE_AD_B2C_INSTANCE: https://localhost:8443
+      AZURE_AD_B2C_CLIENT_ID: b2c-mock-waste-regulator-dashboard-fe
+      AZURE_AD_B2C_CLIENT_SECRET: mock-client-secret
