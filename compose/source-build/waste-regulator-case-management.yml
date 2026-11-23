@@ -1,0 +1,7 @@
+# Builds waste-regulator-case-management from ../waste-regulator-case-management instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  waste-regulator-case-management:
+    image: local/waste-regulator-case-management:dev
+    pull_policy: build
+    build: ../waste-regulator-case-management

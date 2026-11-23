@@ -1,0 +1,7 @@
+# Builds waste-regulator-dashboard-fe from ../waste-regulator-dashboard-fe instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  waste-regulator-dashboard-fe:
+    image: local/waste-regulator-dashboard-fe:dev
+    pull_policy: build
+    build: ../waste-regulator-dashboard-fe

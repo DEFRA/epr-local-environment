@@ -1,0 +1,13 @@
+# Builds epr-prn-common-backend, epr-prn-common-backend-migrations from ../epr-prn-common-backend instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-prn-common-backend:
+    image: local/epr-prn-common-backend:dev
+    pull_policy: build
+    build:
+      context: ../epr-prn-common-backend/src
+      dockerfile: EPR.PRN.Backend.API/Dockerfile
+  epr-prn-common-backend-migrations:
+    image: local/epr-prn-common-backend-migrations:dev
+    pull_policy: build
+    build: ../epr-prn-common-backend/src/EPR.PRN.Backend.Data/Scripts

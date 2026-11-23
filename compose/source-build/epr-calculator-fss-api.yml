@@ -1,0 +1,9 @@
+# Builds epr-calculator-fss-api from ../epr-calculator-fss-api instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-calculator-fss-api:
+    image: local/epr-calculator-fss-api:dev
+    pull_policy: build
+    build:
+      context: ../epr-calculator-fss-api/src
+      dockerfile: EPR.Calculator.FSS.API/Dockerfile

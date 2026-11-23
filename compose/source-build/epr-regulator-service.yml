@@ -1,0 +1,11 @@
+# Builds epr-regulator-service from ../epr-regulator-service instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-regulator-service:
+    image: local/epr-regulator-service:dev
+    pull_policy: build
+    build:
+      context: ../epr-regulator-service/src
+      dockerfile: EPR.RegulatorService.Frontend.Web/Dockerfile
+      args:
+        PAT: ${EPR_NUGET_PAT:-localhost}

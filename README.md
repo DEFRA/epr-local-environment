@@ -100,9 +100,11 @@ The Dockerfile for migrations is unchanged, however, a different `run-migrations
 
 The seeding process is also included here if needed so specific local environment data can be loaded.
 
-## Override image tag
+## Alternative builds
 
-The `main-latest` tag is used by default, therefore whatever has been built last from the main branch.
+The `main-latest` tag is used by default, therefore whatever has been built last from the main branch. To run something else, either choose a different image tag or build the service from your local clone.
+
+### Override image tag
 
 You can override the image tag used as follows.
 
@@ -126,7 +128,30 @@ Then start the services.
 
 Multiple varibles can be specified if needed for each service you want to override.
 
-## Build services from local source (zsh)
+### Build services from local source
+
+Each file in [`compose/source-build/`](compose/source-build) is named after a repo and builds that repo's services from a sibling clone (`../<repo>`) instead of pulling their published images. There is one for every repo the stack pulls an image from. Add one `-f` per repo you want built:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml \
+  -f compose/source-build/waste-regulator-case-management.yml \
+  -f compose/source-build/waste-packaging-regulators-fe.yml \
+  --profile regulator up -d --build
+```
+
+The build uses whatever is checked out in the clone, including uncommitted changes. To stop typing the files, list them in your `.env`, separated by `:`, and Compose uses them for every command:
+
+```
+COMPOSE_FILE=compose.yml:compose.b2cmock.yml:compose/source-build/waste-regulator-case-management.yml:compose/source-build/waste-packaging-regulators-fe.yml
+```
+
+- A repo's file covers all of its services. For example, `epr-prn-common-backend.yml` builds the API and its migrations, and `waste-obligations-frontend.yml` builds both frontend instances.
+- Migrations images are built from the `migrations.sql` committed in the repo.
+- `epr-regulator-facade` is built from the `epr-regulator-service-facade` clone.
+- Seven .NET repos pass a `PAT` build argument into `NuGet.Config` for DEFRA's Azure DevOps package feed. They take it from `EPR_NUGET_PAT` in your `.env`, and default to the Dockerfiles' own `localhost`. Set it if restoring packages fails with 401.
+- If you add a service to `compose.yml`, add it to its repo's file too.
+
+### Build services from local source (zsh)
 
 The `eprlocalenv` zsh function can start a profile while building selected services from sibling source repositories, rather than pulling those services' published images. It expects this repository and each source repository to have the same parent directory, for example:
 

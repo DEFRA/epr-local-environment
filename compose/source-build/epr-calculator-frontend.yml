@@ -1,0 +1,11 @@
+# Builds epr-calculator-frontend from ../epr-calculator-frontend instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-calculator-frontend:
+    image: local/epr-calculator-frontend:dev
+    pull_policy: build
+    build:
+      context: ../epr-calculator-frontend/src
+      dockerfile: EPR.Calculator.Frontend/Dockerfile
+      args:
+        PAT: ${EPR_NUGET_PAT:-localhost}

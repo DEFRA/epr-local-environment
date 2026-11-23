@@ -1,0 +1,13 @@
+# Builds epr-calculator-api, epr-calculator-api-migrations from ../epr-calculator-api instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-calculator-api:
+    image: local/epr-calculator-api:dev
+    pull_policy: build
+    build:
+      context: ../epr-calculator-api/src
+      dockerfile: EPR.Calculator.API/Dockerfile
+  epr-calculator-api-migrations:
+    image: local/epr-calculator-api-migrations:dev
+    pull_policy: build
+    build: ../epr-calculator-api/src/EPR.Calculator.API.Data/Scripts

@@ -1,0 +1,11 @@
+# Builds epr-pom-api-submission-status from ../epr-pom-api-submission-status instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-pom-api-submission-status:
+    image: local/epr-pom-api-submission-status:dev
+    pull_policy: build
+    build:
+      context: ../epr-pom-api-submission-status/src
+      dockerfile: EPR.SubmissionMicroservice.API/Dockerfile
+      args:
+        PAT: ${EPR_NUGET_PAT:-localhost}

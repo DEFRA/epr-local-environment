@@ -1,0 +1,9 @@
+# Builds epr-prn-integration-function from ../epr-prn-integration-function instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-prn-integration-function:
+    image: local/epr-prn-integration-function:dev
+    pull_policy: build
+    build:
+      context: ../epr-prn-integration-function/src
+      dockerfile: EprPrnIntegration.Api/Dockerfile
