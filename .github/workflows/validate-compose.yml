@@ -1,0 +1,45 @@
+name: Validate compose files
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      # compose.synapse.yml requires it; the value is never used.
+      EprCommonDataApi__ConnectionStrings__SynapseDatabase: ci-placeholder
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Validate compose.yml and each overlay with every profile
+        run: |
+          set -euo pipefail
+          for overlay in "" compose.b2cmock.yml compose.timeshift.yml compose.synapse.yml compose.future.yml compose.cli.yml; do
+            echo "::group::compose.yml ${overlay}"
+            docker compose -f compose.yml ${overlay:+-f "$overlay"} --profile '*' config --quiet
+            echo "::endgroup::"
+          done
+
+      - name: Validate the build-from-source overrides
+        run: |
+          set -euo pipefail
+          base=(-f compose.yml -f compose.b2cmock.yml)
+          overrides=()
+          for file in compose/source-build/*.yml; do
+            overrides+=(-f "$file")
+          done
+          docker compose "${base[@]}" "${overrides[@]}" --profile '*' config --quiet
+          # An override that names a service compose.yml doesn't have would silently add one.
+          expected=$(docker compose "${base[@]}" --profile '*' config --services | sort)
+          actual=$(docker compose "${base[@]}" "${overrides[@]}" --profile '*' config --services | sort)
+          if [[ "$expected" != "$actual" ]]; then
+            echo "::error::compose/source-build/ names services that compose.yml does not have:"
+            comm -13 <(echo "$expected") <(echo "$actual")
+            exit 1
+          fi
