@@ -28,6 +28,16 @@ The following profiles are available:
 - obligations
 - submit-data
 
+## Start again from a clean slate
+
+To throw away all local data and start fresh, run this from the root of this repo. It stops every profile's containers and deletes the stack's volumes:
+
+```
+docker compose --profile '*' down --volumes --remove-orphans
+```
+
+This deletes the SQL Server, MongoDB, Postgres and Azurite data, so the next `up` runs every migration, restore and seed again. That is slower but avoids errors left by old data. It does not delete images, and anything else in Docker on your machine is untouched.
+
 ## Time shift
 
 To run services that have time shift capability, you can include an additional profile with `timeshift-` as a prefix to the profile name you're attempting to run. This will include applicable overrides so service(s) can be started at a specific datetime. For example:
