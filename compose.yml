@@ -1736,6 +1736,9 @@ services:
       Acl__Clients__waste-obligations-frontend__Type: ApiKey
       Acl__Clients__waste-obligations-frontend__Secret: waste-obligations-frontend-pwd
       Acl__Clients__waste-obligations-frontend__Scopes__0: read
+      Acl__Clients__waste-packaging-regulators-fe__Type: ApiKey
+      Acl__Clients__waste-packaging-regulators-fe__Secret: waste-packaging-regulators-fe-pwd
+      Acl__Clients__waste-packaging-regulators-fe__Scopes__0: read
       Acl__Clients__waste-organisations-seed__Type: ApiKey
       Acl__Clients__waste-organisations-seed__Secret: waste-organisations-seed-pwd
       Acl__Clients__waste-organisations-seed__Scopes__0: read
@@ -1846,6 +1849,10 @@ services:
       Acl__Clients__waste-obligations-frontend__Secret: waste-obligations-frontend-pwd
       Acl__Clients__waste-obligations-frontend__Scopes__0: read
       Acl__Clients__waste-obligations-frontend__Scopes__1: write
+      Acl__Clients__waste-packaging-regulators-fe__Type: ApiKey
+      Acl__Clients__waste-packaging-regulators-fe__Secret: waste-packaging-regulators-fe-pwd
+      Acl__Clients__waste-packaging-regulators-fe__Scopes__0: read
+      Acl__Clients__waste-packaging-regulators-fe__Scopes__1: write
       Acl__Clients__epr-pom-api-web__Type: OAuth
       Acl__Clients__epr-pom-api-web__Scopes__0: read
       Acl__Clients__waste-obligations-notifications__Type: ApiKey
@@ -2334,8 +2341,14 @@ services:
       SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
       SESSION_COOKIE_SECURE: "true"
       ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080
+      # The frontend defaults to OAuth for the Account API, but the account service has no auth of its own.
+      ACCOUNT_API_AUTH_MODE: none
       WASTE_OBLIGATIONS_API_BASE_URL: http://waste-obligations:8080
+      WASTE_OBLIGATIONS_API_CLIENT_ID: waste-packaging-regulators-fe
+      WASTE_OBLIGATIONS_API_CLIENT_SECRET: waste-packaging-regulators-fe-pwd
       WASTE_ORGANISATIONS_API_BASE_URL: http://waste-organisations:8080
+      WASTE_ORGANISATIONS_API_CLIENT_ID: waste-packaging-regulators-fe
+      WASTE_ORGANISATIONS_API_CLIENT_SECRET: waste-packaging-regulators-fe-pwd
       CASE_MANAGEMENT_ENABLED: "true"
       CASE_MANAGEMENT_API_BASE_URL: http://waste-regulator-case-management:8085
       CASE_MANAGEMENT_API_SHARED_SECRET: local-case-management-frontend-secret
