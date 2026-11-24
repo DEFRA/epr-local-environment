@@ -2389,6 +2389,9 @@ services:
       SESSION_COOKIE_PASSWORD: the-password-must-be-at-least-32-characters-long
       SESSION_COOKIE_SECURE: "true"
       FEATURE_CERTIFICATE_OF_COMPLIANCE: "true"
+      ACCOUNT_API_BASE_URL: http://epr-backend-account-microservice:8080
+      # The account service has no auth of its own; in Azure it sits behind a gateway.
+      ACCOUNT_API_AUTH_MODE: none
       REGULATOR_AZURE_BASE_URL: https://localhost:7154
       CERTIFICATE_OF_COMPLIANCE_BASE_URL: https://localhost:3000
     healthcheck:
