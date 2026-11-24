@@ -1,0 +1,7 @@
+# Builds waste-packaging-regulators-fe from ../waste-packaging-regulators-fe instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  waste-packaging-regulators-fe:
+    image: local/waste-packaging-regulators-fe:dev
+    pull_policy: build
+    build: ../waste-packaging-regulators-fe

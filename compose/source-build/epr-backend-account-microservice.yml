@@ -1,0 +1,19 @@
+# Builds epr-backend-account-microservice, epr-backend-account-microservice-migrations, epr-backend-account-validationdata-api from ../epr-backend-account-microservice instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-backend-account-microservice:
+    image: local/epr-backend-account-microservice:dev
+    pull_policy: build
+    build:
+      context: ../epr-backend-account-microservice/src
+      dockerfile: BackendAccountService.Api/Dockerfile
+  epr-backend-account-microservice-migrations:
+    image: local/epr-backend-account-microservice-migrations:dev
+    pull_policy: build
+    build: ../epr-backend-account-microservice/src/BackendAccountService.Data/Scripts
+  epr-backend-account-validationdata-api:
+    image: local/epr-backend-account-validationdata-api:dev
+    pull_policy: build
+    build:
+      context: ../epr-backend-account-microservice/src
+      dockerfile: BackendAccountService.ValidationData.Api/Dockerfile

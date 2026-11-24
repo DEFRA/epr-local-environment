@@ -1,0 +1,7 @@
+# Builds waste-organisations from ../waste-organisations instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  waste-organisations:
+    image: local/waste-organisations:dev
+    pull_policy: build
+    build: ../waste-organisations

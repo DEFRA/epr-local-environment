@@ -1,0 +1,9 @@
+# Builds epr-common-data-api from ../epr-common-data-api instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-common-data-api:
+    image: local/epr-common-data-api:dev
+    pull_policy: build
+    build:
+      context: ../epr-common-data-api/src
+      dockerfile: EPR.CommonDataService.Api/Dockerfile

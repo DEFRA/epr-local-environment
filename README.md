@@ -28,6 +28,16 @@ The following profiles are available:
 - obligations
 - submit-data
 
+## Start again from a clean slate
+
+To throw away all local data and start fresh, run this from the root of this repo. It stops every profile's containers and deletes the stack's volumes:
+
+```
+docker compose --profile '*' down --volumes --remove-orphans
+```
+
+This deletes the SQL Server, MongoDB, Postgres and Azurite data, so the next `up` runs every migration, restore and seed again. That is slower but avoids errors left by old data. It does not delete images, and anything else in Docker on your machine is untouched.
+
 ## Time shift
 
 To run services that have time shift capability, you can include an additional profile with `timeshift-` as a prefix to the profile name you're attempting to run. This will include applicable overrides so service(s) can be started at a specific datetime. For example:
@@ -76,7 +86,7 @@ Only the frontend's date-dependent UI logic is shifted; sign-in, sessions and th
 
 ## Mock B2C
 
-[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging` or `obligations` profile, with or without time shift:
+[`compose.b2cmock.yml`](compose.b2cmock.yml) swaps Azure AD B2C for a local mock ([`mocks/B2CMock`](mocks/B2CMock)). Use it with the `packaging`, `obligations` or `regulator` profile, with or without time shift:
 
 ```
 docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d --build
@@ -85,10 +95,10 @@ docker compose -f compose.yml -f compose.b2cmock.yml --profile packaging up -d -
 - **No Azure VPN needed** to sign in, and no dev B2C account to borrow.
 - Signing in shows a picker at `https://localhost:8443` listing every seeded account. Set `B2CMOCK_AUTO_SELECT_USER_ID` in your `.env` to a `userId` from [`mocks/B2CMock/users.json`](mocks/B2CMock/users.json) to skip the picker and sign straight in as that user.
 - Tokens are really RS256-signed and carry a seeded account's `UserId` as `oid`/`sub`, so `epr-facade-account-microservice` and the other APIs go on validating them for real against the real seeded organisations — see [Seeded users](#seeded-users-packaging-profile). Nothing downstream is stubbed.
-- Only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are.
-- Both `waste-obligations-frontend` instances (https://localhost:8010 and https://localhost:8015/manage-recycling-obligations) sign in through the mock too, with no `/etc/hosts` entry: they send the browser to `https://localhost:8443`, and a small forwarder in each container ([`b2c-mock-forwarder.mjs`](compose/waste-obligations-frontend/b2c-mock-forwarder.mjs)) passes the container's own token calls on to `b2c-mock`.
+- For packaging and obligations, only `AzureADB2C__Instance` is repointed. Domain, policy and every `ClientId` stay as they are. The regulator profile's `ClientId`s normally come from `.env`, so the overlay swaps them for fixed local ones the mock knows about, and that profile then needs none of its B2C secrets.
+- The Node frontends (both `waste-obligations-frontend` instances, `waste-packaging-regulators-fe` and `waste-regulator-dashboard-fe`) sign in through the mock too, with no `/etc/hosts` entry: they send the browser to `https://localhost:8443`, and a small forwarder in each container ([`forwarder.mjs`](compose/b2c-mock/forwarder.mjs)) passes the container's own token calls on to `b2c-mock`.
 - Like real B2C, the mock remembers who signed in (a `b2cmock_sso` cookie on `localhost:8443`), so following a link from packaging to the obligations frontend signs straight in without the picker. Signing out, or a request with `prompt=login`, shows the picker again.
-- It does not support the `regulator` profile. The regulator frontends still sign in with real B2C, and `epr-payment-facade`, which that profile shares, would reject their tokens. `up` stops with an error if you combine them.
+- The picker includes a Regulator Admin for each nation and a Regulator Basic in England; see [Seeded regulator users](#seeded-regulator-users). Producer accounts are refused by the regulator frontends, which is useful for testing that.
 
 To edit the list of users offered, change `mocks/B2CMock/users.json` and restart `b2c-mock` — it is mounted, not baked into the image.
 
@@ -100,9 +110,11 @@ The Dockerfile for migrations is unchanged, however, a different `run-migrations
 
 The seeding process is also included here if needed so specific local environment data can be loaded.
 
-## Override image tag
+## Alternative builds
 
-The `main-latest` tag is used by default, therefore whatever has been built last from the main branch.
+The `main-latest` tag is used by default, therefore whatever has been built last from the main branch. To run something else, either choose a different image tag or build the service from your local clone.
+
+### Override image tag
 
 You can override the image tag used as follows.
 
@@ -126,7 +138,30 @@ Then start the services.
 
 Multiple varibles can be specified if needed for each service you want to override.
 
-## Build services from local source (zsh)
+### Build services from local source
+
+Each file in [`compose/source-build/`](compose/source-build) is named after a repo and builds that repo's services from a sibling clone (`../<repo>`) instead of pulling their published images. There is one for every repo the stack pulls an image from. Add one `-f` per repo you want built:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml \
+  -f compose/source-build/waste-regulator-case-management.yml \
+  -f compose/source-build/waste-packaging-regulators-fe.yml \
+  --profile regulator up -d --build
+```
+
+The build uses whatever is checked out in the clone, including uncommitted changes. To stop typing the files, list them in your `.env`, separated by `:`, and Compose uses them for every command:
+
+```
+COMPOSE_FILE=compose.yml:compose.b2cmock.yml:compose/source-build/waste-regulator-case-management.yml:compose/source-build/waste-packaging-regulators-fe.yml
+```
+
+- A repo's file covers all of its services. For example, `epr-prn-common-backend.yml` builds the API and its migrations, and `waste-obligations-frontend.yml` builds both frontend instances.
+- Migrations images are built from the `migrations.sql` committed in the repo.
+- `epr-regulator-facade` is built from the `epr-regulator-service-facade` clone.
+- Seven .NET repos pass a `PAT` build argument into `NuGet.Config` for DEFRA's Azure DevOps package feed. They take it from `EPR_NUGET_PAT` in your `.env`, and default to the Dockerfiles' own `localhost`. Set it if restoring packages fails with 401.
+- If you add a service to `compose.yml`, add it to its repo's file too.
+
+### Build services from local source (zsh)
 
 The `eprlocalenv` zsh function can start a profile while building selected services from sibling source repositories, rather than pulling those services' published images. It expects this repository and each source repository to have the same parent directory, for example:
 
@@ -583,6 +618,34 @@ retained under `.cache/synapse-source` in this repository and ignored by Git; se
 for its lifecycle.
 
 This approach should provide an early feedback loop yet there could still be subtle syntax/behaviour differences between a Synapse and SQL server instance.
+
+### regulator
+
+Add the [mock B2C](#mock-b2c) overlay to sign in without the Azure VPN or any regulator B2C secrets:
+
+```
+docker compose -f compose.yml -f compose.b2cmock.yml --profile regulator up -d --build
+```
+
+#### Seeded regulator users
+
+Seeded in [the accounts database](compose/epr-backend-account-microservice-migrations/seed.sql) against the four regulator organisations, and listed in [`users.json`](mocks/B2CMock/users.json) for the mock's picker:
+
+| Nation | Role | Name | `userId` (for `B2CMOCK_AUTO_SELECT_USER_ID`) |
+| --- | --- | --- | --- |
+| England | Regulator Admin | James Walker | `eb8d75a1-eca8-4433-aeb4-95b5d6df3afa` |
+| England | Regulator Basic | Priya Shah | `3d3e1599-a6a6-4737-a77e-c34bc03c9efc` |
+| Wales | Regulator Admin | Elin Evans | `48c89416-befd-44bd-82c2-7207998fca9f` |
+| Scotland | Regulator Admin | Fiona MacLeod | `411b803f-8b76-4157-9f3c-929600b0c470` |
+| Northern Ireland | Regulator Admin | Patrick O'Neill | `5d8d8dac-3d95-43d1-9db7-0b87615c6061` |
+
+#### Case Management
+
+The regulator profile runs [waste-regulator-case-management](https://github.com/DEFRA/waste-regulator-case-management) at http://localhost:8020 (`/health`, `/openapi/v1.json`), with its own database in the shared MongoDB and its analytics topic in Floci. `waste-packaging-regulators-fe` calls it with case management turned on (`CASE_MANAGEMENT_ENABLED`), so the case list is at https://localhost:3000/cases.
+
+- **Signed requests.** Both callers' shared secrets are set, so the frontend and the seed must sign every request, as in CDP. Without them Development trusts unsigned headers, which would hide a signing mismatch. The local values are in `compose.yml`.
+- **Seeded cases (temporary).** Until [waste-case-intake-processor](https://github.com/DEFRA/waste-case-intake-processor) consumes waste-obligations' events, the one-shot `waste-regulator-case-management-seed` service ([`seed.mjs`](compose/waste-regulator-case-management-seed/seed.mjs)) stands in for it. It creates a CSoC case for every compliance declaration in waste-obligations: same id, organisation, producer type and nation, and the declaration's current state. Cases are keyed on the declaration id, so running it again creates nothing new. To add cases, add compliance declarations to [`waste-obligations-seed`](compose/waste-obligations-seed/payloads/compliance-declarations). Once the processor is running here, it replaces this seed and the same declarations arrive through the real event path.
+- **Decisions reach waste-obligations.** Each case's callback URL is its compliance declaration in waste-obligations, and Case Management has a waste-obligations client with read and write scope. So accepting or cancelling a submitted case updates the declaration, as in CDP.
 
 ### Submit registration packaging API
 

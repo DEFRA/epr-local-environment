@@ -1,0 +1,17 @@
+# Builds epr-payment-service, epr-payment-service-migrations, epr-payment-service-seed from ../epr-payment-service instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-payment-service:
+    image: local/epr-payment-service:dev
+    pull_policy: build
+    build:
+      context: ../epr-payment-service/src
+      dockerfile: EPR.Payment.Service/Dockerfile
+  epr-payment-service-migrations:
+    image: local/epr-payment-service-migrations:dev
+    pull_policy: build
+    build: ../epr-payment-service/src/EPR.Payment.Service.Common.Data/Scripts
+  epr-payment-service-seed:
+    image: local/epr-payment-service-seed:dev
+    pull_policy: build
+    build: ../epr-payment-service/src/EPR.Payment.Service.Common.Data/Scripts

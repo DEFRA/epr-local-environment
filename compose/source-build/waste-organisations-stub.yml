@@ -1,0 +1,7 @@
+# Builds waste-organisations-stub from ../waste-organisations-stub instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  waste-organisations-stub:
+    image: local/waste-organisations-stub:dev
+    pull_policy: build
+    build: ../waste-organisations-stub

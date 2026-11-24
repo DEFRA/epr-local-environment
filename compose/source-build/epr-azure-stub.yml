@@ -1,0 +1,7 @@
+# Builds epr-azure-stub from ../epr-azure-stub instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-azure-stub:
+    image: local/epr-azure-stub:dev
+    pull_policy: build
+    build: ../epr-azure-stub

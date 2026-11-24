@@ -1,0 +1,9 @@
+# Builds epr-pom-func-submission-check-splitter from ../epr-pom-func-submission-check-splitter instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-pom-func-submission-check-splitter:
+    image: local/epr-pom-func-submission-check-splitter:dev
+    pull_policy: build
+    build:
+      context: ../epr-pom-func-submission-check-splitter/src
+      dockerfile: SubmissionCheckSplitter.Functions/Dockerfile

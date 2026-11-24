@@ -1,0 +1,9 @@
+# Builds epr-subsidiary-func-bulk-upload from ../epr-subsidiary-func-bulk-upload instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  epr-subsidiary-func-bulk-upload:
+    image: local/epr-subsidiary-func-bulk-upload:dev
+    pull_policy: build
+    build:
+      context: ../epr-subsidiary-func-bulk-upload/src
+      dockerfile: EPR.SubsidiaryBulkUpload.Function/Dockerfile
