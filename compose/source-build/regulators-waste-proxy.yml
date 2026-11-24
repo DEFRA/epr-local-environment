@@ -1,0 +1,7 @@
+# Builds regulators-waste-proxy from ../regulators-waste-proxy instead of pulling the published image.
+# See "Build services from local source" in the README.
+services:
+  regulators-waste-proxy:
+    image: local/regulators-waste-proxy:dev
+    pull_policy: build
+    build: ../regulators-waste-proxy
