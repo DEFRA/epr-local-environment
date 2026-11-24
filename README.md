@@ -790,8 +790,8 @@ Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
 | Email | Role | UserId |
 |-------|------|--------|
 | `test+17122025143216@ee.com` | Approved Person | `579C319D-D552-47A2-BF4C-5A125A3183BC` |
-| `francis.chelladurai+07042026@equalexperts.com` | Delegated Person (nominated by `test+17122025143216@ee.com`) | `ef2fd2a5-24bf-4b22-89a0-17a0367aee1c` |
-| `francis.chelladurai+260407@equalexperts.com` | Basic User | `13e26b8a-e2b2-4870-b040-d6bdf5d689fa` |
+| `test.account2+07042026@example.com` | Delegated Person (nominated by `test+17122025143216@ee.com`) | `ef2fd2a5-24bf-4b22-89a0-17a0367aee1c` |
+| `test.account2+260407@example.com` | Basic User | `13e26b8a-e2b2-4870-b040-d6bdf5d689fa` |
 
 ### Direct Producer — "POP QUEST LTD" (CHN `17121895`)
 
@@ -799,7 +799,7 @@ Service roles: `1 = Approved Person`, `2 = Delegated Person`, `3 = Basic User`.
 |-------|------|--------|
 | `test+directproducer@ee.com` | Approved Person | `79d0deab-c22d-4c30-8082-508ff8dc1bd7` |
 | `bmmmdmgz@sharklasers.com` | Delegated Person (nominated by `test+directproducer@ee.com`) | `513a78ee-d5bf-4fa4-9d8f-136550ea6072` |
-| `francis.chelladurai+31032026@equalexperts.com` | Basic User | `d062d4fe-34f8-468e-ada8-d950cc9a3c2a` |
+| `test.account2+31032026@example.com` | Basic User | `d062d4fe-34f8-468e-ada8-d950cc9a3c2a` |
 
 #### Subsidiaries (2)
 
@@ -868,9 +868,9 @@ combination. No delegated or basic user, no subsidiaries.
 
 | Email | Role | UserId |
 |-------|------|--------|
-| `ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com` | Approved Person | `DDA43611-5AA2-44BF-B449-B4734DD32694` |
+| `test.account1+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@example.com` | Approved Person | `DDA43611-5AA2-44BF-B449-B4734DD32694` |
 
-The email ends `-AUTO_TEST_DONT_USE@equalexperts.com` and the `UserId` is the real Azure B2C Object
+The email ends `-AUTO_TEST_DONT_USE@example.com` and the `UserId` is the real Azure B2C Object
 ID (`oid`) for that account in the shared tenant — the same requirement as the Northbridge accounts
 below. A fictional UserId will let the seed insert run but will not authenticate; this bit the first
 version of this seed (see git history on this file around when Smallwood was added).
@@ -908,9 +908,9 @@ does, all keyed on the same SubmissionId/FileId/BlobName GUIDs: the CSV in
 
 | Email | Role | UserId |
 |-------|------|--------|
-| `ahmed.hussein+dev9+1784615966009+09640-DONT_USE@equalexperts.com` | Approved Person | `94BFD894-8F64-4F8D-9975-259D08786C2B` |
-| `ahmed.hussein+dev9+1784616197060+61532-DONT_USE@equalexperts.com` | Delegated Person (nominated by the Approved Person above) | `F0CA633F-C62F-4DDB-8009-893C1DF9EBC3` |
-| `ahmed.hussein+dev9+1784616229626+56548-DONT_USE@equalexperts.com` | Basic User | `637B0DEA-83FA-49CE-AFD9-C5527A820CE1` |
+| `test.account1+dev9+1784615966009+09640-DONT_USE@example.com` | Approved Person | `94BFD894-8F64-4F8D-9975-259D08786C2B` |
+| `test.account1+dev9+1784616197060+61532-DONT_USE@example.com` | Delegated Person (nominated by the Approved Person above) | `F0CA633F-C62F-4DDB-8009-893C1DF9EBC3` |
+| `test.account1+dev9+1784616229626+56548-DONT_USE@example.com` | Basic User | `637B0DEA-83FA-49CE-AFD9-C5527A820CE1` |
 
 The scheme organisation itself has reference number `110000`; its members are `110001`-`110010`
 and their subsidiaries `110011`-`110014` (see the note under POP QUEST LTD above for why these
@@ -924,16 +924,16 @@ Each row is its own direct producer organisation, linked to the scheme via `Orga
 
 | Organisation | CHN | Reference number | Email | UserId |
 |---|---|---|---|---|
-| BRAMBLEWOOD PACKAGING LTD | `11000001` | `110001` | `ahmed.hussein+dev9+1782714701839+98807-DONT_USE@equalexperts.com` | `A16AE06C-3629-4F04-89A6-B8D1912C99FE` |
-| SILVERDALE FOODS LTD | `11000002` | `110002` | `ahmed.hussein+dev9+1782714726947+48306-DONT_USE@equalexperts.com` | `972111C5-42D1-4AAA-A076-BD61098A75C7` |
-| TIDELINE BEVERAGES LTD | `11000003` | `110003` | `ahmed.hussein+dev9+1782714740443+61628-DONT_USE@equalexperts.com` | `8CE8A6C7-16E6-412F-ABBE-036C2DD7E11A` |
-| COPPERGATE HOMEWARES LTD | `11000004` | `110004` | `ahmed.hussein+dev9+1782714811219+93870-DONT_USE@equalexperts.com` | `410953E4-5D24-4A3C-95F6-E38E8E6802A1` |
-| FERNLEIGH COSMETICS LTD | `11000005` | `110005` | `ahmed.hussein+dev9+1782714821734+90170-DONT_USE@equalexperts.com` | `575067A3-F25E-4B5A-91BC-5BC763BF7556` |
-| QUARRYSTONE HARDWARE LTD | `11000006` | `110006` | `ahmed.hussein+dev9+1782714833475+55076-DONT_USE@equalexperts.com` | `9ECC9140-47E7-4E5E-9B71-1FF3129C5EB5` |
-| MAPLECROFT STATIONERY LTD | `11000007` | `110007` | `ahmed.hussein+dev9+1782714878221+10813-DONT_USE@equalexperts.com` | `103B8411-58F4-4B71-B985-B3A4450B32B3` |
-| HARBOURVIEW TEXTILES LTD | `11000008` | `110008` | `ahmed.hussein+dev9+1782714888354+70374-DONT_USE@equalexperts.com` | `FFD8A042-7BFB-4CE6-BC3A-3BD2E6CDEFE9` |
-| GREENFIELD DAIRY LTD | `11000009` | `110009` | `ahmed.hussein+dev9+1782714921449+05316-DONT_USE@equalexperts.com` | `296C40CC-6694-4E42-95C3-DFD1C0F9692C` |
-| STONEBRIDGE ELECTRONICS LTD | `11000010` | `110010` | `ahmed.hussein+dev9+1782715019923+87659-DONT_USE@equalexperts.com` | `F3F0C069-B981-44CE-946C-484B943B763A` |
+| BRAMBLEWOOD PACKAGING LTD | `11000001` | `110001` | `test.account1+dev9+1782714701839+98807-DONT_USE@example.com` | `A16AE06C-3629-4F04-89A6-B8D1912C99FE` |
+| SILVERDALE FOODS LTD | `11000002` | `110002` | `test.account1+dev9+1782714726947+48306-DONT_USE@example.com` | `972111C5-42D1-4AAA-A076-BD61098A75C7` |
+| TIDELINE BEVERAGES LTD | `11000003` | `110003` | `test.account1+dev9+1782714740443+61628-DONT_USE@example.com` | `8CE8A6C7-16E6-412F-ABBE-036C2DD7E11A` |
+| COPPERGATE HOMEWARES LTD | `11000004` | `110004` | `test.account1+dev9+1782714811219+93870-DONT_USE@example.com` | `410953E4-5D24-4A3C-95F6-E38E8E6802A1` |
+| FERNLEIGH COSMETICS LTD | `11000005` | `110005` | `test.account1+dev9+1782714821734+90170-DONT_USE@example.com` | `575067A3-F25E-4B5A-91BC-5BC763BF7556` |
+| QUARRYSTONE HARDWARE LTD | `11000006` | `110006` | `test.account1+dev9+1782714833475+55076-DONT_USE@example.com` | `9ECC9140-47E7-4E5E-9B71-1FF3129C5EB5` |
+| MAPLECROFT STATIONERY LTD | `11000007` | `110007` | `test.account1+dev9+1782714878221+10813-DONT_USE@example.com` | `103B8411-58F4-4B71-B985-B3A4450B32B3` |
+| HARBOURVIEW TEXTILES LTD | `11000008` | `110008` | `test.account1+dev9+1782714888354+70374-DONT_USE@example.com` | `FFD8A042-7BFB-4CE6-BC3A-3BD2E6CDEFE9` |
+| GREENFIELD DAIRY LTD | `11000009` | `110009` | `test.account1+dev9+1782714921449+05316-DONT_USE@example.com` | `296C40CC-6694-4E42-95C3-DFD1C0F9692C` |
+| STONEBRIDGE ELECTRONICS LTD | `11000010` | `110010` | `test.account1+dev9+1782715019923+87659-DONT_USE@example.com` | `F3F0C069-B981-44CE-946C-484B943B763A` |
 
 #### Subsidiaries (4)
 
@@ -946,7 +946,7 @@ Linked via `OrganisationRelationships` (type `Parent`) + `SubsidiaryOrganisation
 | SILVERDALE FOODS DISTRIBUTION LTD | `11000013` | `110013` | SILVERDALE FOODS LTD |
 | SILVERDALE FOODS RETAIL LTD | `11000014` | `110014` | SILVERDALE FOODS LTD |
 
-All emails above end `-DONT_USE@equalexperts.com` and their `UserId` values are the real Azure B2C Object IDs (`oid`) for those accounts in the shared tenant — see the note earlier in this README that the B2C user's `oid`/`sub` must match a seeded account `UserId` for why this matters.
+All emails above end `-DONT_USE@example.com` and their `UserId` values are the real Azure B2C Object IDs (`oid`) for those accounts in the shared tenant — see the note earlier in this README that the B2C user's `oid`/`sub` must match a seeded account `UserId` for why this matters.
 
 All enrolments are seeded with `EnrolmentStatusId = 3` (Approved/Active).
 
