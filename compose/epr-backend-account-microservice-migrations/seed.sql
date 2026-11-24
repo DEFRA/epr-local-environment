@@ -120,7 +120,7 @@ if not exists (select 1 from DelegatedPersonEnrolments where EnrolmentId = @dpDe
 declare @dpBasicUserId uniqueidentifier
 declare @dpBasicEmail nvarchar(255)
 set @dpBasicUserId = 'd062d4fe-34f8-468e-ada8-d950cc9a3c2a'
-set @dpBasicEmail = 'francis.chelladurai+31032026@equalexperts.com'
+set @dpBasicEmail = 'test.account2+31032026@example.com'
 
 if not exists (select 1 from Users where UserId = @dpBasicUserId)
     insert into Users (UserId, Email) values (@dpBasicUserId, @dpBasicEmail)
@@ -154,7 +154,7 @@ if not exists (select 1 from Enrolments where ConnectionId = @dpBasicConnectionI
 declare @dpSmallUserId uniqueidentifier
 declare @dpSmallEmail nvarchar(255)
 set @dpSmallUserId = 'DDA43611-5AA2-44BF-B449-B4734DD32694'
-set @dpSmallEmail = 'ahmed.hussein+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@equalexperts.com'
+set @dpSmallEmail = 'test.account1+dev9+1791181930470+16070-AUTO_TEST_DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @dpSmallUserId)
     insert into Users (UserId, Email) values (@dpSmallUserId, @dpSmallEmail)
@@ -332,7 +332,7 @@ if not exists (select 1 from SubsidiaryOrganisations where OrganisationId = @dpS
 declare @csDelegatedUserId uniqueidentifier
 declare @csDelegatedEmail nvarchar(255)
 set @csDelegatedUserId = 'ef2fd2a5-24bf-4b22-89a0-17a0367aee1c'
-set @csDelegatedEmail = 'francis.chelladurai+07042026@equalexperts.com'
+set @csDelegatedEmail = 'test.account2+07042026@example.com'
 
 if not exists (select 1 from Users where UserId = @csDelegatedUserId)
     insert into Users (UserId, Email) values (@csDelegatedUserId, @csDelegatedEmail)
@@ -369,7 +369,7 @@ if not exists (select 1 from DelegatedPersonEnrolments where EnrolmentId = @csDe
 declare @csBasicUserId uniqueidentifier
 declare @csBasicEmail nvarchar(255)
 set @csBasicUserId = '13e26b8a-e2b2-4870-b040-d6bdf5d689fa'
-set @csBasicEmail = 'francis.chelladurai+260407@equalexperts.com'
+set @csBasicEmail = 'test.account2+260407@example.com'
 
 if not exists (select 1 from Users where UserId = @csBasicUserId)
     insert into Users (UserId, Email) values (@csBasicUserId, @csBasicEmail)
@@ -450,7 +450,7 @@ set @csNewSchemeId = (select Id from ComplianceSchemes where ExternalId = @csNew
 declare @csNewApprovedUserId uniqueidentifier
 declare @csNewApprovedEmail nvarchar(255)
 set @csNewApprovedUserId = '94BFD894-8F64-4F8D-9975-259D08786C2B'
-set @csNewApprovedEmail = 'ahmed.hussein+dev9+1784615966009+09640-DONT_USE@equalexperts.com'
+set @csNewApprovedEmail = 'test.account1+dev9+1784615966009+09640-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @csNewApprovedUserId)
     insert into Users (UserId, Email) values (@csNewApprovedUserId, @csNewApprovedEmail)
@@ -479,7 +479,7 @@ set @csNewApprovedEnrolmentId = (select top 1 Id from Enrolments where Connectio
 declare @csNewDelegatedUserId uniqueidentifier
 declare @csNewDelegatedEmail nvarchar(255)
 set @csNewDelegatedUserId = 'F0CA633F-C62F-4DDB-8009-893C1DF9EBC3'
-set @csNewDelegatedEmail = 'ahmed.hussein+dev9+1784616197060+61532-DONT_USE@equalexperts.com'
+set @csNewDelegatedEmail = 'test.account1+dev9+1784616197060+61532-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @csNewDelegatedUserId)
     insert into Users (UserId, Email) values (@csNewDelegatedUserId, @csNewDelegatedEmail)
@@ -513,7 +513,7 @@ if not exists (select 1 from DelegatedPersonEnrolments where EnrolmentId = @csNe
 declare @csNewBasicUserId uniqueidentifier
 declare @csNewBasicEmail nvarchar(255)
 set @csNewBasicUserId = '637B0DEA-83FA-49CE-AFD9-C5527A820CE1'
-set @csNewBasicEmail = 'ahmed.hussein+dev9+1784616229626+56548-DONT_USE@equalexperts.com'
+set @csNewBasicEmail = 'test.account1+dev9+1784616229626+56548-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @csNewBasicUserId)
     insert into Users (UserId, Email) values (@csNewBasicUserId, @csNewBasicEmail)
@@ -551,7 +551,7 @@ set @m1OrgId = (select Id from Organisations where ExternalId = @m1OrgExternalId
 declare @m1UserId uniqueidentifier
 declare @m1Email nvarchar(255)
 set @m1UserId = 'A16AE06C-3629-4F04-89A6-B8D1912C99FE'
-set @m1Email = 'ahmed.hussein+dev9+1782714701839+98807-DONT_USE@equalexperts.com'
+set @m1Email = 'test.account1+dev9+1782714701839+98807-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m1UserId)
     insert into Users (UserId, Email) values (@m1UserId, @m1Email)
@@ -600,7 +600,7 @@ set @m2OrgId = (select Id from Organisations where ExternalId = @m2OrgExternalId
 declare @m2UserId uniqueidentifier
 declare @m2Email nvarchar(255)
 set @m2UserId = '972111C5-42D1-4AAA-A076-BD61098A75C7'
-set @m2Email = 'ahmed.hussein+dev9+1782714726947+48306-DONT_USE@equalexperts.com'
+set @m2Email = 'test.account1+dev9+1782714726947+48306-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m2UserId)
     insert into Users (UserId, Email) values (@m2UserId, @m2Email)
@@ -649,7 +649,7 @@ set @m3OrgId = (select Id from Organisations where ExternalId = @m3OrgExternalId
 declare @m3UserId uniqueidentifier
 declare @m3Email nvarchar(255)
 set @m3UserId = '8CE8A6C7-16E6-412F-ABBE-036C2DD7E11A'
-set @m3Email = 'ahmed.hussein+dev9+1782714740443+61628-DONT_USE@equalexperts.com'
+set @m3Email = 'test.account1+dev9+1782714740443+61628-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m3UserId)
     insert into Users (UserId, Email) values (@m3UserId, @m3Email)
@@ -698,7 +698,7 @@ set @m4OrgId = (select Id from Organisations where ExternalId = @m4OrgExternalId
 declare @m4UserId uniqueidentifier
 declare @m4Email nvarchar(255)
 set @m4UserId = '410953E4-5D24-4A3C-95F6-E38E8E6802A1'
-set @m4Email = 'ahmed.hussein+dev9+1782714811219+93870-DONT_USE@equalexperts.com'
+set @m4Email = 'test.account1+dev9+1782714811219+93870-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m4UserId)
     insert into Users (UserId, Email) values (@m4UserId, @m4Email)
@@ -747,7 +747,7 @@ set @m5OrgId = (select Id from Organisations where ExternalId = @m5OrgExternalId
 declare @m5UserId uniqueidentifier
 declare @m5Email nvarchar(255)
 set @m5UserId = '575067A3-F25E-4B5A-91BC-5BC763BF7556'
-set @m5Email = 'ahmed.hussein+dev9+1782714821734+90170-DONT_USE@equalexperts.com'
+set @m5Email = 'test.account1+dev9+1782714821734+90170-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m5UserId)
     insert into Users (UserId, Email) values (@m5UserId, @m5Email)
@@ -796,7 +796,7 @@ set @m6OrgId = (select Id from Organisations where ExternalId = @m6OrgExternalId
 declare @m6UserId uniqueidentifier
 declare @m6Email nvarchar(255)
 set @m6UserId = '9ECC9140-47E7-4E5E-9B71-1FF3129C5EB5'
-set @m6Email = 'ahmed.hussein+dev9+1782714833475+55076-DONT_USE@equalexperts.com'
+set @m6Email = 'test.account1+dev9+1782714833475+55076-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m6UserId)
     insert into Users (UserId, Email) values (@m6UserId, @m6Email)
@@ -845,7 +845,7 @@ set @m7OrgId = (select Id from Organisations where ExternalId = @m7OrgExternalId
 declare @m7UserId uniqueidentifier
 declare @m7Email nvarchar(255)
 set @m7UserId = '103B8411-58F4-4B71-B985-B3A4450B32B3'
-set @m7Email = 'ahmed.hussein+dev9+1782714878221+10813-DONT_USE@equalexperts.com'
+set @m7Email = 'test.account1+dev9+1782714878221+10813-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m7UserId)
     insert into Users (UserId, Email) values (@m7UserId, @m7Email)
@@ -894,7 +894,7 @@ set @m8OrgId = (select Id from Organisations where ExternalId = @m8OrgExternalId
 declare @m8UserId uniqueidentifier
 declare @m8Email nvarchar(255)
 set @m8UserId = 'FFD8A042-7BFB-4CE6-BC3A-3BD2E6CDEFE9'
-set @m8Email = 'ahmed.hussein+dev9+1782714888354+70374-DONT_USE@equalexperts.com'
+set @m8Email = 'test.account1+dev9+1782714888354+70374-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m8UserId)
     insert into Users (UserId, Email) values (@m8UserId, @m8Email)
@@ -943,7 +943,7 @@ set @m9OrgId = (select Id from Organisations where ExternalId = @m9OrgExternalId
 declare @m9UserId uniqueidentifier
 declare @m9Email nvarchar(255)
 set @m9UserId = '296C40CC-6694-4E42-95C3-DFD1C0F9692C'
-set @m9Email = 'ahmed.hussein+dev9+1782714921449+05316-DONT_USE@equalexperts.com'
+set @m9Email = 'test.account1+dev9+1782714921449+05316-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m9UserId)
     insert into Users (UserId, Email) values (@m9UserId, @m9Email)
@@ -992,7 +992,7 @@ set @m10OrgId = (select Id from Organisations where ExternalId = @m10OrgExternal
 declare @m10UserId uniqueidentifier
 declare @m10Email nvarchar(255)
 set @m10UserId = 'F3F0C069-B981-44CE-946C-484B943B763A'
-set @m10Email = 'ahmed.hussein+dev9+1782715019923+87659-DONT_USE@equalexperts.com'
+set @m10Email = 'test.account1+dev9+1782715019923+87659-DONT_USE@example.com'
 
 if not exists (select 1 from Users where UserId = @m10UserId)
     insert into Users (UserId, Email) values (@m10UserId, @m10Email)
